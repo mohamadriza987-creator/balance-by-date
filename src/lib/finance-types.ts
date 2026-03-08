@@ -29,6 +29,21 @@ export interface Entry {
   category: string;
   account: AccountType;
   includeInForecast: boolean;
+  isCheque?: boolean;
+  isOptional?: boolean;
+  debtLinkId?: string; // links to parent debt entry id
+  debtType?: "repayment" | "recovery"; // what kind of linked debt item this is
+}
+
+export interface DebtPlan {
+  id: string;
+  parentEntryId: string; // the inflow or outflow entry that created this debt
+  direction: "received" | "given"; // received = inflow debt, given = outflow debt
+  totalAmount: number;
+  splits: number;
+  frequency: Frequency;
+  startDate: string;
+  linkedEntryIds: string[]; // generated repayment/recovery entry ids
 }
 
 export interface Investment {
@@ -44,6 +59,14 @@ export interface Investment {
   includeInForecast: boolean;
 }
 
+export interface UserProfile {
+  name: string;
+  country: string;
+  currency: string;
+  currencySymbol: string;
+  enabledAccounts: AccountType[];
+}
+
 export interface AppData {
   currentBalance: number;
   accountBalances: AccountBalances;
@@ -52,6 +75,8 @@ export interface AppData {
   subscriptions: Subscription[];
   entries: Entry[];
   investments: Investment[];
+  debtPlans: DebtPlan[];
+  userProfile?: UserProfile;
 }
 
 export interface ForecastItem {
@@ -60,4 +85,7 @@ export interface ForecastItem {
   amount: number;
   balance: number;
   type: "subscription" | "income" | "expense";
+  isCheque?: boolean;
+  isDebtLinked?: boolean;
+  isOptional?: boolean;
 }
