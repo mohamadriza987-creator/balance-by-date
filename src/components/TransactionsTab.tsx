@@ -34,23 +34,30 @@ const FILTER_LABELS: Record<AccountFilter, string> = { all: "All", cash: "Cash",
 export function TransactionsTab({ data }: TransactionsTabProps) {
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
   // Filter data by account
+  const filteredData = useMemo((): AppData => {
+    if (accountFilter === "all") return data;
+    return {
+      ...data,
+      entries: data.entries.filter(e => e.account === accountFilter),
+      subscriptions: data.subscriptions.filter(s => s.account === accountFilter),
+      investments: (data.investments || []).filter(i => i.account === accountFilter),
+      currentBalance: data.accountBalances[accountFilter] || 0,
+    };
+  }, [data, accountFilter]);
+
   const today = data.positionDate || todayStr();
 
-  // Compute effective balance at position date
-  const effectiveBalance = useMemo(() => {
-    if (accountFilter === "all") return computeBalanceAtPosition(data);
-    // For filtered accounts, compute balance at position for that account's data
-    return computeBalanceAtPosition(filteredData);
-  }, [data, filteredData, accountFilter]);
+  // Compute effective balance at position date (simulates all transactions up to positionDate)
+  const effectiveBalance = useMemo(() => computeBalanceAtPosition(filteredData), [filteredData]);
 
-  const filteredDataWithEffectiveBalance = useMemo((): AppData => ({
+  const effectiveData = useMemo((): AppData => ({
     ...filteredData,
     currentBalance: effectiveBalance,
   }), [filteredData, effectiveBalance]);
 
-  const forecast = useMemo(() => computeForecast(filteredDataWithEffectiveBalance), [filteredDataWithEffectiveBalance]);
-  const forecastBalance = getBalanceOnDate(forecast, filteredDataWithEffectiveBalance.forecastDate, effectiveBalance);
-  const monthSubs = getMonthSubscriptionTotal(filteredDataWithEffectiveBalance.subscriptions);
+  const forecast = useMemo(() => computeForecast(effectiveData), [effectiveData]);
+  const forecastBalance = getBalanceOnDate(forecast, effectiveData.forecastDate, effectiveBalance);
+  const monthSubs = getMonthSubscriptionTotal(effectiveData.subscriptions);
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
