@@ -1,4 +1,5 @@
 export type Frequency = "once" | "weekly" | "biweekly" | "monthly" | "quarterly" | "halfyearly" | "yearly";
+export type AccountType = "cash" | "bank" | "creditCard";
 
 export interface AccountBalances {
   cash: number;
