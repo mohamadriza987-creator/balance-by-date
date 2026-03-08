@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, Calculator, Minus, Plus, Pause, Play } from "lucide-react";
+import { TrendingUp, TrendingDown, Shield, AlertTriangle, Calculator, Minus, Pause, Play, Scale } from "lucide-react";
 import type { AppData, ForecastItem, Frequency } from "@/lib/finance-types";
 import {
   computeForecast, computeBalanceAtPosition, formatDate, formatMoney,
@@ -23,6 +23,8 @@ interface ForecastTabProps {
 
 export function ForecastTab({ data }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
+  const profile = data.userProfile;
+  const fm = (n: number) => formatMoney(n, profile);
   const effectiveBalance = useMemo(() => computeBalanceAtPosition(data), [data]);
   const effectiveData = useMemo(() => ({ ...data, currentBalance: effectiveBalance }), [data, effectiveBalance]);
   const forecast = useMemo(() => computeForecast(effectiveData), [effectiveData]);
@@ -30,7 +32,6 @@ export function ForecastTab({ data }: ForecastTabProps) {
   const riskDate = getRiskDate(forecast);
   const monthSubs = getMonthSubscriptionTotal(data.subscriptions);
 
-  // Summary calculations
   const summaryStats = useMemo(() => {
     let totalInflow = 0, totalOutflow = 0;
     for (const item of forecast) {
@@ -45,7 +46,6 @@ export function ForecastTab({ data }: ForecastTabProps) {
     return { totalInflow, totalOutflow, lowestBalance, lowestDate: lowestItem?.date };
   }, [forecast, data.forecastDate, effectiveBalance]);
 
-  // Filter
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const filteredForecast = useMemo(() => {
     const items = forecast.filter(f => f.date <= data.forecastDate);
@@ -60,7 +60,7 @@ export function ForecastTab({ data }: ForecastTabProps) {
         <CardContent className="py-4 px-4">
           <p className="text-xs text-muted-foreground mb-1">Projected Balance on {formatDate(data.forecastDate)}</p>
           <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-            {formatMoney(forecastBalance)}
+            {fm(forecastBalance)}
           </p>
         </CardContent>
       </Card>
@@ -72,7 +72,7 @@ export function ForecastTab({ data }: ForecastTabProps) {
               <TrendingUp className="h-3.5 w-3.5 text-success" />
               <p className="text-[10px] text-muted-foreground">Expected Inflow</p>
             </div>
-            <p className="text-sm font-bold text-success">{formatMoney(summaryStats.totalInflow)}</p>
+            <p className="text-sm font-bold text-success">{fm(summaryStats.totalInflow)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -81,7 +81,7 @@ export function ForecastTab({ data }: ForecastTabProps) {
               <TrendingDown className="h-3.5 w-3.5 text-destructive" />
               <p className="text-[10px] text-muted-foreground">Expected Outflow</p>
             </div>
-            <p className="text-sm font-bold text-destructive">{formatMoney(summaryStats.totalOutflow)}</p>
+            <p className="text-sm font-bold text-destructive">{fm(summaryStats.totalOutflow)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -90,7 +90,7 @@ export function ForecastTab({ data }: ForecastTabProps) {
               <Minus className="h-3.5 w-3.5 text-warning" />
               <p className="text-[10px] text-muted-foreground">Subscriptions/mo</p>
             </div>
-            <p className="text-sm font-bold">{formatMoney(monthSubs)}</p>
+            <p className="text-sm font-bold">{fm(monthSubs)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -102,7 +102,7 @@ export function ForecastTab({ data }: ForecastTabProps) {
               <p className="text-[10px] text-muted-foreground">Lowest Balance</p>
             </div>
             <p className={`text-sm font-bold ${summaryStats.lowestBalance < 0 ? "text-destructive" : ""}`}>
-              {formatMoney(summaryStats.lowestBalance)}
+              {fm(summaryStats.lowestBalance)}
             </p>
             {summaryStats.lowestDate && (
               <p className="text-[9px] text-muted-foreground">{formatDate(summaryStats.lowestDate)}</p>
@@ -151,22 +151,29 @@ export function ForecastTab({ data }: ForecastTabProps) {
           ) : (
             <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
               {filteredForecast.slice(0, 50).map((item, i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2">
+                <div key={i} className={`flex items-center justify-between rounded-lg border border-border/50 px-3 py-2 ${
+                  item.isCheque ? "border-l-4 border-l-amber-400" : item.isDebtLinked ? "border-l-4 border-l-orange-400" : ""
+                }`}>
                   <div className="flex items-center gap-2 min-w-0">
                     <Badge variant="outline" className={`text-[9px] shrink-0 px-1.5 ${TYPE_COLORS[item.type] || ""}`}>
                       {item.type === "income" ? "inflow" : item.type}
                     </Badge>
                     <div className="min-w-0">
-                      <p className="text-xs font-medium truncate">{item.label}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-xs font-medium truncate">{item.label}</p>
+                        {item.isCheque && <Badge className="text-[8px] bg-amber-500/20 text-amber-400 px-1">Cheque</Badge>}
+                        {item.isDebtLinked && <Badge className="text-[8px] bg-orange-500/20 text-orange-400 px-1">Debt</Badge>}
+                        {item.isOptional && <Badge variant="outline" className="text-[8px] px-1">Optional</Badge>}
+                      </div>
                       <p className="text-[10px] text-muted-foreground">{formatDate(item.date)}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0 ml-2">
                     <p className={`text-xs font-bold ${item.amount >= 0 ? "text-success" : "text-destructive"}`}>
-                      {item.amount >= 0 ? "+" : ""}{formatMoney(item.amount)}
+                      {item.amount >= 0 ? "+" : ""}{fm(item.amount)}
                     </p>
                     <p className={`text-[10px] ${item.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                      {formatMoney(item.balance)}
+                      {fm(item.balance)}
                     </p>
                   </div>
                 </div>
@@ -177,20 +184,23 @@ export function ForecastTab({ data }: ForecastTabProps) {
       </Card>
 
       {/* What-If Simulator */}
-      <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} />
+      <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />
 
       {/* EMI Planner */}
-      <EMIPlanner data={data} effectiveBalance={effectiveBalance} />
+      <EMIPlanner data={data} effectiveBalance={effectiveBalance} fm={fm} />
 
       {/* Investment Advisor */}
-      <InvestmentAdvisor data={data} effectiveBalance={effectiveBalance} />
+      <InvestmentAdvisor data={data} effectiveBalance={effectiveBalance} fm={fm} />
+
+      {/* Debt Management */}
+      <DebtManagement data={data} fm={fm} />
     </div>
   );
 }
 
 // ============ WHAT-IF SIMULATOR ============
-function WhatIfSimulator({ data, currentForecast, effectiveBalance }: {
-  data: AppData; currentForecast: ForecastItem[]; effectiveBalance: number;
+function WhatIfSimulator({ data, currentForecast, effectiveBalance, fm }: {
+  data: AppData; currentForecast: ForecastItem[]; effectiveBalance: number; fm: (n: number) => string;
 }) {
   const [scenario, setScenario] = useState<string>("delay_salary");
   const [delayDays, setDelayDays] = useState("5");
@@ -207,7 +217,6 @@ function WhatIfSimulator({ data, currentForecast, effectiveBalance }: {
 
   const simulatedResult = useMemo(() => {
     if (!simulated) return null;
-
     let simData = JSON.parse(JSON.stringify(data)) as AppData;
 
     switch (scenario) {
@@ -268,11 +277,7 @@ function WhatIfSimulator({ data, currentForecast, effectiveBalance }: {
       ? Math.min(simBalance, ...simForecast.filter(f => f.date <= data.forecastDate).map(f => f.balance))
       : simBalance;
 
-    return {
-      balance: simForecastBal,
-      riskDate: simRisk,
-      lowestBalance: simLowest,
-    };
+    return { balance: simForecastBal, riskDate: simRisk, lowestBalance: simLowest };
   }, [simulated, scenario, data, delayDays, cancelSubId, emiAmount, rentChange, investReduce]);
 
   const currentForecastBal = getBalanceOnDate(currentForecast, data.forecastDate, effectiveBalance);
@@ -299,86 +304,49 @@ function WhatIfSimulator({ data, currentForecast, effectiveBalance }: {
         </Select>
 
         {scenario === "delay_salary" && (
-          <div>
-            <Label className="text-xs">Delay by (days)</Label>
-            <Input type="number" value={delayDays} onChange={e => setDelayDays(e.target.value)} className="h-9" />
-          </div>
+          <div><Label className="text-xs">Delay by (days)</Label>
+            <Input type="number" value={delayDays} onChange={e => setDelayDays(e.target.value)} className="h-9" /></div>
         )}
         {scenario === "cancel_sub" && (
-          <div>
-            <Label className="text-xs">Select subscription</Label>
+          <div><Label className="text-xs">Select subscription</Label>
             <Select value={cancelSubId} onValueChange={setCancelSubId}>
               <SelectTrigger className="h-9"><SelectValue placeholder="Choose..." /></SelectTrigger>
               <SelectContent>
                 {data.subscriptions.filter(s => s.includeInForecast).map(s => (
-                  <SelectItem key={s.id} value={s.id}>{s.name} ({formatMoney(s.amount)}/{s.frequency})</SelectItem>
+                  <SelectItem key={s.id} value={s.id}>{s.name} ({fm(s.amount)}/{s.frequency})</SelectItem>
                 ))}
               </SelectContent>
-            </Select>
-          </div>
+            </Select></div>
         )}
         {scenario === "add_emi" && (
-          <div>
-            <Label className="text-xs">Monthly EMI amount ($)</Label>
-            <Input type="number" inputMode="decimal" value={emiAmount} onChange={e => setEmiAmount(e.target.value)} className="h-9" />
-          </div>
+          <div><Label className="text-xs">Monthly EMI amount</Label>
+            <Input type="number" inputMode="decimal" value={emiAmount} onChange={e => setEmiAmount(e.target.value)} className="h-9" /></div>
         )}
         {scenario === "change_rent" && (
-          <div>
-            <Label className="text-xs">Increase amount ($)</Label>
-            <Input type="number" inputMode="decimal" value={rentChange} onChange={e => setRentChange(e.target.value)} className="h-9" />
-          </div>
+          <div><Label className="text-xs">Increase amount</Label>
+            <Input type="number" inputMode="decimal" value={rentChange} onChange={e => setRentChange(e.target.value)} className="h-9" /></div>
         )}
         {scenario === "reduce_investment" && (
-          <div>
-            <Label className="text-xs">Reduce by (%)</Label>
+          <div><Label className="text-xs">Reduce by (%)</Label>
             <Slider value={[parseInt(investReduce) || 0]} onValueChange={(v) => setInvestReduce(String(v[0]))} min={0} max={100} step={10} />
-            <p className="text-xs text-muted-foreground text-right mt-1">{investReduce}%</p>
-          </div>
+            <p className="text-xs text-muted-foreground text-right mt-1">{investReduce}%</p></div>
         )}
 
-        <Button
-          className="w-full"
-          variant="outline"
-          onClick={() => setSimulated(true)}
-        >
-          Run Simulation
-        </Button>
+        <Button className="w-full" variant="outline" onClick={() => setSimulated(true)}>Run Simulation</Button>
 
         {simulated && simulatedResult && (
           <div className="rounded-lg border border-info/30 bg-info/5 p-3 space-y-2">
             <p className="text-xs font-semibold text-info">⚡ Simulation Results (not saved)</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <p className="text-muted-foreground">Current Balance</p>
-                <p className="font-bold">{formatMoney(currentForecastBal)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Simulated Balance</p>
-                <p className={`font-bold ${simulatedResult.balance < currentForecastBal ? "text-destructive" : "text-success"}`}>
-                  {formatMoney(simulatedResult.balance)}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Current Lowest</p>
-                <p className="font-bold">{formatMoney(currentLowest)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Simulated Lowest</p>
-                <p className={`font-bold ${simulatedResult.lowestBalance < currentLowest ? "text-destructive" : "text-success"}`}>
-                  {formatMoney(simulatedResult.lowestBalance)}
-                </p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Current Risk</p>
-                <p className="font-bold">{currentRiskDate ? formatDate(currentRiskDate) : "None ✓"}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Simulated Risk</p>
-                <p className={`font-bold ${simulatedResult.riskDate ? "text-destructive" : "text-success"}`}>
-                  {simulatedResult.riskDate ? formatDate(simulatedResult.riskDate) : "None ✓"}
-                </p>
-              </div>
+              <div><p className="text-muted-foreground">Current Balance</p><p className="font-bold">{fm(currentForecastBal)}</p></div>
+              <div><p className="text-muted-foreground">Simulated Balance</p>
+                <p className={`font-bold ${simulatedResult.balance < currentForecastBal ? "text-destructive" : "text-success"}`}>{fm(simulatedResult.balance)}</p></div>
+              <div><p className="text-muted-foreground">Current Lowest</p><p className="font-bold">{fm(currentLowest)}</p></div>
+              <div><p className="text-muted-foreground">Simulated Lowest</p>
+                <p className={`font-bold ${simulatedResult.lowestBalance < currentLowest ? "text-destructive" : "text-success"}`}>{fm(simulatedResult.lowestBalance)}</p></div>
+              <div><p className="text-muted-foreground">Current Risk</p><p className="font-bold">{currentRiskDate ? formatDate(currentRiskDate) : "None ✓"}</p></div>
+              <div><p className="text-muted-foreground">Simulated Risk</p>
+                <p className={`font-bold ${simulatedResult.riskDate ? "text-destructive" : "text-success"}`}>{simulatedResult.riskDate ? formatDate(simulatedResult.riskDate) : "None ✓"}</p></div>
             </div>
           </div>
         )}
@@ -387,27 +355,30 @@ function WhatIfSimulator({ data, currentForecast, effectiveBalance }: {
   );
 }
 
-// ============ EMI PLANNER ============
-function EMIPlanner({ data, effectiveBalance }: { data: AppData; effectiveBalance: number }) {
+// ============ EMI PLANNER (max 10 years) ============
+function EMIPlanner({ data, effectiveBalance, fm }: { data: AppData; effectiveBalance: number; fm: (n: number) => string }) {
   const [loanAmount, setLoanAmount] = useState("");
   const [rate, setRate] = useState("10");
   const [tenure, setTenure] = useState("12");
   const [calculated, setCalculated] = useState(false);
 
+  const MAX_TENURE = 120; // 10 years
+
+  const handleTenureChange = (v: number[]) => {
+    setTenure(String(Math.min(v[0], MAX_TENURE)));
+    setCalculated(false);
+  };
+
   const result = useMemo(() => {
     if (!calculated) return null;
     const p = parseFloat(loanAmount) || 0;
     const r = (parseFloat(rate) || 0) / 100 / 12;
-    const n = parseInt(tenure) || 1;
+    const n = Math.min(parseInt(tenure) || 1, MAX_TENURE);
 
     let emi: number;
-    if (r === 0) {
-      emi = p / n;
-    } else {
-      emi = p * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
-    }
+    if (r === 0) emi = p / n;
+    else emi = p * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
 
-    // Simulate adding this EMI
     const simData = JSON.parse(JSON.stringify(data)) as AppData;
     simData.entries = [...simData.entries, {
       id: "emi-sim", label: "Loan EMI", amount: -emi,
@@ -419,13 +390,8 @@ function EMIPlanner({ data, effectiveBalance }: { data: AppData; effectiveBalanc
     const simForecast = computeForecast({ ...simData, currentBalance: simBalance });
     const simRisk = getRiskDate(simForecast);
 
-    // Monthly free cash
-    const monthlyIncome = data.entries
-      .filter(e => e.amount > 0 && e.includeInForecast)
-      .reduce((sum, e) => sum + toMonthlyAmount(e.amount, e.frequency), 0);
-    const monthlyExpense = data.entries
-      .filter(e => e.amount < 0 && e.includeInForecast)
-      .reduce((sum, e) => sum + toMonthlyAmount(Math.abs(e.amount), e.frequency), 0);
+    const monthlyIncome = data.entries.filter(e => e.amount > 0 && e.includeInForecast).reduce((sum, e) => sum + toMonthlyAmount(e.amount, e.frequency), 0);
+    const monthlyExpense = data.entries.filter(e => e.amount < 0 && e.includeInForecast).reduce((sum, e) => sum + toMonthlyAmount(Math.abs(e.amount), e.frequency), 0);
     const monthlySubs = getMonthSubscriptionTotal(data.subscriptions);
     const freeCash = monthlyIncome - monthlyExpense - monthlySubs - emi;
 
@@ -446,41 +412,32 @@ function EMIPlanner({ data, effectiveBalance }: { data: AppData; effectiveBalanc
   return (
     <Card>
       <CardHeader className="px-4 py-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Calculator className="h-4 w-4" />
-          Loan / EMI Planner
-        </CardTitle>
+        <CardTitle className="text-base flex items-center gap-2"><Calculator className="h-4 w-4" /> Loan / EMI Planner</CardTitle>
         <p className="text-[10px] text-muted-foreground">Estimate affordability before committing</p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-3">
         <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label className="text-xs">Loan Amount ($)</Label>
-            <Input type="number" inputMode="decimal" value={loanAmount} onChange={e => setLoanAmount(e.target.value)} className="h-9" placeholder="50000" />
-          </div>
-          <div>
-            <Label className="text-xs">Annual Rate (%)</Label>
-            <Input type="number" inputMode="decimal" value={rate} onChange={e => setRate(e.target.value)} className="h-9" />
-          </div>
+          <div><Label className="text-xs">Loan Amount</Label>
+            <Input type="number" inputMode="decimal" value={loanAmount} onChange={e => { setLoanAmount(e.target.value); setCalculated(false); }} className="h-9" placeholder="50000" /></div>
+          <div><Label className="text-xs">Annual Rate (%)</Label>
+            <Input type="number" inputMode="decimal" value={rate} onChange={e => { setRate(e.target.value); setCalculated(false); }} className="h-9" /></div>
         </div>
         <div>
-          <Label className="text-xs">Tenure (months)</Label>
-          <Slider value={[parseInt(tenure) || 12]} onValueChange={(v) => setTenure(String(v[0]))} min={3} max={360} step={3} />
-          <p className="text-xs text-muted-foreground text-right mt-1">{tenure} months ({Math.round((parseInt(tenure) || 0) / 12 * 10) / 10} years)</p>
+          <Label className="text-xs">Tenure (months) — max 10 years</Label>
+          <Slider value={[Math.min(parseInt(tenure) || 12, MAX_TENURE)]} onValueChange={handleTenureChange} min={3} max={MAX_TENURE} step={3} />
+          <p className="text-xs text-muted-foreground text-right mt-1">{Math.min(parseInt(tenure) || 12, MAX_TENURE)} months ({(Math.min(parseInt(tenure) || 12, MAX_TENURE) / 12).toFixed(1)} years)</p>
         </div>
 
-        <Button className="w-full" variant="outline" onClick={() => setCalculated(true)} disabled={!loanAmount}>
-          Calculate EMI
-        </Button>
+        <Button className="w-full" variant="outline" onClick={() => setCalculated(true)} disabled={!loanAmount}>Calculate EMI</Button>
 
         {calculated && result && (
           <div className="space-y-3">
             <div className="rounded-lg border border-border/50 p-3">
               <p className="text-[10px] text-muted-foreground mb-1">Estimated Monthly EMI</p>
-              <p className="text-2xl font-bold">{formatMoney(result.emi)}</p>
+              <p className="text-2xl font-bold">{fm(result.emi)}</p>
               <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
-                <span>Total: {formatMoney(result.totalPayment)}</span>
-                <span>Interest: {formatMoney(result.totalInterest)}</span>
+                <span>Total: {fm(result.totalPayment)}</span>
+                <span>Interest: {fm(result.totalInterest)}</span>
               </div>
             </div>
             <div className={`rounded-lg border p-3 ${statusColors[result.status]}`}>
@@ -490,10 +447,8 @@ function EMIPlanner({ data, effectiveBalance }: { data: AppData; effectiveBalanc
                 {result.status === "tight" && "This EMI is manageable but leaves little room."}
                 {result.status === "risky" && "This EMI may cause cash flow problems."}
               </p>
-              <p className="text-xs mt-1">Free cash after EMI: {formatMoney(result.freeCash)}/mo</p>
-              {result.simRisk && (
-                <p className="text-xs mt-1">⚠️ Negative balance on {formatDate(result.simRisk)}</p>
-              )}
+              <p className="text-xs mt-1">Free cash after EMI: {fm(result.freeCash)}/mo</p>
+              {result.simRisk && <p className="text-xs mt-1">⚠️ Negative balance on {formatDate(result.simRisk)}</p>}
             </div>
           </div>
         )}
@@ -503,9 +458,8 @@ function EMIPlanner({ data, effectiveBalance }: { data: AppData; effectiveBalanc
 }
 
 // ============ INVESTMENT ADVISOR ============
-function InvestmentAdvisor({ data, effectiveBalance }: { data: AppData; effectiveBalance: number }) {
+function InvestmentAdvisor({ data, effectiveBalance, fm }: { data: AppData; effectiveBalance: number; fm: (n: number) => string }) {
   const investments = data.investments || [];
-
   const [selectedId, setSelectedId] = useState<string>(investments[0]?.id || "");
   const [reduction, setReduction] = useState(50);
   const [paused, setPaused] = useState(false);
@@ -513,7 +467,6 @@ function InvestmentAdvisor({ data, effectiveBalance }: { data: AppData; effectiv
 
   const result = useMemo(() => {
     if (!simulated || investments.length === 0) return null;
-
     const simData = JSON.parse(JSON.stringify(data)) as AppData;
     simData.investments = (simData.investments || []).map(i => {
       if (i.id === selectedId) {
@@ -522,88 +475,192 @@ function InvestmentAdvisor({ data, effectiveBalance }: { data: AppData; effectiv
       }
       return i;
     });
-
     const simBalance = computeBalanceAtPosition(simData);
     const simForecast = computeForecast({ ...simData, currentBalance: simBalance });
     const simRisk = getRiskDate(simForecast);
-
     const origForecast = computeForecast({ ...data, currentBalance: effectiveBalance });
     const origRisk = getRiskDate(origForecast);
-
-    const origLowest = origForecast.length > 0
-      ? Math.min(effectiveBalance, ...origForecast.filter(f => f.date <= data.forecastDate).map(f => f.balance))
-      : effectiveBalance;
-    const simLowest = simForecast.length > 0
-      ? Math.min(simBalance, ...simForecast.filter(f => f.date <= data.forecastDate).map(f => f.balance))
-      : simBalance;
-
+    const origLowest = origForecast.length > 0 ? Math.min(effectiveBalance, ...origForecast.filter(f => f.date <= data.forecastDate).map(f => f.balance)) : effectiveBalance;
+    const simLowest = simForecast.length > 0 ? Math.min(simBalance, ...simForecast.filter(f => f.date <= data.forecastDate).map(f => f.balance)) : simBalance;
     const inv = investments.find(i => i.id === selectedId);
     const savedPerMonth = inv ? toMonthlyAmount(paused ? inv.amount : inv.amount * reduction / 100, inv.frequency) : 0;
-
     let advice: string;
     if (!origRisk && !simRisk) advice = "Keeping this investment is affordable.";
     else if (origRisk && !simRisk) advice = "Reducing this investment prevents a negative balance.";
     else if (!origRisk) advice = "This change doesn't significantly impact your safety.";
     else advice = "Reducing this investment improves your short-term cash safety.";
-
     return { origRisk, simRisk, origLowest, simLowest, savedPerMonth, advice };
   }, [simulated, data, selectedId, reduction, paused, effectiveBalance, investments]);
+
+  if (investments.length === 0) return null;
 
   return (
     <Card>
       <CardHeader className="px-4 py-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <TrendingDown className="h-4 w-4 text-warning" />
-          Investment Advisor
-        </CardTitle>
+        <CardTitle className="text-base flex items-center gap-2"><TrendingDown className="h-4 w-4 text-warning" /> Investment Advisor</CardTitle>
         <p className="text-[10px] text-muted-foreground">See how reducing investments affects your balance</p>
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-3">
         <Select value={selectedId} onValueChange={(v) => { setSelectedId(v); setSimulated(false); }}>
           <SelectTrigger className="h-9"><SelectValue placeholder="Select investment" /></SelectTrigger>
           <SelectContent>
-            {investments.map(inv => (
-              <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
-            ))}
+            {investments.map(inv => (<SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>))}
           </SelectContent>
         </Select>
-
         <div className="flex items-center gap-3">
-          <Button
-            variant={paused ? "default" : "outline"} size="sm"
-            onClick={() => { setPaused(!paused); setSimulated(false); }}
-          >
+          <Button variant={paused ? "default" : "outline"} size="sm" onClick={() => { setPaused(!paused); setSimulated(false); }}>
             {paused ? <Play className="h-3 w-3 mr-1" /> : <Pause className="h-3 w-3 mr-1" />}
             {paused ? "Resume" : "Pause"}
           </Button>
           {!paused && (
-            <div className="flex-1">
-              <Label className="text-[10px]">Reduce by {reduction}%</Label>
-              <Slider value={[reduction]} onValueChange={(v) => { setReduction(v[0]); setSimulated(false); }} min={10} max={100} step={10} />
-            </div>
+            <div className="flex-1"><Label className="text-[10px]">Reduce by {reduction}%</Label>
+              <Slider value={[reduction]} onValueChange={(v) => { setReduction(v[0]); setSimulated(false); }} min={10} max={100} step={10} /></div>
           )}
         </div>
-
-        <Button className="w-full" variant="outline" onClick={() => setSimulated(true)}>
-          Simulate
-        </Button>
-
+        <Button className="w-full" variant="outline" onClick={() => setSimulated(true)}>Simulate</Button>
         {simulated && result && (
           <div className="rounded-lg border border-warning/30 bg-warning/5 p-3 space-y-2">
             <p className="text-xs font-semibold text-warning">💰 Simulation Result</p>
             <p className="text-xs text-muted-foreground">{result.advice}</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <div>
-                <p className="text-muted-foreground">Monthly Saved</p>
-                <p className="font-bold text-success">+{formatMoney(result.savedPerMonth)}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Lowest Balance</p>
-                <p className={`font-bold ${result.simLowest > result.origLowest ? "text-success" : ""}`}>
-                  {formatMoney(result.simLowest)}
-                </p>
-              </div>
+              <div><p className="text-muted-foreground">Monthly Saved</p><p className="font-bold text-success">+{fm(result.savedPerMonth)}</p></div>
+              <div><p className="text-muted-foreground">Lowest Balance</p>
+                <p className={`font-bold ${result.simLowest > result.origLowest ? "text-success" : ""}`}>{fm(result.simLowest)}</p></div>
             </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============ DEBT MANAGEMENT ============
+function DebtManagement({ data, fm }: { data: AppData; fm: (n: number) => string }) {
+  const plans = data.debtPlans || [];
+  const [selectedDebtId, setSelectedDebtId] = useState<string>("");
+
+  const debtAnalysis = useMemo(() => {
+    if (plans.length === 0) return null;
+
+    let totalAssets = 0; // money owed TO user (debt given, expecting recovery)
+    let totalLiabilities = 0; // money user OWES (debt received, needs repayment)
+    let assetPaid = 0;
+    let liabilityPaid = 0;
+
+    const debtItems = plans.map(plan => {
+      const parent = data.entries.find(e => e.id === plan.parentEntryId);
+      const linkedEntries = data.entries.filter(e => plan.linkedEntryIds.includes(e.id));
+      const settledAmount = linkedEntries.filter(e => !e.includeInForecast).reduce((sum, e) => sum + Math.abs(e.amount), 0);
+      const remaining = plan.totalAmount - settledAmount;
+      const allSettled = remaining <= 0.01;
+
+      if (plan.direction === "given") {
+        totalAssets += plan.totalAmount;
+        assetPaid += settledAmount;
+      } else {
+        totalLiabilities += plan.totalAmount;
+        liabilityPaid += settledAmount;
+      }
+
+      return {
+        plan,
+        parent,
+        linkedEntries,
+        settledAmount,
+        remaining: Math.max(0, remaining),
+        status: allSettled ? "Settled" as const : settledAmount > 0 ? "Partially Settled" as const : "Active" as const,
+      };
+    });
+
+    const netDebt = totalAssets - totalLiabilities;
+    let serviceability: string;
+    if (totalLiabilities === 0) serviceability = "No debt liabilities to service.";
+    else if (totalAssets >= totalLiabilities) serviceability = "Your expected debt recoveries appear sufficient to cover planned repayments.";
+    else if (totalAssets > totalLiabilities * 0.5) serviceability = "There may be a debt servicing gap — monitor closely.";
+    else serviceability = "Your debt liabilities exceed your current expected recoveries.";
+
+    return { totalAssets, totalLiabilities, netDebt, serviceability, debtItems, assetPaid, liabilityPaid };
+  }, [plans, data.entries]);
+
+  if (!debtAnalysis || plans.length === 0) return null;
+
+  const selected = selectedDebtId ? debtAnalysis.debtItems.find(d => d.plan.id === selectedDebtId) : null;
+
+  return (
+    <Card>
+      <CardHeader className="px-4 py-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Scale className="h-4 w-4 text-orange-400" />
+          Debt Management
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 pb-4 space-y-4">
+        {/* Net Position */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-lg bg-success/10 p-2">
+            <p className="text-[9px] text-muted-foreground">Debt Assets</p>
+            <p className="text-xs font-bold text-success">{fm(debtAnalysis.totalAssets)}</p>
+          </div>
+          <div className="rounded-lg bg-destructive/10 p-2">
+            <p className="text-[9px] text-muted-foreground">Debt Liabilities</p>
+            <p className="text-xs font-bold text-destructive">{fm(debtAnalysis.totalLiabilities)}</p>
+          </div>
+          <div className="rounded-lg bg-muted/50 p-2">
+            <p className="text-[9px] text-muted-foreground">Net Debt</p>
+            <p className={`text-xs font-bold ${debtAnalysis.netDebt >= 0 ? "text-success" : "text-destructive"}`}>{fm(debtAnalysis.netDebt)}</p>
+          </div>
+        </div>
+
+        {/* Serviceability */}
+        <div className="rounded-lg border border-border/50 p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Serviceability</p>
+          <p className="text-xs text-foreground">{debtAnalysis.serviceability}</p>
+        </div>
+
+        {/* Individual Debt Selection */}
+        <div>
+          <Label className="text-xs">Inspect individual debt</Label>
+          <Select value={selectedDebtId} onValueChange={setSelectedDebtId}>
+            <SelectTrigger className="h-9"><SelectValue placeholder="Select a debt..." /></SelectTrigger>
+            <SelectContent>
+              {debtAnalysis.debtItems.map(d => (
+                <SelectItem key={d.plan.id} value={d.plan.id}>
+                  {d.parent?.label || "Debt"} — {fm(d.plan.totalAmount)} ({d.plan.direction === "received" ? "Received" : "Given"})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selected && (
+          <div className="rounded-lg border border-orange-500/20 bg-orange-500/5 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold">{selected.parent?.label || "Debt"}</p>
+              <Badge className={`text-[9px] ${
+                selected.status === "Settled" ? "bg-success/20 text-success" :
+                selected.status === "Partially Settled" ? "bg-warning/20 text-warning" :
+                "bg-info/20 text-info"
+              }`}>{selected.status}</Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div><p className="text-muted-foreground">Original Amount</p><p className="font-bold">{fm(selected.plan.totalAmount)}</p></div>
+              <div><p className="text-muted-foreground">{selected.plan.direction === "received" ? "Repaid" : "Recovered"}</p><p className="font-bold">{fm(selected.settledAmount)}</p></div>
+              <div><p className="text-muted-foreground">Remaining</p><p className="font-bold">{fm(selected.remaining)}</p></div>
+              <div><p className="text-muted-foreground">Splits</p><p className="font-bold">{selected.plan.splits} × {selected.plan.frequency}</p></div>
+            </div>
+            {selected.linkedEntries.length > 0 && (
+              <div className="space-y-1 mt-2">
+                <p className="text-[10px] font-semibold text-muted-foreground">
+                  {selected.plan.direction === "received" ? "REPAYMENT SCHEDULE" : "RECOVERY SCHEDULE"}
+                </p>
+                {selected.linkedEntries.map(e => (
+                  <div key={e.id} className="flex justify-between text-[10px]">
+                    <span className="text-muted-foreground">{formatDate(e.date)}</span>
+                    <span className={`font-medium ${e.amount >= 0 ? "text-success" : "text-destructive"}`}>{fm(Math.abs(e.amount))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
