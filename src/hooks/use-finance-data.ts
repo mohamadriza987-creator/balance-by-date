@@ -69,6 +69,7 @@ export function useFinanceData() {
 
   return {
     data,
+    setData,
     addSubscription,
     removeSubscription,
     toggleSubscriptionForecast,

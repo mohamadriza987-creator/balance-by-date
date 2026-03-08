@@ -2,17 +2,18 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, CreditCard, List, PlusCircle } from "lucide-react";
+import { CalendarDays, CreditCard, List, PlusCircle, Settings } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { TimelineTab } from "@/components/TimelineTab";
 import { SubscriptionsTab } from "@/components/SubscriptionsTab";
 import { EntriesTab } from "@/components/EntriesTab";
 import { AddNewTab } from "@/components/AddNewTab";
+import { SettingsTab } from "@/components/SettingsTab";
 import { formatMoney } from "@/lib/finance-utils";
 
 const Index = () => {
   const {
-    data, addSubscription, removeSubscription, toggleSubscriptionForecast,
+    data, setData, addSubscription, removeSubscription, toggleSubscriptionForecast,
     addEntry, removeEntry, toggleEntryForecast, updateBalance, updateForecastDate,
   } = useFinanceData();
 
@@ -62,7 +63,7 @@ const Index = () => {
       {/* Main */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="timeline" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-4">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="timeline" className="gap-1.5 text-xs sm:text-sm">
               <CalendarDays className="h-4 w-4 hidden sm:block" /> Timeline
             </TabsTrigger>
@@ -74,6 +75,9 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="add" className="gap-1.5 text-xs sm:text-sm">
               <PlusCircle className="h-4 w-4 hidden sm:block" /> Add New
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
+              <Settings className="h-4 w-4 hidden sm:block" /> Settings
             </TabsTrigger>
           </TabsList>
 
@@ -88,6 +92,9 @@ const Index = () => {
           </TabsContent>
           <TabsContent value="add">
             <AddNewTab onAddSubscription={addSubscription} onAddEntry={addEntry} />
+          </TabsContent>
+          <TabsContent value="settings">
+            <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
           </TabsContent>
         </Tabs>
       </main>
