@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw, Heart } from "lucide-react";
-import type { AppData } from "@/lib/finance-types";
+import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight } from "lucide-react";
+import type { AppData, AppSettings } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
+import { getSettings } from "@/lib/account-forecast";
 import { useToast } from "@/hooks/use-toast";
 
 interface SettingsTabProps {
@@ -15,11 +18,13 @@ interface SettingsTabProps {
   onReplace: (data: AppData) => void;
   onUpdateForecastDate: (date: string) => void;
   onReplayIntro?: () => void;
+  onUpdateSettings?: (updates: Partial<AppSettings>) => void;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro }: SettingsTabProps) {
+export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings }: SettingsTabProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const settings = getSettings(data);
 
   const today = data.positionDate || todayStr();
   const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
@@ -89,6 +94,81 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
           <p className="text-xs text-muted-foreground">
             Forecast through {data.forecastDate}
           </p>
+        </CardContent>
+      </Card>
+
+      {/* Credit Card Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="h-5 w-5" /> Credit Card
+          </CardTitle>
+          <CardDescription>Configure credit card billing behavior</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-sm">Bill Payment Day</Label>
+            <p className="text-xs text-muted-foreground mb-2">Day of month when CC bill is settled from Bank</p>
+            <Select
+              value={String(settings.creditCardBillDay)}
+              onValueChange={(v) => onUpdateSettings?.({ creditCardBillDay: parseInt(v) })}
+            >
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[1, 5, 10, 15, 20, 25, 28].map(d => (
+                  <SelectItem key={d} value={String(d)}>{d}th of every month</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Include CC in Balance</Label>
+              <p className="text-xs text-muted-foreground">Show credit card limit in top balance</p>
+            </div>
+            <Switch
+              checked={settings.includeCreditCardInBalance}
+              onCheckedChange={(v) => onUpdateSettings?.({ includeCreditCardInBalance: v })}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transfer Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ArrowLeftRight className="h-5 w-5" /> Transfer Suggestions
+          </CardTitle>
+          <CardDescription>Configure internal transfer recommendations</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm">Enable Suggestions</Label>
+              <p className="text-xs text-muted-foreground">Auto-recommend transfers for shortfalls</p>
+            </div>
+            <Switch
+              checked={settings.transferSuggestionsEnabled}
+              onCheckedChange={(v) => onUpdateSettings?.({ transferSuggestionsEnabled: v })}
+            />
+          </div>
+          <div>
+            <Label className="text-sm">Lead Time (days before due)</Label>
+            <p className="text-xs text-muted-foreground mb-2">When to suggest making the transfer</p>
+            <Select
+              value={String(settings.transferLeadDays)}
+              onValueChange={(v) => onUpdateSettings?.({ transferLeadDays: parseInt(v) })}
+            >
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Same day</SelectItem>
+                <SelectItem value="1">1 day before</SelectItem>
+                <SelectItem value="2">2 days before</SelectItem>
+                <SelectItem value="3">3 days before</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
