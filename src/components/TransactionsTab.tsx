@@ -46,7 +46,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   }, [data, accountFilter]);
 
   const forecast = useMemo(() => computeForecast(filteredData), [filteredData]);
-  const today = todayStr();
+  const today = data.positionDate || todayStr();
   const forecastBalance = getBalanceOnDate(forecast, filteredData.forecastDate, filteredData.currentBalance);
   const monthSubs = getMonthSubscriptionTotal(filteredData.subscriptions);
   const riskDate = getRiskDate(forecast);
