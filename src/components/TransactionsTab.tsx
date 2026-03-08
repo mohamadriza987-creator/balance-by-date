@@ -32,9 +32,21 @@ const FILTER_LABELS: Record<AccountFilter, string> = { all: "All", cash: "Cash",
 
 export function TransactionsTab({ data }: TransactionsTabProps) {
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
-  const forecast = useMemo(() => computeForecast(data), [data]);
+  // Filter data by account
+  const filteredData = useMemo((): AppData => {
+    if (accountFilter === "all") return data;
+    return {
+      ...data,
+      entries: data.entries.filter(e => e.account === accountFilter),
+      subscriptions: data.subscriptions.filter(s => s.account === accountFilter),
+      investments: (data.investments || []).filter(i => i.account === accountFilter),
+      currentBalance: data.accountBalances[accountFilter] || 0,
+    };
+  }, [data, accountFilter]);
+
+  const forecast = useMemo(() => computeForecast(filteredData), [filteredData]);
   const today = todayStr();
-  const forecastBalance = getBalanceOnDate(forecast, data.forecastDate, data.currentBalance);
+  const forecastBalance = getBalanceOnDate(forecast, filteredData.forecastDate, filteredData.currentBalance);
   const monthSubs = getMonthSubscriptionTotal(data.subscriptions);
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
