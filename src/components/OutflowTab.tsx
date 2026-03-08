@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
-import { Trash2, Pencil, Check, X, Minus, Plus } from "lucide-react";
+import { Trash2, Pencil, Check, X } from "lucide-react";
 import type { Entry, Frequency, Investment, Subscription } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney, computeInvestmentValue } from "@/lib/finance-utils";
 
@@ -36,11 +36,6 @@ interface OutflowTabProps {
   investmentCategories?: string[];
 }
 
-const freqLabel: Record<string, string> = {
-  once: "One-time", weekly: "Weekly", biweekly: "Bi-weekly",
-  monthly: "Monthly", quarterly: "Quarterly", halfyearly: "Half-yearly", yearly: "Yearly",
-};
-
 export function OutflowTab({
   entries, subscriptions, investments,
   onAddEntry, onAddSubscription, onAddInvestment,
@@ -51,63 +46,39 @@ export function OutflowTab({
   expenseCategories = [], subscriptionCategories = [], investmentCategories = [],
 }: OutflowTabProps) {
   const [mode, setMode] = useState<OutflowMode>("expense");
-  const [showForm, setShowForm] = useState(false);
 
   const expenseEntries = entries.filter(e => e.amount < 0);
 
   return (
     <div className="space-y-4">
-      {/* Mode selector */}
-      <div className="grid grid-cols-3 gap-1.5">
-        {(["expense", "subscription", "investment"] as OutflowMode[]).map((m) => (
-          <Button key={m} variant={mode === m ? "default" : "outline"} size="sm"
-            className="text-xs h-9"
-            onClick={() => { setMode(m); setShowForm(false); }}>
-            {m === "subscription" ? "Subs" : m === "investment" ? "Invest" : "Expense"}
-          </Button>
-        ))}
-      </div>
-
-      {/* Quick Add */}
+      {/* Always-visible Add Form with mode dropdown */}
       <Card className="border-destructive/30">
         <CardHeader className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base text-destructive">
-              — {mode === "subscription" ? "SUBSCRIPTION" : mode === "investment" ? "INVESTMENT" : "EXPENSE"}
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowForm(!showForm)}>
-              {showForm ? "Cancel" : <><Plus className="h-3.5 w-3.5 mr-1" /> New</>}
-            </Button>
+            <CardTitle className="text-base text-destructive">— ADD OUTFLOW</CardTitle>
+            <Select value={mode} onValueChange={(v) => setMode(v as OutflowMode)}>
+              <SelectTrigger className="h-8 w-[130px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="expense">Expense</SelectItem>
+                <SelectItem value="subscription">Subscription</SelectItem>
+                <SelectItem value="investment">Investment</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
-        {showForm && (
-          <CardContent className="px-4 pb-4">
-            {mode === "expense" && (
-              <ExpenseForm
-                onAdd={onAddEntry}
-                descriptions={expenseDescriptions}
-                categories={expenseCategories}
-                onDone={() => setShowForm(false)}
-              />
-            )}
-            {mode === "subscription" && (
-              <SubscriptionForm
-                onAdd={onAddSubscription}
-                descriptions={subscriptionDescriptions}
-                categories={subscriptionCategories}
-                onDone={() => setShowForm(false)}
-              />
-            )}
-            {mode === "investment" && (
-              <InvestmentForm
-                onAdd={onAddInvestment}
-                descriptions={investmentDescriptions}
-                categories={investmentCategories}
-                onDone={() => setShowForm(false)}
-              />
-            )}
-          </CardContent>
-        )}
+        <CardContent className="px-4 pb-4">
+          {mode === "expense" && (
+            <ExpenseForm onAdd={onAddEntry} descriptions={expenseDescriptions} categories={expenseCategories} />
+          )}
+          {mode === "subscription" && (
+            <SubscriptionForm onAdd={onAddSubscription} descriptions={subscriptionDescriptions} categories={subscriptionCategories} />
+          )}
+          {mode === "investment" && (
+            <InvestmentForm onAdd={onAddInvestment} descriptions={investmentDescriptions} categories={investmentCategories} />
+          )}
+        </CardContent>
       </Card>
 
       {/* List */}
@@ -119,8 +90,8 @@ export function OutflowTab({
 }
 
 // ============ EXPENSE FORM ============
-function ExpenseForm({ onAdd, descriptions, categories, onDone }: {
-  onAdd: (e: Omit<Entry, "id">) => void; descriptions: string[]; categories: string[]; onDone: () => void;
+function ExpenseForm({ onAdd, descriptions, categories }: {
+  onAdd: (e: Omit<Entry, "id">) => void; descriptions: string[]; categories: string[];
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -134,7 +105,7 @@ function ExpenseForm({ onAdd, descriptions, categories, onDone }: {
     e.preventDefault();
     if (!isValid) return;
     onAdd({ label: name, amount: -Math.abs(parseFloat(amount)), date, frequency, category, includeInForecast: true });
-    onDone();
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("");
   };
 
   return (
@@ -145,7 +116,7 @@ function ExpenseForm({ onAdd, descriptions, categories, onDone }: {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount ($) *</Label>
-          <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
+          <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
         <div><Label className="text-xs">Frequency *</Label>
           <FrequencySelect value={frequency} onChange={setFrequency} /></div>
       </div>
@@ -161,8 +132,8 @@ function ExpenseForm({ onAdd, descriptions, categories, onDone }: {
 }
 
 // ============ SUBSCRIPTION FORM ============
-function SubscriptionForm({ onAdd, descriptions, categories, onDone }: {
-  onAdd: (s: Omit<Subscription, "id">) => void; descriptions: string[]; categories: string[]; onDone: () => void;
+function SubscriptionForm({ onAdd, descriptions, categories }: {
+  onAdd: (s: Omit<Subscription, "id">) => void; descriptions: string[]; categories: string[];
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -178,7 +149,7 @@ function SubscriptionForm({ onAdd, descriptions, categories, onDone }: {
     e.preventDefault();
     if (!isValid) return;
     onAdd({ name, amount: parseFloat(amount), frequency, nextDate: date, category, includeInForecast: true, isTrial, trialEndDate: isTrial ? trialEndDate : undefined });
-    onDone();
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setIsTrial(false); setTrialEndDate("");
   };
 
   return (
@@ -187,7 +158,7 @@ function SubscriptionForm({ onAdd, descriptions, categories, onDone }: {
         <AutocompleteInput value={name} onChange={setName} suggestions={descriptions} placeholder="e.g. Netflix" capitalize /></div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount ($) *</Label>
-          <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
+          <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
         <div><Label className="text-xs">Frequency *</Label>
           <FrequencySelect value={frequency} onChange={setFrequency} /></div>
       </div>
@@ -211,8 +182,8 @@ function SubscriptionForm({ onAdd, descriptions, categories, onDone }: {
 }
 
 // ============ INVESTMENT FORM ============
-function InvestmentForm({ onAdd, descriptions, categories, onDone }: {
-  onAdd: (i: Omit<Investment, "id">) => void; descriptions: string[]; categories: string[]; onDone: () => void;
+function InvestmentForm({ onAdd, descriptions, categories }: {
+  onAdd: (i: Omit<Investment, "id">) => void; descriptions: string[]; categories: string[];
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -228,7 +199,7 @@ function InvestmentForm({ onAdd, descriptions, categories, onDone }: {
     e.preventDefault();
     if (!isValid) return;
     onAdd({ name, amount: parseFloat(amount), frequency, startDate: date, endDate, category, expectedReturn: parseInt(expectedReturn), includeInForecast: true });
-    onDone();
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setEndDate(""); setCategory(""); setExpectedReturn("10");
   };
 
   return (
@@ -237,7 +208,7 @@ function InvestmentForm({ onAdd, descriptions, categories, onDone }: {
         <AutocompleteInput value={name} onChange={setName} suggestions={descriptions} placeholder="e.g. Mutual Fund" capitalize /></div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount ($) *</Label>
-          <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
+          <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
         <div><Label className="text-xs">Frequency *</Label>
           <FrequencySelect value={frequency} onChange={setFrequency} /></div>
       </div>
@@ -267,27 +238,31 @@ function ExpenseList({ entries, onToggle, onRemove, onUpdate }: {
   onUpdate: (id: string, u: Partial<Omit<Entry, "id">>) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  if (entries.length === 0) return <Card><CardContent className="py-8 text-center text-muted-foreground"><p className="text-sm">No expenses yet.</p></CardContent></Card>;
+  if (entries.length === 0) return null;
   return (
     <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground px-1">EXPENSES ({entries.length})</p>
       {entries.map(entry => editingId === entry.id ? (
         <EditableEntryRow key={entry.id} entry={entry} onSave={(u) => { onUpdate(entry.id, u); setEditingId(null); }} onCancel={() => setEditingId(null)} />
       ) : (
         <ItemRow key={entry.id} label={entry.label} detail={`${formatMoney(Math.abs(entry.amount))} / ${entry.frequency} · ${formatDate(entry.date)}`}
-          category={entry.category} checked={entry.includeInForecast} onToggle={() => onToggle(entry.id)}
+          category={entry.category} checked={entry.includeInForecast} onToggle={() => onToggleEntry(entry.id)}
           onEdit={() => setEditingId(entry.id)} onRemove={() => onRemove(entry.id)} />
       ))}
     </div>
   );
+
+  function onToggleEntry(id: string) { onToggle(id); }
 }
 
 function SubscriptionList({ subscriptions, onToggle, onRemove, onUpdate }: {
   subscriptions: Subscription[]; onToggle: (id: string) => void; onRemove: (id: string) => void;
   onUpdate: (id: string, u: Partial<Omit<Subscription, "id">>) => void;
 }) {
-  if (subscriptions.length === 0) return <Card><CardContent className="py-8 text-center text-muted-foreground"><p className="text-sm">No subscriptions yet.</p></CardContent></Card>;
+  if (subscriptions.length === 0) return null;
   return (
     <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground px-1">SUBSCRIPTIONS ({subscriptions.length})</p>
       {subscriptions.map(sub => (
         <ItemRow key={sub.id} label={sub.name} detail={`${formatMoney(sub.amount)} / ${sub.frequency} · Next: ${formatDate(sub.nextDate)}`}
           category={sub.category} checked={sub.includeInForecast} onToggle={() => onToggle(sub.id)}
@@ -303,7 +278,7 @@ function InvestmentList({ investments, onRemove, onUpdate }: {
   investments: Investment[]; onRemove: (id: string) => void;
   onUpdate: (id: string, u: Partial<Omit<Investment, "id">>) => void;
 }) {
-  if (investments.length === 0) return <Card><CardContent className="py-8 text-center text-muted-foreground"><p className="text-sm">No investments yet.</p></CardContent></Card>;
+  if (investments.length === 0) return null;
 
   const totals = investments.reduce((acc, inv) => {
     const vals = computeInvestmentValue(inv);
@@ -315,6 +290,7 @@ function InvestmentList({ investments, onRemove, onUpdate }: {
 
   return (
     <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground px-1">INVESTMENTS ({investments.length})</p>
       <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
         <CardContent className="py-3 px-3">
           <div className="grid grid-cols-3 gap-2 text-center">
@@ -340,7 +316,7 @@ function InvestmentList({ investments, onRemove, onUpdate }: {
               </div>
               <div className="grid grid-cols-3 gap-2 rounded-lg bg-muted/50 p-2 text-center">
                 <div><p className="text-[10px] text-muted-foreground">Invested</p><p className="text-xs font-bold">{formatMoney(vals.totalInvested)}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Profit</p><p className="text-xs font-bold text-green-600 dark:text-green-400">{formatMoney(vals.profit)}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Profit</p><p className="text-xs font-bold text-success">{formatMoney(vals.profit)}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Value</p><p className="text-xs font-bold text-primary">{formatMoney(vals.currentValue)}</p></div>
               </div>
             </CardContent>
@@ -391,7 +367,7 @@ function EditableEntryRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (
       <CardContent className="px-4 py-3 space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" className="h-8" />
-          <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-8" />
+          <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-8" />
           <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="h-8" />
           <FrequencySelect value={frequency} onChange={setFrequency} />
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8" />

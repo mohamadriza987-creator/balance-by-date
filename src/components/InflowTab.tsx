@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
-import { Trash2, Pencil, Check, X, Plus } from "lucide-react";
+import { Trash2, Pencil, Check, X } from "lucide-react";
 import type { Entry, Frequency } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney } from "@/lib/finance-utils";
 
@@ -22,11 +22,9 @@ interface InflowTabProps {
 }
 
 export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, incomeDescriptions = [], incomeCategories = [] }: InflowTabProps) {
-  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const incomeEntries = entries.filter((e) => e.amount >= 0);
 
-  // Add form state
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -49,76 +47,63 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
       date, frequency, category: category || "General", includeInForecast: true,
     });
     reset();
-    setShowForm(false);
   };
 
   return (
     <div className="space-y-4">
-      {/* Quick Add Card - like reference app */}
+      {/* Always-visible Add Form */}
       <Card className="border-success/30">
         <CardHeader className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base text-success">+ INFLOW</CardTitle>
-            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowForm(!showForm)}>
-              {showForm ? "Cancel" : <><Plus className="h-3.5 w-3.5 mr-1" /> New</>}
-            </Button>
-          </div>
+          <CardTitle className="text-base text-success">+ ADD INFLOW</CardTitle>
         </CardHeader>
-        {showForm && (
-          <CardContent className="px-4 pb-4">
-            <form onSubmit={handleSubmit} className="space-y-3">
+        <CardContent className="px-4 pb-4">
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <Label className="text-xs">Description *</Label>
+              <AutocompleteInput value={name} onChange={setName} suggestions={incomeDescriptions} placeholder="e.g. Salary" capitalize />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Description *</Label>
-                <AutocompleteInput value={name} onChange={setName} suggestions={incomeDescriptions} placeholder="e.g. Salary" capitalize />
+                <Label className="text-xs">Amount ($) *</Label>
+                <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Amount ($) *</Label>
-                  <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs">Frequency *</Label>
-                  <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="once">One-time</SelectItem>
-                      <SelectItem value="weekly">Weekly</SelectItem>
-                      <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="halfyearly">Half-yearly</SelectItem>
-                      <SelectItem value="yearly">Yearly</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div>
+                <Label className="text-xs">Frequency *</Label>
+                <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="once">One-time</SelectItem>
+                    <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="halfyearly">Half-yearly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Date *</Label>
-                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs">Category *</Label>
-                  <AutocompleteInput value={category} onChange={setCategory} suggestions={incomeCategories} placeholder="e.g. Salary" capitalize />
-                </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Date *</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
               </div>
-              <Button type="submit" className="w-full bg-success hover:bg-success/90 text-success-foreground" disabled={!isValid}>
-                + Add Inflow
-              </Button>
-            </form>
-          </CardContent>
-        )}
+              <div>
+                <Label className="text-xs">Category *</Label>
+                <AutocompleteInput value={category} onChange={setCategory} suggestions={incomeCategories} placeholder="e.g. Salary" capitalize />
+              </div>
+            </div>
+            <Button type="submit" className="w-full bg-success hover:bg-success/90 text-success-foreground" disabled={!isValid}>
+              + Add Inflow
+            </Button>
+          </form>
+        </CardContent>
       </Card>
 
       {/* Existing Entries */}
-      {incomeEntries.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            <p className="text-sm">No inflow entries yet. Tap "+ New" above to add one.</p>
-          </CardContent>
-        </Card>
-      ) : (
+      {incomeEntries.length > 0 && (
         <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground px-1">INFLOW ENTRIES ({incomeEntries.length})</p>
           {incomeEntries.map((entry) =>
             editingId === entry.id ? (
               <EditableRow key={entry.id} entry={entry} onSave={(updates) => { onUpdate(entry.id, updates); setEditingId(null); }} onCancel={() => setEditingId(null)} />
@@ -167,7 +152,7 @@ function EditableRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (updat
       <CardContent className="px-4 py-3 space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" className="h-8" />
-          <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-8" />
+          <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-8" />
           <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="h-8" />
           <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
             <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
