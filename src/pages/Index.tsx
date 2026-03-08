@@ -15,7 +15,8 @@ import { formatMoney } from "@/lib/finance-utils";
 const Index = () => {
   const {
     data, setData, addSubscription, removeSubscription, toggleSubscriptionForecast,
-    addEntry, removeEntry, toggleEntryForecast, updateBalance, updateForecastDate,
+    addEntry, removeEntry, toggleEntryForecast, updateSubscription, updateEntry,
+    updateBalance, updateForecastDate,
   } = useFinanceData();
 
   const [editingBalance, setEditingBalance] = useState(false);
@@ -87,10 +88,10 @@ const Index = () => {
             <TimelineTab data={data} />
           </TabsContent>
           <TabsContent value="subscriptions">
-            <SubscriptionsTab subscriptions={data.subscriptions} onToggle={toggleSubscriptionForecast} onRemove={removeSubscription} />
+            <SubscriptionsTab subscriptions={data.subscriptions} onToggle={toggleSubscriptionForecast} onRemove={removeSubscription} onUpdate={updateSubscription} />
           </TabsContent>
           <TabsContent value="entries">
-            <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} />
+            <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} onUpdate={updateEntry} />
           </TabsContent>
           <TabsContent value="add">
             <AddNewTab onAddSubscription={addSubscription} onAddEntry={addEntry} />

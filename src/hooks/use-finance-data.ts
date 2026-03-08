@@ -59,6 +59,24 @@ export function useFinanceData() {
     }));
   }, [setData]);
 
+  const updateSubscription = useCallback((id: string, updates: Partial<Omit<Subscription, "id">>) => {
+    setData((prev) => ({
+      ...prev,
+      subscriptions: prev.subscriptions.map((s) =>
+        s.id === id ? { ...s, ...updates } : s
+      ),
+    }));
+  }, [setData]);
+
+  const updateEntry = useCallback((id: string, updates: Partial<Omit<Entry, "id">>) => {
+    setData((prev) => ({
+      ...prev,
+      entries: prev.entries.map((e) =>
+        e.id === id ? { ...e, ...updates } : e
+      ),
+    }));
+  }, [setData]);
+
   const updateBalance = useCallback((balance: number) => {
     setData((prev) => ({ ...prev, currentBalance: balance }));
   }, [setData]);
@@ -76,6 +94,8 @@ export function useFinanceData() {
     addEntry,
     removeEntry,
     toggleEntryForecast,
+    updateSubscription,
+    updateEntry,
     updateBalance,
     updateForecastDate,
   };
