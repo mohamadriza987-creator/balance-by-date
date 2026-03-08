@@ -10,20 +10,24 @@ import { CategorySelect } from "@/components/CategorySelect";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { AccountSelect } from "@/components/AccountSelect";
 import { ACCOUNT_LABELS } from "@/lib/constants";
-import type { Entry, Frequency, AccountType } from "@/lib/finance-types";
+import type { AppData, Entry, Frequency, AccountType } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney } from "@/lib/finance-utils";
 
 interface InflowTabProps {
   entries: Entry[];
-  onAddEntry: (entry: Omit<Entry, "id">) => void;
+  data: AppData;
+  onAddEntry: (entry: Omit<Entry, "id">) => string;
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Omit<Entry, "id">>) => void;
+  onAddDebtWithPlan: (parentEntry: Omit<Entry, "id">, plan: { splits: number; frequency: Frequency; startDate: string; direction: "received" | "given" }) => void;
 }
 
-export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }: InflowTabProps) {
+export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpdate, onAddDebtWithPlan }: InflowTabProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const incomeEntries = entries.filter((e) => e.amount >= 0);
+  const profile = data.userProfile;
+  const fm = (n: number) => formatMoney(n, profile);
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -32,19 +36,38 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }:
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState<AccountType>("bank");
 
+  // Debt repayment fields
+  const [debtSplits, setDebtSplits] = useState("1");
+  const [debtFrequency, setDebtFrequency] = useState<Frequency>("monthly");
+  const [debtStartDate, setDebtStartDate] = useState(todayStr());
+  const isDebt = category === "Debt";
+
   const isValid = useMemo(() => !!(name.trim() && amount && date && category.trim()), [name, amount, date, category]);
 
   const reset = () => {
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank");
+    setDebtSplits("1"); setDebtFrequency("monthly"); setDebtStartDate(todayStr());
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
-    onAddEntry({
+
+    const entry: Omit<Entry, "id"> = {
       label: name, amount: Math.abs(parseFloat(amount)),
       date, frequency, category: category || "General", account, includeInForecast: true,
-    });
+    };
+
+    if (isDebt && parseInt(debtSplits) > 0) {
+      onAddDebtWithPlan(entry, {
+        splits: parseInt(debtSplits) || 1,
+        frequency: debtFrequency,
+        startDate: debtStartDate,
+        direction: "received",
+      });
+    } else {
+      onAddEntry(entry);
+    }
     reset();
   };
 
@@ -62,7 +85,7 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }:
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs">Amount ($) *</Label>
+                <Label className="text-xs">Amount *</Label>
                 <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" />
               </div>
               <div>
@@ -84,8 +107,31 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }:
               <Label className="text-xs">Account *</Label>
               <AccountSelect value={account} onChange={setAccount} />
             </div>
+
+            {/* Debt Repayment Planning */}
+            {isDebt && (
+              <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 space-y-3">
+                <p className="text-xs font-semibold text-orange-400">📋 Repayment Plan</p>
+                <p className="text-[10px] text-muted-foreground">Plan how you'll repay this debt. Repayments will be added as outflow entries.</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Number of Splits</Label>
+                    <Input type="number" min="1" max="120" value={debtSplits} onChange={e => setDebtSplits(e.target.value)} className="h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Repayment Frequency</Label>
+                    <FrequencySelect value={debtFrequency} onChange={setDebtFrequency} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Repayment Start Date</Label>
+                  <Input type="date" value={debtStartDate} onChange={e => setDebtStartDate(e.target.value)} className="h-9" />
+                </div>
+              </div>
+            )}
+
             <Button type="submit" className="w-full bg-success hover:bg-success/90 text-success-foreground" disabled={!isValid}>
-              + Add Inflow
+              {isDebt ? "+ Add Debt Received" : "+ Add Inflow"}
             </Button>
           </form>
         </CardContent>
@@ -98,7 +144,7 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }:
             editingId === entry.id ? (
               <EditableRow key={entry.id} entry={entry} onSave={(updates) => { onUpdate(entry.id, updates); setEditingId(null); }} onCancel={() => setEditingId(null)} />
             ) : (
-              <EntryRow key={entry.id} entry={entry} onToggle={onToggle} onRemove={onRemove} onEdit={() => setEditingId(entry.id)} />
+              <EntryRow key={entry.id} entry={entry} fm={fm} onToggle={onToggle} onRemove={onRemove} onEdit={() => setEditingId(entry.id)} />
             )
           )}
         </div>
@@ -107,16 +153,20 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }:
   );
 }
 
-function EntryRow({ entry, onToggle, onRemove, onEdit }: { entry: Entry; onToggle: (id: string) => void; onRemove: (id: string) => void; onEdit: () => void }) {
+function EntryRow({ entry, fm, onToggle, onRemove, onEdit }: { entry: Entry; fm: (n: number) => string; onToggle: (id: string) => void; onRemove: (id: string) => void; onEdit: () => void }) {
   return (
     <Card>
       <CardContent className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Switch checked={entry.includeInForecast} onCheckedChange={() => onToggle(entry.id)} />
           <div className="min-w-0">
-            <p className="text-sm font-medium truncate">{entry.label}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-medium truncate">{entry.label}</p>
+              {entry.debtLinkId && <Badge className="text-[9px] bg-orange-500/20 text-orange-400 border-orange-500/30">Debt</Badge>}
+              {entry.isOptional && <Badge variant="outline" className="text-[9px]">Optional</Badge>}
+            </div>
             <p className="text-[10px] text-muted-foreground">
-              {formatMoney(Math.abs(entry.amount))} / {entry.frequency} · {formatDate(entry.date)}
+              {fm(Math.abs(entry.amount))} / {entry.frequency} · {formatDate(entry.date)}
             </p>
           </div>
         </div>
