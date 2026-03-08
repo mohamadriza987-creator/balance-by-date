@@ -40,6 +40,7 @@ export function seedData(): AppData {
     currentBalance: 4250.0,
     accountBalances: { cash: 500, bank: 3500, creditCard: 250 },
     forecastDate: addDays(today, 180),
+    positionDate: today,
     subscriptions: [
       { id: generateId(), name: "Netflix", amount: 15.99, frequency: "monthly", nextDate: addDays(today, 12), category: "Entertainment", account: "bank", includeInForecast: true },
       { id: generateId(), name: "Spotify", amount: 9.99, frequency: "monthly", nextDate: addDays(today, 5), category: "Entertainment", account: "bank", includeInForecast: true },
@@ -124,11 +125,11 @@ export function loadData(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Migration: add accountBalances if missing
       if (!parsed.accountBalances) {
         parsed.accountBalances = { cash: 0, bank: parsed.currentBalance || 0, creditCard: 0 };
       }
       if (!parsed.investments) parsed.investments = [];
+      if (!parsed.positionDate) parsed.positionDate = todayStr();
       return parsed;
     }
   } catch {}
@@ -142,15 +143,15 @@ export function saveData(data: AppData) {
 }
 
 export function computeForecast(data: AppData): ForecastItem[] {
-  const today = todayStr();
-  const horizon = data.forecastDate > addDays(today, 180) ? data.forecastDate : addDays(today, 180);
+  const refDate = data.positionDate || todayStr();
+  const horizon = data.forecastDate > addDays(refDate, 180) ? data.forecastDate : addDays(refDate, 180);
   const items: ForecastItem[] = [];
 
   for (const sub of data.subscriptions) {
     if (!sub.includeInForecast) continue;
     let d = sub.nextDate;
     while (d <= horizon) {
-      if (d >= today) {
+      if (d >= refDate) {
         items.push({ date: d, label: sub.name, amount: -sub.amount, balance: 0, type: "subscription" });
       }
       if (sub.frequency === "once") break;
@@ -162,7 +163,7 @@ export function computeForecast(data: AppData): ForecastItem[] {
     if (!entry.includeInForecast) continue;
     let d = entry.date;
     while (d <= horizon) {
-      if (d >= today) {
+      if (d >= refDate) {
         items.push({
           date: d,
           label: entry.label,
@@ -180,13 +181,13 @@ export function computeForecast(data: AppData): ForecastItem[] {
     if (!inv.includeInForecast) continue;
     let d = inv.startDate;
     while (d <= horizon && d <= inv.endDate) {
-      if (d >= today) {
+      if (d >= refDate) {
         items.push({ date: d, label: `${inv.name} (Investment)`, amount: -inv.amount, balance: 0, type: "expense" });
       }
       if (inv.frequency === "once") break;
       d = getNextOccurrence(d, inv.frequency);
     }
-    if (inv.endDate >= today && inv.endDate <= horizon) {
+    if (inv.endDate >= refDate && inv.endDate <= horizon) {
       const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
       items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income" });
     }

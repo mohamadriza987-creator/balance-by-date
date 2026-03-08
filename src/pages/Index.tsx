@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
@@ -9,7 +10,9 @@ import { TransactionsTab } from "@/components/TransactionsTab";
 import { InflowTab } from "@/components/InflowTab";
 import { OutflowTab } from "@/components/OutflowTab";
 import { SettingsTab } from "@/components/SettingsTab";
-import { formatMoney } from "@/lib/finance-utils";
+import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -24,7 +27,7 @@ const Index = () => {
     addEntry, removeEntry, toggleEntryForecast,
     updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
-    updateBalance, updateAccountBalances, updateForecastDate,
+    updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -68,8 +71,44 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <Label htmlFor="forecast-date" className="text-xs text-muted-foreground whitespace-nowrap">Forecast to:</Label>
-            <Input id="forecast-date" type="date" className="h-7 text-xs flex-1" value={data.forecastDate} onChange={(e) => updateForecastDate(e.target.value)} />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">My position on:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "h-7 text-xs flex-1 justify-start text-left font-normal",
+                    !data.positionDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-1.5 h-3 w-3" />
+                  {data.positionDate ? format(parseISO(data.positionDate), "MMM d, yyyy") : "Today"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={data.positionDate ? parseISO(data.positionDate) : new Date()}
+                  onSelect={(date) => {
+                    if (date) updatePositionDate(format(date, "yyyy-MM-dd"));
+                  }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                {data.positionDate !== todayStr() && (
+                  <div className="px-3 pb-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => updatePositionDate(todayStr())}
+                    >
+                      Reset to Today
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </header>

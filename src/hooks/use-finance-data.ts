@@ -7,6 +7,7 @@ export function useFinanceData() {
     const d = loadData();
     if (!d.investments) d.investments = [];
     if (!d.accountBalances) d.accountBalances = { cash: 0, bank: d.currentBalance || 0, creditCard: 0 };
+    if (!d.positionDate) d.positionDate = new Date().toISOString().slice(0, 10);
     return d;
   });
 
@@ -99,6 +100,10 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, forecastDate: date }));
   }, [setData]);
 
+  const updatePositionDate = useCallback((date: string) => {
+    setData((prev) => ({ ...prev, positionDate: date }));
+  }, [setData]);
+
   return {
     data,
     setData,
@@ -106,6 +111,6 @@ export function useFinanceData() {
     addEntry, removeEntry, toggleEntryForecast,
     updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
-    updateBalance, updateAccountBalances, updateForecastDate,
+    updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
   };
 }

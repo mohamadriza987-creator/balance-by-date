@@ -6,10 +6,11 @@ import { daysBetween, formatDate, todayStr } from "@/lib/finance-utils";
 interface AlertBannerProps {
   subscriptions: Subscription[];
   forecast: ForecastItem[];
+  positionDate?: string;
 }
 
-export function AlertBanner({ subscriptions, forecast }: AlertBannerProps) {
-  const today = todayStr();
+export function AlertBanner({ subscriptions, forecast, positionDate }: AlertBannerProps) {
+  const today = positionDate || todayStr();
   const alerts: { icon: React.ReactNode; message: string; type: "warning" | "danger" | "info" }[] = [];
 
   // Trials ending soon
