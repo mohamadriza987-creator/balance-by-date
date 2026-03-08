@@ -110,7 +110,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       const me = format(endOfMonth(d), "yyyy-MM-dd");
       let income = 0, expense = 0;
 
-      for (const entry of filteredDilteredData.entries) {
+      for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
         let dd = entry.date;
         while (dd <= me) {
@@ -122,7 +122,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
           dd = getNextOccurrence(dd, entry.frequency);
         }
       }
-      for (constfilteredDsub of data.subscriptions) {
+      for (const sub of filteredData.subscriptions) {
         if (!sub.includeInForecast) continue;
         let dd = sub.nextDate;
         while (dd <= me) {
@@ -135,7 +135,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       months.push({ month: format(d, "MMM"), income, expense });
     }
     return months;
-  }, [data]);
+  }, [filteredData]);
 
   // Investments summary
   const investmentSummary = useMemo(() => {
