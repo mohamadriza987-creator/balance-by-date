@@ -97,18 +97,12 @@ const Index = () => {
             <AddNewTab
               onAddSubscription={addSubscription}
               onAddEntry={addEntry}
-              existingDescriptions={[
-                ...new Set([
-                  ...data.entries.map((e) => e.label),
-                  ...data.subscriptions.map((s) => s.name),
-                ]),
-              ]}
-              existingCategories={[
-                ...new Set([
-                  ...data.entries.map((e) => e.category),
-                  ...data.subscriptions.map((s) => s.category),
-                ]),
-              ]}
+              incomeDescriptions={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.label))]}
+              expenseDescriptions={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.label))]}
+              subscriptionDescriptions={[...new Set(data.subscriptions.map(s => s.name))]}
+              incomeCategories={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.category))]}
+              expenseCategories={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.category))]}
+              subscriptionCategories={[...new Set(data.subscriptions.map(s => s.category))]}
             />
           </TabsContent>
           <TabsContent value="settings">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,11 +14,19 @@ type Mode = "income" | "expense" | "subscription";
 interface AddNewTabProps {
   onAddSubscription: (sub: Omit<Subscription, "id">) => void;
   onAddEntry: (entry: Omit<Entry, "id">) => void;
-  existingDescriptions?: string[];
-  existingCategories?: string[];
+  incomeDescriptions?: string[];
+  expenseDescriptions?: string[];
+  subscriptionDescriptions?: string[];
+  incomeCategories?: string[];
+  expenseCategories?: string[];
+  subscriptionCategories?: string[];
 }
 
-export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions = [], existingCategories = [] }: AddNewTabProps) {
+export function AddNewTab({
+  onAddSubscription, onAddEntry,
+  incomeDescriptions = [], expenseDescriptions = [], subscriptionDescriptions = [],
+  incomeCategories = [], expenseCategories = [], subscriptionCategories = [],
+}: AddNewTabProps) {
   const [mode, setMode] = useState<Mode>("expense");
 
   const [name, setName] = useState("");
@@ -36,9 +44,18 @@ export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions 
     setCategory(""); setIsTrial(false); setTrialEndDate("");
   };
 
+  const descriptions = mode === "income" ? incomeDescriptions : mode === "expense" ? expenseDescriptions : subscriptionDescriptions;
+  const categories = mode === "income" ? incomeCategories : mode === "expense" ? expenseCategories : subscriptionCategories;
+
+  const isValid = useMemo(() => {
+    if (!name.trim() || !amount || !date || !category.trim()) return false;
+    if (mode === "subscription" && isTrial && !trialEndDate) return false;
+    return true;
+  }, [name, amount, date, category, mode, isTrial, trialEndDate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !amount || !date) return;
+    if (!isValid) return;
 
     if (mode === "subscription") {
       onAddSubscription({
@@ -75,25 +92,25 @@ export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Mode buttons */}
           <div className="flex gap-2">
-            <Button type="button" variant={mode === "income" ? "default" : "outline"} size="sm" onClick={() => setMode("income")}>
+            <Button type="button" variant={mode === "income" ? "default" : "outline"} size="sm" onClick={() => { setMode("income"); reset(); }}>
               Income
             </Button>
-            <Button type="button" variant={mode === "expense" ? "default" : "outline"} size="sm" onClick={() => setMode("expense")}>
+            <Button type="button" variant={mode === "expense" ? "default" : "outline"} size="sm" onClick={() => { setMode("expense"); reset(); }}>
               Expense
             </Button>
-            <Button type="button" variant={mode === "subscription" ? "default" : "outline"} size="sm" onClick={() => setMode("subscription")}>
+            <Button type="button" variant={mode === "subscription" ? "default" : "outline"} size="sm" onClick={() => { setMode("subscription"); reset(); }}>
               Subscription
             </Button>
           </div>
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name">{mode === "subscription" ? "Service Name" : "Description"}</Label>
+              <Label htmlFor="name">{mode === "subscription" ? "Service Name" : "Description"} <span className="text-destructive">*</span></Label>
               <AutocompleteInput
                 id="name"
                 value={name}
                 onChange={setName}
-                suggestions={existingDescriptions}
+                suggestions={descriptions}
                 placeholder={mode === "subscription" ? "e.g. Netflix" : "e.g. Salary"}
                 capitalize
               />
@@ -101,11 +118,11 @@ export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">Amount ($)</Label>
+                <Label htmlFor="amount">Amount ($) <span className="text-destructive">*</span></Label>
                 <Input id="amount" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
               </div>
               <div>
-                <Label htmlFor="freq">Frequency</Label>
+                <Label htmlFor="freq">Frequency <span className="text-destructive">*</span></Label>
                 <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -123,16 +140,16 @@ export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="date">{mode === "subscription" ? "Next Billing Date" : "Date"}</Label>
+                <Label htmlFor="date">{mode === "subscription" ? "Next Billing Date" : "Date"} <span className="text-destructive">*</span></Label>
                 <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
               <div>
-                <Label htmlFor="category">Category</Label>
+                <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
                 <AutocompleteInput
                   id="category"
                   value={category}
                   onChange={setCategory}
-                  suggestions={existingCategories}
+                  suggestions={categories}
                   placeholder="e.g. Entertainment"
                   capitalize
                 />
@@ -147,7 +164,7 @@ export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions 
                 </div>
                 {isTrial && (
                   <div>
-                    <Label htmlFor="trialEnd">Trial End Date</Label>
+                    <Label htmlFor="trialEnd">Trial End Date <span className="text-destructive">*</span></Label>
                     <Input id="trialEnd" type="date" value={trialEndDate} onChange={(e) => setTrialEndDate(e.target.value)} />
                   </div>
                 )}
@@ -155,7 +172,7 @@ export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions 
             )}
           </div>
 
-          <Button type="submit" className="w-full">
+          <Button type="submit" className="w-full" disabled={!isValid}>
             Add {modeLabel}
           </Button>
         </form>
