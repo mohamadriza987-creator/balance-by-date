@@ -139,7 +139,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
   // Investments summary
   const investmentSummary = useMemo(() => {
-    const investments = filteredDilteredData.investments || [];
+    const investments = filteredData.investments || [];
     if (investments.length === 0) return null;
 
     let totalInvested = 0, totalProfit = 0, upcomingAmount = 0;
