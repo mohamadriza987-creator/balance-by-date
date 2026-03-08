@@ -139,7 +139,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
   // Investments summary
   const investmentSummary = useMemo(() => {
-    const investments = filteredData.investments || [];
+    const investments = filteredDilteredData.investments || [];
     if (investments.length === 0) return null;
 
     let totalInvested = 0, totalProfit = 0, upcomingAmount = 0;
@@ -160,7 +160,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       { name: "Invested", value: totalInvested },
       { name: "Profit", value: totalProfit },
       { name: "Upcoming (30d)", value: upcomingAmount },
-    ];
+    ]filteredD
   }, [data, today]);
 
   // Upcoming subscriptions with dates
