@@ -62,8 +62,9 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       incomeItems: { label: string; amount: number; date: string }[];
       expenseItems: { label: string; amount: number; date: string }[];
     }[] = [];
+    const refDate = parseISO(today);
     for (let i = 5; i >= 0; i--) {
-      const d = subMonths(new Date(), i);
+      const d = subMonths(refDate, i);
       const ms = format(startOfMonth(d), "yyyy-MM-dd");
       const me = format(endOfMonth(d), "yyyy-MM-dd");
       let income = 0, expense = 0;
@@ -95,7 +96,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       months.push({ month: format(d, "MMM"), monthKey: format(d, "yyyy-MM"), income, expense, incomeItems, expenseItems });
     }
     return months;
-  }, [filteredData]);
+  }, [filteredData, today]);
 
   const expandedData = useMemo(() => {
     if (!expandedMonth || !expandedType) return null;
