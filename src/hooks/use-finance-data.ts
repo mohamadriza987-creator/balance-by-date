@@ -100,6 +100,10 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, forecastDate: date }));
   }, [setData]);
 
+  const updatePositionDate = useCallback((date: string) => {
+    setData((prev) => ({ ...prev, positionDate: date }));
+  }, [setData]);
+
   return {
     data,
     setData,
