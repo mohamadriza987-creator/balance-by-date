@@ -14,9 +14,10 @@ interface SettingsTabProps {
   data: AppData;
   onReplace: (data: AppData) => void;
   onUpdateForecastDate: (date: string) => void;
+  onReplayIntro?: () => void;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate }: SettingsTabProps) {
+export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro }: SettingsTabProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
