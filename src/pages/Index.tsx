@@ -66,7 +66,7 @@ const Index = () => {
         <Tabs defaultValue="timeline" className="space-y-6">
           <TabsList className="grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="timeline" className="gap-1.5 text-xs sm:text-sm">
-              <CalendarDays className="h-4 w-4 hidden sm:block" /> Timeline
+              <CalendarDays className="h-4 w-4 hidden sm:block" /> Overview
             </TabsTrigger>
             <TabsTrigger value="subscriptions" className="gap-1.5 text-xs sm:text-sm">
               <CreditCard className="h-4 w-4 hidden sm:block" /> Subs
