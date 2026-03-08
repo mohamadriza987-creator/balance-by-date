@@ -15,6 +15,8 @@ import {
 } from "@/lib/finance-utils";
 import { ForecastChart } from "@/components/ForecastChart";
 import { FrequencySelect } from "@/components/FrequencySelect";
+import { InvestmentCalculator } from "@/components/InvestmentCalculator";
+import { ZakatCalculator } from "@/components/ZakatCalculator";
 import { TYPE_COLORS } from "@/lib/constants";
 
 interface ForecastTabProps {
