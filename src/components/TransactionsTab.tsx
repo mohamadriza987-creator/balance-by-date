@@ -52,72 +52,31 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
-  // Month selector for pie chart
-  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
-  const monthOptions = useMemo(() => {
-    const opts: string[] = [];
-    for (let i = -3; i <= 3; i++) {
-      const d = i < 0 ? subMonths(new Date(), Math.abs(i)) : addMonths(new Date(), i);
-      opts.push(format(d, "yyyy-MM"));
-    }
-    return opts;
-  }, []);
+  // Bar chart click state
+  const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [expandedType, setExpandedType] = useState<"income" | "expense" | null>(null);
 
-  // Monthly income/expense pie data
-  const monthlyPieData = useMemo(() => {
-    const monthStart = startOfMonth(parseISO(selectedMonth + "-01"));
-    const monthEnd = endOfMonth(monthStart);
-    const ms = format(monthStart, "yyyy-MM-dd");
-    const me = format(monthEnd, "yyyy-MM-dd");
-
-    let income = 0;
-    let expense = 0;
-
-    for (const entry of filteredData.entries) {
-      if (!entry.includeInForecast) continue;
-      let d = entry.date;
-      while (d <= me) {
-        if (d >= ms && d <= me) {
-          if (entry.amount >= 0) income += entry.amount;
-          else expense += Math.abs(entry.amount);
-        }
-        if (entry.frequency === "once") break;
-        d = getNextOccurrence(d, entry.frequency);
-      }
-    }
-
-    for (const sub of filteredData.subscriptions) {
-      if (!sub.includeInForecast) continue;
-      let d = sub.nextDate;
-      while (d <= me) {
-        if (d >= ms && d <= me) expense += sub.amount;
-        if (sub.frequency === "once") break;
-        d = getNextOccurrence(d, sub.frequency);
-      }
-    }
-
-    return [
-      { name: "Income", value: income, fill: "hsl(var(--success))" },
-      { name: "Expense", value: expense, fill: "hsl(var(--destructive))" },
-    ].filter(d => d.value > 0);
-  }, [filteredData, selectedMonth]);
-
-  // Income vs expense bar chart (last 6 months)
+  // Income vs expense bar chart (last 6 months) with line items
   const incomeExpenseBarData = useMemo(() => {
-    const months: { month: string; income: number; expense: number }[] = [];
+    const months: { month: string; monthKey: string; income: number; expense: number;
+      incomeItems: { label: string; amount: number; date: string }[];
+      expenseItems: { label: string; amount: number; date: string }[];
+    }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = subMonths(new Date(), i);
       const ms = format(startOfMonth(d), "yyyy-MM-dd");
       const me = format(endOfMonth(d), "yyyy-MM-dd");
       let income = 0, expense = 0;
+      const incomeItems: { label: string; amount: number; date: string }[] = [];
+      const expenseItems: { label: string; amount: number; date: string }[] = [];
 
       for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
         let dd = entry.date;
         while (dd <= me) {
           if (dd >= ms) {
-            if (entry.amount >= 0) income += entry.amount;
-            else expense += Math.abs(entry.amount);
+            if (entry.amount >= 0) { income += entry.amount; incomeItems.push({ label: entry.label, amount: entry.amount, date: dd }); }
+            else { expense += Math.abs(entry.amount); expenseItems.push({ label: entry.label, amount: Math.abs(entry.amount), date: dd }); }
           }
           if (entry.frequency === "once") break;
           dd = getNextOccurrence(dd, entry.frequency);
@@ -127,42 +86,65 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         if (!sub.includeInForecast) continue;
         let dd = sub.nextDate;
         while (dd <= me) {
-          if (dd >= ms) expense += sub.amount;
+          if (dd >= ms) { expense += sub.amount; expenseItems.push({ label: sub.name, amount: sub.amount, date: dd }); }
           if (sub.frequency === "once") break;
           dd = getNextOccurrence(dd, sub.frequency);
         }
       }
 
-      months.push({ month: format(d, "MMM"), income, expense });
+      months.push({ month: format(d, "MMM"), monthKey: format(d, "yyyy-MM"), income, expense, incomeItems, expenseItems });
     }
     return months;
   }, [filteredData]);
 
-  // Investments summary
-  const investmentSummary = useMemo(() => {
+  const expandedData = useMemo(() => {
+    if (!expandedMonth || !expandedType) return null;
+    const m = incomeExpenseBarData.find(d => d.monthKey === expandedMonth);
+    if (!m) return null;
+    return expandedType === "income" ? m.incomeItems : m.expenseItems;
+  }, [expandedMonth, expandedType, incomeExpenseBarData]);
+
+  // Investments detailed data
+  const [selectedInvestment, setSelectedInvestment] = useState<string>("all");
+  const investmentDetails = useMemo(() => {
     const investments = filteredData.investments || [];
     if (investments.length === 0) return null;
 
-    let totalInvested = 0, totalProfit = 0, upcomingAmount = 0;
-    investments.forEach(inv => {
+    const targets = selectedInvestment === "all" ? investments : investments.filter(i => i.id === selectedInvestment);
+
+    let totalInvested = 0, totalProfit = 0;
+    let nextUpcoming: { date: string; amount: number } | null = null;
+    let nextMaturity: { date: string; value: number; name: string } | null = null;
+
+    targets.forEach(inv => {
       const vals = computeInvestmentValue(inv);
       totalInvested += vals.totalInvested;
       totalProfit += vals.profit;
-      // Upcoming investment installments in next 30 days
+
+      // Find next upcoming installment
       let d = inv.startDate;
       while (d <= inv.endDate) {
-        if (d >= today && daysBetween(today, d) <= 30) upcomingAmount += inv.amount;
+        if (d >= today) {
+          if (!nextUpcoming || d < nextUpcoming.date) {
+            nextUpcoming = { date: d, amount: inv.amount };
+          }
+          break;
+        }
         if (inv.frequency === "once") break;
         d = getNextOccurrence(d, inv.frequency);
       }
+
+      // Maturity
+      const isMatured = new Date(inv.endDate) <= new Date();
+      if (!isMatured) {
+        if (!nextMaturity || inv.endDate < nextMaturity.date) {
+          nextMaturity = { date: inv.endDate, value: vals.maturityValue, name: inv.name };
+        }
+      }
     });
 
-    return [
-      { name: "Invested", value: totalInvested },
-      { name: "Profit", value: totalProfit },
-      { name: "Upcoming (30d)", value: upcomingAmount },
-    ];
-  }, [filteredData, today]);
+    return { totalInvested, totalProfit, nextUpcoming, nextMaturity, investments };
+  }, [filteredData, selectedInvestment, today]);
 
   // Upcoming subscriptions with dates
   const upcomingSubscriptions = useMemo(() => {
