@@ -24,6 +24,7 @@ function generateId() {
 export function getNextOccurrence(dateStr: string, freq: Frequency): string {
   const d = parseISO(dateStr);
   switch (freq) {
+    case "daily": return format(dfnsAddDays(d, 1), "yyyy-MM-dd");
     case "weekly": return format(addWeeks(d, 1), "yyyy-MM-dd");
     case "biweekly": return format(addWeeks(d, 2), "yyyy-MM-dd");
     case "monthly": return format(addMonths(d, 1), "yyyy-MM-dd");
