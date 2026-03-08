@@ -193,6 +193,20 @@ export function ForecastTab({ data }: ForecastTabProps) {
       {/* EMI Planner */}
       <EMIPlanner data={data} effectiveBalance={effectiveBalance} fm={fm} />
 
+      {/* Investment Calculator */}
+      <InvestmentCalculator
+        fm={fm}
+        defaultCompounding={data.settings?.defaultCompoundingFrequency || "monthly"}
+      />
+
+      {/* Zakat Calculator */}
+      <ZakatCalculator
+        fm={fm}
+        defaultNisabBasis={data.settings?.preferredNisabBasis || "silver"}
+        defaultGoldPrice={data.settings?.defaultGoldPrice || ""}
+        defaultSilverPrice={data.settings?.defaultSilverPrice || ""}
+      />
+
       {/* Investment Advisor */}
       <InvestmentAdvisor data={data} effectiveBalance={effectiveBalance} fm={fm} />
 
