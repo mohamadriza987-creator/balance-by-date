@@ -119,11 +119,43 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
       )}
 
       {step === 2 && (
-        <div className={`w-full max-w-sm space-y-6 text-center transition-all duration-300 ${animClass}`}>
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4 text-sm leading-relaxed text-foreground/90">
-            <p>Hii {name.trim()} .. this is your personal financial planner app here.. Developed by Mohamad Riza</p>
+        <div className={`w-full max-w-sm space-y-8 text-center transition-all duration-300 ${animClass}`}>
+          {/* Decorative top accent */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-scale-in">
+                <span className="text-3xl">✨</span>
+              </div>
+              <div className="absolute -inset-2 rounded-full border border-primary/20 animate-[pulse_3s_ease-in-out_infinite]" />
+            </div>
           </div>
-          <Button onClick={handleWelcomeContinue} className="w-full h-12 text-base">
+
+          {/* Welcome card */}
+          <div className="relative rounded-2xl border border-border bg-card/80 backdrop-blur p-6 space-y-4 shadow-lg animate-fade-in">
+            {/* Subtle gradient overlay */}
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+            
+            <p className="relative text-lg font-medium text-foreground">
+              Hii <span className="text-primary font-semibold italic">{name.trim()}</span> 👋
+            </p>
+            
+            <div className="relative h-px w-12 mx-auto bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
+            
+            <p className="relative text-sm leading-relaxed text-muted-foreground italic">
+              This is your personal financial planner app — built to help you see your future balance before the date arrives.
+            </p>
+            
+            <div className="relative pt-2">
+              <p className="text-xs text-muted-foreground/70 tracking-wide uppercase">
+                Crafted with 💛 by
+              </p>
+              <p className="text-sm font-semibold text-foreground mt-0.5">
+                Mohamad Riza
+              </p>
+            </div>
+          </div>
+
+          <Button onClick={handleWelcomeContinue} className="w-full h-12 text-base font-medium animate-fade-in">
             Continue
           </Button>
         </div>
