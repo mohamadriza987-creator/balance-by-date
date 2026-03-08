@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { IntroFlow } from "@/components/IntroFlow";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp } from "lucide-react";
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
@@ -11,6 +11,7 @@ import { TransactionsTab } from "@/components/TransactionsTab";
 import { InflowTab } from "@/components/InflowTab";
 import { OutflowTab } from "@/components/OutflowTab";
 import { ForecastTab } from "@/components/ForecastTab";
+import { TransfersTab } from "@/components/TransfersTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
@@ -22,6 +23,7 @@ const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "inflow", label: "Inflow", icon: ArrowDownLeft },
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
+  { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
 ] as const;
 
@@ -34,6 +36,7 @@ const Index = () => {
     addInvestment, removeInvestment, updateInvestment,
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
     updateUserProfile, addDebtWithPlan,
+    addTransfer, removeTransfer, updateSettings,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -70,7 +73,13 @@ const Index = () => {
           </div>
         </header>
         <main className="px-3 py-4">
-          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} onReplayIntro={() => { localStorage.removeItem("finance-buddy-intro-done"); setIntroDone(false); }} />
+          <SettingsTab
+            data={data}
+            onReplace={(d) => setData(d)}
+            onUpdateForecastDate={updateForecastDate}
+            onReplayIntro={() => { localStorage.removeItem("finance-buddy-intro-done"); setIntroDone(false); }}
+            onUpdateSettings={updateSettings}
+          />
         </main>
       </div>
     );
@@ -171,13 +180,16 @@ const Index = () => {
             onAddDebtWithPlan={addDebtWithPlan}
           />
         )}
+        {activeTab === "transfers" && (
+          <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
+        )}
         {activeTab === "forecast" && (
           <ForecastTab data={data} />
         )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-5 h-16">
           {tabs.map(({ value, label, icon: Icon }) => (
             <button
               key={value}

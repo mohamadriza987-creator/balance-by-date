@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { TrendingUp, TrendingDown, Shield, AlertTriangle, Calculator, Minus, Pause, Play, Scale } from "lucide-react";
-import type { AppData, ForecastItem, Frequency } from "@/lib/finance-types";
+import type { AppData, ForecastItem, Frequency, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeBalanceAtPosition, formatDate, formatMoney,
   getBalanceOnDate, getRiskDate, getMonthSubscriptionTotal,
@@ -141,6 +141,8 @@ export function ForecastTab({ data }: ForecastTabProps) {
                 <SelectItem value="income">Inflow</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
                 <SelectItem value="subscription">Subscription</SelectItem>
+                <SelectItem value="cc_bill">CC Bills</SelectItem>
+                <SelectItem value="transfer">Transfers</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -156,7 +158,7 @@ export function ForecastTab({ data }: ForecastTabProps) {
                 }`}>
                   <div className="flex items-center gap-2 min-w-0">
                     <Badge variant="outline" className={`text-[9px] shrink-0 px-1.5 ${TYPE_COLORS[item.type] || ""}`}>
-                      {item.type === "income" ? "inflow" : item.type}
+                      {item.type === "income" ? "inflow" : item.type === "cc_bill" ? "CC Bill" : item.type}
                     </Badge>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1">

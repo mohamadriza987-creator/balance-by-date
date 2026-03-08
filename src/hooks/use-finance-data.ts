@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency } from "@/lib/finance-types";
+import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings } from "@/lib/finance-types";
 import { loadData, saveData } from "@/lib/finance-utils";
 
 export function useFinanceData() {
@@ -9,6 +9,8 @@ export function useFinanceData() {
     if (!d.debtPlans) d.debtPlans = [];
     if (!d.accountBalances) d.accountBalances = { cash: 0, bank: d.currentBalance || 0, creditCard: 0 };
     if (!d.positionDate) d.positionDate = new Date().toISOString().slice(0, 10);
+    if (!d.transfers) d.transfers = [];
+    if (!d.settings) d.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false };
     return d;
   });
 
@@ -205,6 +207,21 @@ export function useFinanceData() {
     });
   }, [setData]);
 
+  const addTransfer = useCallback((transfer: Omit<Transfer, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      transfers: [...(prev.transfers || []), { ...transfer, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeTransfer = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, transfers: (prev.transfers || []).filter((t) => t.id !== id) }));
+  }, [setData]);
+
+  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    setData((prev) => ({ ...prev, settings: { ...prev.settings, ...updates } }));
+  }, [setData]);
+
   return {
     data,
     setData,
@@ -214,6 +231,7 @@ export function useFinanceData() {
     addInvestment, removeInvestment, updateInvestment,
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
     updateUserProfile, addDebtWithPlan,
+    addTransfer, removeTransfer, updateSettings,
   };
 }
 

@@ -50,6 +50,13 @@ export function seedData(): AppData {
     entries: [],
     investments: [],
     debtPlans: [],
+    transfers: [],
+    settings: {
+      creditCardBillDay: 15,
+      transferSuggestionsEnabled: true,
+      transferLeadDays: 1,
+      includeCreditCardInBalance: false,
+    },
   };
 }
 
@@ -123,6 +130,13 @@ export function loadData(): AppData {
       if (!parsed.investments) parsed.investments = [];
       if (!parsed.debtPlans) parsed.debtPlans = [];
       if (!parsed.positionDate) parsed.positionDate = todayStr();
+      if (!parsed.transfers) parsed.transfers = [];
+      if (!parsed.settings) parsed.settings = {
+        creditCardBillDay: 15,
+        transferSuggestionsEnabled: true,
+        transferLeadDays: 1,
+        includeCreditCardInBalance: false,
+      };
       return parsed;
     }
   } catch {}
@@ -190,12 +204,11 @@ export function computeForecast(data: AppData): ForecastItem[] {
 
   for (const sub of data.subscriptions) {
     if (!sub.includeInForecast) continue;
-    // Respect trial: first charge starts at trialEndDate
     const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
     let d = chargeStart;
     while (d <= horizon) {
       if (d >= refDate) {
-        items.push({ date: d, label: sub.name, amount: -sub.amount, balance: 0, type: "subscription" });
+        items.push({ date: d, label: sub.name, amount: -sub.amount, balance: 0, type: "subscription", account: sub.account });
       }
       if (sub.frequency === "once") break;
       d = getNextOccurrence(d, sub.frequency);
@@ -208,14 +221,10 @@ export function computeForecast(data: AppData): ForecastItem[] {
     while (d <= horizon) {
       if (d >= refDate) {
         items.push({
-          date: d,
-          label: entry.label,
-          amount: entry.amount,
-          balance: 0,
+          date: d, label: entry.label, amount: entry.amount, balance: 0,
           type: entry.amount >= 0 ? "income" : "expense",
-          isCheque: entry.isCheque,
-          isDebtLinked: !!entry.debtLinkId,
-          isOptional: entry.isOptional,
+          account: entry.account,
+          isCheque: entry.isCheque, isDebtLinked: !!entry.debtLinkId, isOptional: entry.isOptional,
         });
       }
       if (entry.frequency === "once") break;
@@ -228,14 +237,83 @@ export function computeForecast(data: AppData): ForecastItem[] {
     let d = inv.startDate;
     while (d <= horizon && d <= inv.endDate) {
       if (d >= refDate) {
-        items.push({ date: d, label: `${inv.name} (Investment)`, amount: -inv.amount, balance: 0, type: "expense" });
+        items.push({ date: d, label: `${inv.name} (Investment)`, amount: -inv.amount, balance: 0, type: "expense", account: inv.account });
       }
       if (inv.frequency === "once") break;
       d = getNextOccurrence(d, inv.frequency);
     }
     if (inv.endDate >= refDate && inv.endDate <= horizon) {
       const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
-      items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income" });
+      items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income", account: inv.account });
+    }
+  }
+
+  // CC bill payments - inline to avoid circular dependency
+  {
+    const billDay = (data.settings?.creditCardBillDay) || 15;
+    const billMap: Record<string, number> = {};
+    
+    const getNextBillDateInline = (afterDate: string): string => {
+      const ad = parseISO(afterDate);
+      const day = Math.min(billDay, 28);
+      let billDate = new Date(ad.getFullYear(), ad.getMonth() + 1, day);
+      if (billDate <= ad) billDate = new Date(ad.getFullYear(), ad.getMonth() + 2, day);
+      return format(billDate, "yyyy-MM-dd");
+    };
+
+    // Collect CC expenses
+    for (const entry of data.entries) {
+      if (!entry.includeInForecast || entry.amount >= 0 || entry.account !== "creditCard") continue;
+      let d = entry.date;
+      while (d <= horizon) {
+        if (d >= refDate) {
+          const bd = getNextBillDateInline(d);
+          if (bd <= horizon) billMap[bd] = (billMap[bd] || 0) + Math.abs(entry.amount);
+        }
+        if (entry.frequency === "once") break;
+        d = getNextOccurrence(d, entry.frequency);
+      }
+    }
+    for (const sub of data.subscriptions) {
+      if (!sub.includeInForecast || sub.account !== "creditCard") continue;
+      const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
+      let d = chargeStart;
+      while (d <= horizon) {
+        if (d >= refDate) {
+          const bd = getNextBillDateInline(d);
+          if (bd <= horizon) billMap[bd] = (billMap[bd] || 0) + sub.amount;
+        }
+        if (sub.frequency === "once") break;
+        d = getNextOccurrence(d, sub.frequency);
+      }
+    }
+    for (const inv of (data.investments || [])) {
+      if (!inv.includeInForecast || inv.account !== "creditCard") continue;
+      let d = inv.startDate;
+      while (d <= horizon && d <= inv.endDate) {
+        if (d >= refDate) {
+          const bd = getNextBillDateInline(d);
+          if (bd <= horizon) billMap[bd] = (billMap[bd] || 0) + inv.amount;
+        }
+        if (inv.frequency === "once") break;
+        d = getNextOccurrence(d, inv.frequency);
+      }
+    }
+
+    for (const [bDate, bAmount] of Object.entries(billMap)) {
+      if (bAmount > 0.01) {
+        items.push({ date: bDate, label: "Credit Card Bill Payment", amount: -bAmount, balance: 0, type: "cc_bill" as const, account: "bank" as const });
+        items.push({ date: bDate, label: "CC Limit Restored", amount: bAmount, balance: 0, type: "cc_bill" as const, account: "creditCard" as const });
+      }
+    }
+  }
+
+  // Applied transfers
+  for (const tr of (data.transfers || [])) {
+    if (!tr.isApplied) continue;
+    if (tr.date >= refDate && tr.date <= horizon) {
+      items.push({ date: tr.date, label: `Transfer: ${tr.reason}`, amount: -tr.amount, balance: 0, type: "transfer", account: tr.fromAccount });
+      items.push({ date: tr.date, label: `Transfer: ${tr.reason}`, amount: tr.amount, balance: 0, type: "transfer", account: tr.toAccount });
     }
   }
 
