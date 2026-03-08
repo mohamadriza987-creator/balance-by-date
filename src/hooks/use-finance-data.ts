@@ -7,6 +7,7 @@ export function useFinanceData() {
     const d = loadData();
     if (!d.investments) d.investments = [];
     if (!d.accountBalances) d.accountBalances = { cash: 0, bank: d.currentBalance || 0, creditCard: 0 };
+    if (!d.positionDate) d.positionDate = new Date().toISOString().slice(0, 10);
     return d;
   });
 
