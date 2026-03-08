@@ -110,7 +110,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       const me = format(endOfMonth(d), "yyyy-MM-dd");
       let income = 0, expense = 0;
 
-      for (const entry of data.entries) {
+      for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
         let dd = entry.date;
         while (dd <= me) {
