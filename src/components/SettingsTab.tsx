@@ -20,7 +20,7 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate }: SettingsT
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const today = todayStr();
+  const today = data.positionDate || todayStr();
   const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
   const horizonMonths = Math.round(horizonDays / 30);
 
