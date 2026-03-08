@@ -93,6 +93,9 @@ const Index = () => {
           <TabsContent value="add">
             <AddNewTab onAddSubscription={addSubscription} onAddEntry={addEntry} />
           </TabsContent>
+          <TabsContent value="settings">
+            <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
