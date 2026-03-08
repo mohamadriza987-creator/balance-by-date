@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Banknote, ArrowDownLeft, ArrowUpRight, BarChart3, Settings } from "lucide-react";
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
@@ -12,8 +12,7 @@ import { SettingsTab } from "@/components/SettingsTab";
 import { formatMoney } from "@/lib/finance-utils";
 
 const tabs = [
-  { value: "accounts", label: "Accounts", icon: Banknote },
-  { value: "transactions", label: "Transactions", icon: BarChart3 },
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "inflow", label: "Inflow", icon: ArrowDownLeft },
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
 ] as const;
@@ -28,7 +27,7 @@ const Index = () => {
     updateBalance, updateAccountBalances, updateForecastDate,
   } = useFinanceData();
 
-  const [activeTab, setActiveTab] = useState("transactions");
+  const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
 
   if (showSettings) {
@@ -77,10 +76,12 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="px-3 py-4">
-        {activeTab === "accounts" && (
-          <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
+        {activeTab === "overview" && (
+          <div className="space-y-4">
+            <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
+            <TransactionsTab data={data} />
+          </div>
         )}
-        {activeTab === "transactions" && <TransactionsTab data={data} />}
         {activeTab === "inflow" && (
           <InflowTab
             entries={data.entries}
@@ -120,7 +121,7 @@ const Index = () => {
 
       {/* Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
-        <div className="grid grid-cols-4 h-16">
+        <div className="grid grid-cols-3 h-16">
           {tabs.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
