@@ -32,11 +32,14 @@ const COLORS = [
 ];
 
 const FILTER_LABELS: Record<AccountFilter, string> = {
-  all: "All", cash: "Cash", bank: "Bank", creditCard: "Card Outstanding"
+  all: "All", cash: "Cash", bank: "Bank", creditCard: "Credit Card Due"
 };
 
 export function TransactionsTab({ data }: TransactionsTabProps) {
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
+  const profile = data.userProfile;
+  const fm = (n: number) => formatMoney(n, profile);
+
   const filteredData = useMemo((): AppData => {
     if (accountFilter === "all") return data;
     return {
@@ -60,7 +63,6 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
-  // Date-based insights near position date
   const dateInsights = useMemo(() => {
     const nextInflow = forecast.find(f => f.amount > 0);
     const nextOutflow = forecast.find(f => f.amount < 0);
@@ -98,7 +100,9 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       }
       for (const sub of filteredData.subscriptions) {
         if (!sub.includeInForecast) continue;
-        let dd = sub.nextDate;
+        // Respect trial
+        const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
+        let dd = chargeStart;
         while (dd <= me) {
           if (dd >= ms) { expense += sub.amount; expenseItems.push({ label: sub.name, amount: sub.amount, date: dd }); }
           if (sub.frequency === "once") break;
@@ -186,16 +190,13 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         ))}
       </div>
 
-      {/* 1. Current Balance (already shown in AccountsTab above) */}
-
-      {/* 2. Projected Balance on Selected Date */}
+      {/* Projected Balance */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
         <CardContent className="py-4 px-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Projected Balance on {formatDate(data.forecastDate)}</p>
           <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-            {formatMoney(forecastBalance)}
+            {fm(forecastBalance)}
           </p>
-          {/* Date-based insights */}
           <div className="flex justify-center gap-4 mt-2">
             {dateInsights.nextInflow && (
               <div className="text-left">
@@ -213,7 +214,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         </CardContent>
       </Card>
 
-      {/* 3. Safe Until / Next Negative Date */}
+      {/* Safe Until / Risk */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           title={riskDate ? "Next Negative Date" : "Safe Until"}
@@ -223,12 +224,15 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         />
         <StatCard
           title="Monthly Subscriptions"
-          value={formatMoney(monthSubs)}
+          value={fm(monthSubs)}
           icon="subscriptions"
         />
       </div>
 
-      {/* 4. Upcoming 30 Days */}
+      {/* Alerts (trial, cheque, debt, renewals) */}
+      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} entries={filteredData.entries} positionDate={today} />
+
+      {/* Upcoming 30 Days */}
       <Card>
         <CardHeader className="px-4 py-3">
           <CardTitle className="text-base">Upcoming (30 days)</CardTitle>
@@ -239,19 +243,17 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
           ) : (
             <div className="space-y-1.5">
               {upcoming.map((item, i) => (
-                <TimelineRow key={i} item={item} />
+                <TimelineRow key={i} item={item} fm={fm} />
               ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 5. Balance Forecast Chart */}
+      {/* Balance Forecast Chart */}
       <ForecastChart forecast={forecast} currentBalance={effectiveBalance} forecastDate={effectiveData.forecastDate} />
 
-      {/* 6. Subscription Alerts */}
-      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} positionDate={today} />
-
+      {/* Upcoming Subscriptions */}
       {upcomingSubscriptions.length > 0 && (
         <Card>
           <CardHeader className="px-4 py-3">
@@ -277,7 +279,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Badge variant="outline" className="text-[10px]">{sub.category}</Badge>
-                      <p className="text-sm font-bold text-destructive">-{formatMoney(sub.amount)}</p>
+                      <p className="text-sm font-bold text-destructive">-{fm(sub.amount)}</p>
                     </div>
                   </div>
                 );
@@ -287,7 +289,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         </Card>
       )}
 
-      {/* 7. Spending Breakdown */}
+      {/* Spending Breakdown */}
       <SpendingBreakdown data={filteredData} />
 
       {/* Insights */}
@@ -309,7 +311,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
             }}>
               <XAxis dataKey="month" tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} width={40} />
-              <Tooltip formatter={(value: number) => formatMoney(value)} />
+              <Tooltip formatter={(value: number) => fm(value)} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
               <Bar dataKey="income" name="Income" fill="hsl(var(--success))" radius={[3, 3, 0, 0]}
                 onClick={(data) => { setExpandedMonth(data.monthKey); setExpandedType("income"); }} cursor="pointer" />
@@ -324,8 +326,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                 <p className="text-xs font-semibold">
                   {expandedType === "income" ? "Income" : "Expenses"} — {format(parseISO(expandedMonth + "-01"), "MMM yyyy")}
                 </p>
-                <button onClick={() => { setExpandedMonth(null); setExpandedType(null); }}
-                  className="text-muted-foreground hover:text-foreground">
+                <button onClick={() => { setExpandedMonth(null); setExpandedType(null); }} className="text-muted-foreground hover:text-foreground">
                   <ChevronUp className="h-4 w-4" />
                 </button>
               </div>
@@ -336,9 +337,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                   {expandedData.map((item, idx) => (
                     <div key={idx} className="flex justify-between text-xs">
                       <span className="text-muted-foreground truncate mr-2">{item.label} <span className="text-[10px]">({formatDate(item.date)})</span></span>
-                      <span className={`font-semibold shrink-0 ${expandedType === "income" ? "text-success" : "text-destructive"}`}>
-                        {formatMoney(item.amount)}
-                      </span>
+                      <span className={`font-semibold shrink-0 ${expandedType === "income" ? "text-success" : "text-destructive"}`}>{fm(item.amount)}</span>
                     </div>
                   ))}
                 </div>
@@ -369,18 +368,18 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-muted/50 p-3">
                 <p className="text-[10px] text-muted-foreground mb-0.5">Total Invested</p>
-                <p className="text-sm font-bold text-foreground">{formatMoney(investmentDetails.totalInvested)}</p>
+                <p className="text-sm font-bold text-foreground">{fm(investmentDetails.totalInvested)}</p>
               </div>
               <div className="rounded-lg bg-muted/50 p-3">
                 <p className="text-[10px] text-muted-foreground mb-0.5">Profit Accrued</p>
-                <p className="text-sm font-bold text-success">{formatMoney(investmentDetails.totalProfit)}</p>
+                <p className="text-sm font-bold text-success">{fm(investmentDetails.totalProfit)}</p>
               </div>
             </div>
             {investmentDetails.nextUpcoming && (
               <div className="mt-3 rounded-lg border border-border/50 p-3">
                 <p className="text-[10px] text-muted-foreground mb-0.5">Next Installment</p>
                 <div className="flex justify-between items-baseline">
-                  <p className="text-sm font-bold text-foreground">{formatMoney(investmentDetails.nextUpcoming.amount)}</p>
+                  <p className="text-sm font-bold text-foreground">{fm(investmentDetails.nextUpcoming.amount)}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(investmentDetails.nextUpcoming.date)}</p>
                 </div>
               </div>
@@ -391,7 +390,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                   {selectedInvestment === "all" ? `Total Maturity (${investmentDetails.nextMaturity.count} funds)` : "Maturity"}
                 </p>
                 <div className="flex justify-between items-baseline">
-                  <p className="text-base font-bold text-primary">{formatMoney(investmentDetails.nextMaturity.value)}</p>
+                  <p className="text-base font-bold text-primary">{fm(investmentDetails.nextMaturity.value)}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(investmentDetails.nextMaturity.date)}</p>
                 </div>
               </div>
@@ -403,24 +402,30 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   );
 }
 
-function TimelineRow({ item }: { item: ForecastItem }) {
+function TimelineRow({ item, fm }: { item: ForecastItem; fm: (n: number) => string }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2">
+    <div className={`flex items-center justify-between rounded-lg border border-border/50 px-3 py-2 ${
+      item.isCheque ? "border-l-4 border-l-amber-400" : item.isDebtLinked ? "border-l-4 border-l-orange-400" : ""
+    }`}>
       <div className="flex items-center gap-2 min-w-0">
         <Badge variant="outline" className={`text-[9px] shrink-0 px-1.5 ${TYPE_COLORS[item.type] || ""}`}>
           {item.type === "income" ? "inflow" : item.type}
         </Badge>
         <div className="min-w-0">
-          <p className="text-xs font-medium truncate">{item.label}</p>
+          <div className="flex items-center gap-1">
+            <p className="text-xs font-medium truncate">{item.label}</p>
+            {item.isCheque && <Badge className="text-[8px] bg-amber-500/20 text-amber-400 px-1">Cheque</Badge>}
+            {item.isDebtLinked && <Badge className="text-[8px] bg-orange-500/20 text-orange-400 px-1">Debt</Badge>}
+          </div>
           <p className="text-[10px] text-muted-foreground">{formatDate(item.date)}</p>
         </div>
       </div>
       <div className="text-right shrink-0 ml-2">
         <p className={`text-xs font-bold ${item.amount >= 0 ? "text-success" : "text-destructive"}`}>
-          {item.amount >= 0 ? "+" : ""}{formatMoney(item.amount)}
+          {item.amount >= 0 ? "+" : ""}{fm(item.amount)}
         </p>
         <p className={`text-[10px] ${item.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>
-          Bal: {formatMoney(item.balance)}
+          Bal: {fm(item.balance)}
         </p>
       </div>
     </div>
