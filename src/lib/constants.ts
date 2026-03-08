@@ -38,7 +38,7 @@ export const ACCOUNT_OPTIONS: { value: AccountType; label: string }[] = [
   { value: "creditCard", label: "Credit Card Due" },
 ];
 
-export const TYPE_COLORS = {
+export const TYPE_COLORS: Record<string, string> = {
   income: "bg-success/10 text-success border-success/20",
   expense: "bg-destructive/10 text-destructive border-destructive/20",
   subscription: "bg-warning/10 text-warning border-warning/20",
@@ -46,7 +46,9 @@ export const TYPE_COLORS = {
   emi: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   debt: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   cheque: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-} as const;
+  cc_bill: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  transfer: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+};
 
 export const COUNTRIES_CURRENCIES: { country: string; currency: string; symbol: string }[] = [
   { country: "Afghanistan", currency: "AFN", symbol: "؋" },
