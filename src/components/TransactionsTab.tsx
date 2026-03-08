@@ -205,73 +205,113 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         </CardContent>
       </Card>
 
-      {/* Monthly Income/Expense Pie Chart */}
+      {/* Income vs Expense Bar Chart - tap to expand */}
       <Card>
         <CardHeader className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Income vs Expense</CardTitle>
-            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-              <SelectTrigger className="w-32 h-7 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {monthOptions.map(m => (
-                  <SelectItem key={m} value={m}>{format(parseISO(m + "-01"), "MMM yyyy")}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <CardTitle className="text-base">Income vs Expense (6 months)</CardTitle>
+          <p className="text-[10px] text-muted-foreground">Tap a bar to see details</p>
         </CardHeader>
         <CardContent className="px-2 pb-3">
-          {monthlyPieData.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-6">No data for this month.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={monthlyPieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={3} dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} fontSize={10}>
-                  {monthlyPieData.map((entry, idx) => (
-                    <Cell key={idx} fill={entry.fill} />
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={incomeExpenseBarData} onClick={(state) => {
+              if (state?.activePayload?.[0]) {
+                const monthKey = state.activePayload[0].payload.monthKey;
+                // Determine which bar was clicked based on cursor position
+                setExpandedMonth(prev => prev === monthKey && expandedType ? null : monthKey);
+              }
+            }}>
+              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} width={40} />
+              <Tooltip formatter={(value: number) => formatMoney(value)} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Bar dataKey="income" name="Income" fill="hsl(var(--success))" radius={[3, 3, 0, 0]}
+                onClick={(data) => { setExpandedMonth(data.monthKey); setExpandedType("income"); }} cursor="pointer" />
+              <Bar dataKey="expense" name="Expense" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]}
+                onClick={(data) => { setExpandedMonth(data.monthKey); setExpandedType("expense"); }} cursor="pointer" />
+            </BarChart>
+          </ResponsiveContainer>
+
+          {/* Expanded detail */}
+          {expandedMonth && expandedType && expandedData && (
+            <div className="mt-3 rounded-lg border border-border/50 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold">
+                  {expandedType === "income" ? "Income" : "Expenses"} — {format(parseISO(expandedMonth + "-01"), "MMM yyyy")}
+                </p>
+                <button onClick={() => { setExpandedMonth(null); setExpandedType(null); }}
+                  className="text-muted-foreground hover:text-foreground">
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+              </div>
+              {expandedData.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No items.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {expandedData.map((item, idx) => (
+                    <div key={idx} className="flex justify-between text-xs">
+                      <span className="text-muted-foreground truncate mr-2">{item.label} <span className="text-[10px]">({formatDate(item.date)})</span></span>
+                      <span className={`font-semibold shrink-0 ${expandedType === "income" ? "text-success" : "text-destructive"}`}>
+                        {formatMoney(item.amount)}
+                      </span>
+                    </div>
                   ))}
-                </Pie>
-                <Tooltip formatter={(value: number) => formatMoney(value)} />
-              </PieChart>
-            </ResponsiveContainer>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Income vs Expense Bar Chart */}
-      <Card>
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="text-base">Income vs Expense (6 months)</CardTitle>
-        </CardHeader>
-        <CardContent className="px-2 pb-3">
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={incomeExpenseBarData}>
-              <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-              <YAxis tick={{ fontSize: 10 }} width={40} />
-              <Tooltip formatter={(value: number) => formatMoney(value)} />
-              <Bar dataKey="income" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="expense" fill="hsl(var(--destructive))" radius={[3, 3, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Investments Summary */}
-      {investmentSummary && (
+      {/* Investments Detail */}
+      {investmentDetails && (
         <Card>
           <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">Investments</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Investments</CardTitle>
+              <Select value={selectedInvestment} onValueChange={setSelectedInvestment}>
+                <SelectTrigger className="w-36 h-7 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Investments</SelectItem>
+                  {investmentDetails.investments.map(inv => (
+                    <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent className="px-4 pb-4">
-            <div className="grid grid-cols-3 gap-2">
-              {investmentSummary.map((item) => (
-                <div key={item.name} className="text-center rounded-lg bg-muted/50 p-3">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">{item.name}</p>
-                  <p className="text-sm font-bold text-foreground">{formatMoney(item.value)}</p>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Total Invested</p>
+                <p className="text-sm font-bold text-foreground">{formatMoney(investmentDetails.totalInvested)}</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Profit Accrued</p>
+                <p className="text-sm font-bold text-success">{formatMoney(investmentDetails.totalProfit)}</p>
+              </div>
             </div>
+
+            {investmentDetails.nextUpcoming && (
+              <div className="mt-3 rounded-lg border border-border/50 p-3">
+                <p className="text-[10px] text-muted-foreground mb-0.5">Next Installment</p>
+                <div className="flex justify-between items-baseline">
+                  <p className="text-sm font-bold text-foreground">{formatMoney(investmentDetails.nextUpcoming.amount)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(investmentDetails.nextUpcoming.date)}</p>
+                </div>
+              </div>
+            )}
+
+            {investmentDetails.nextMaturity && (
+              <div className="mt-2 rounded-lg border border-dashed border-primary/30 p-3">
+                <p className="text-[10px] text-muted-foreground mb-0.5">
+                  Maturity{selectedInvestment !== "all" ? "" : ` (${investmentDetails.nextMaturity.name})`}
+                </p>
+                <div className="flex justify-between items-baseline">
+                  <p className="text-base font-bold text-primary">{formatMoney(investmentDetails.nextMaturity.value)}</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(investmentDetails.nextMaturity.date)}</p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
