@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile } from "@/lib/finance-types";
+import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency } from "@/lib/finance-types";
 import { loadData, saveData } from "@/lib/finance-utils";
 
 export function useFinanceData() {
