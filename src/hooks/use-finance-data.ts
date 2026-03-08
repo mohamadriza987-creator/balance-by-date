@@ -1,26 +1,71 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings } from "@/lib/finance-types";
-import { loadData, saveData } from "@/lib/finance-utils";
+import { seedData } from "@/lib/finance-utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
+
+function emptyData(): AppData {
+  return seedData();
+}
 
 export function useFinanceData() {
-  const [data, setDataState] = useState<AppData>(() => {
-    const d = loadData();
-    if (!d.investments) d.investments = [];
-    if (!d.debtPlans) d.debtPlans = [];
-    if (!d.accountBalances) d.accountBalances = { cash: 0, bank: d.currentBalance || 0, creditCard: 0 };
-    if (!d.positionDate) d.positionDate = new Date().toISOString().slice(0, 10);
-    if (!d.transfers) d.transfers = [];
-    if (!d.settings) d.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false };
-    return d;
-  });
+  const { user } = useAuth();
+  const [data, setDataState] = useState<AppData>(() => emptyData());
+  const [loaded, setLoaded] = useState(false);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  // Load data from Supabase on mount / user change
+  useEffect(() => {
+    if (!user) {
+      setLoaded(false);
+      return;
+    }
+
+    const load = async () => {
+      const { data: row } = await supabase
+        .from("user_finance_data")
+        .select("finance_data")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (row?.finance_data && typeof row.finance_data === "object" && Object.keys(row.finance_data).length > 0) {
+        const fd = row.finance_data as unknown as AppData;
+        // Ensure defaults
+        if (!fd.investments) fd.investments = [];
+        if (!fd.debtPlans) fd.debtPlans = [];
+        if (!fd.accountBalances) fd.accountBalances = { cash: 0, bank: 0, creditCard: 0 };
+        if (!fd.positionDate) fd.positionDate = new Date().toISOString().slice(0, 10);
+        if (!fd.transfers) fd.transfers = [];
+        if (!fd.settings) fd.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false };
+        setDataState(fd);
+      } else {
+        setDataState(emptyData());
+      }
+      setLoaded(true);
+    };
+
+    load();
+  }, [user]);
+
+  // Save to Supabase with debounce
+  const persistToSupabase = useCallback((next: AppData) => {
+    if (!user) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(async () => {
+      await supabase
+        .from("user_finance_data")
+        .update({ finance_data: next as any })
+        .eq("user_id", user.id);
+    }, 800);
+  }, [user]);
 
   const setData = useCallback((updater: AppData | ((prev: AppData) => AppData)) => {
     setDataState((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      saveData(next);
+      persistToSupabase(next);
       return next;
     });
-  }, []);
+  }, [persistToSupabase]);
 
   const addSubscription = useCallback((sub: Omit<Subscription, "id">) => {
     setData((prev) => ({
@@ -51,19 +96,16 @@ export function useFinanceData() {
 
   const removeEntry = useCallback((id: string) => {
     setData((prev) => {
-      // Also remove linked debt plan entries
       const entry = prev.entries.find(e => e.id === id);
       let newEntries = prev.entries.filter((e) => e.id !== id);
       let newPlans = prev.debtPlans || [];
       
-      // If removing a parent debt entry, also remove linked entries
       const linkedPlan = newPlans.find(p => p.parentEntryId === id);
       if (linkedPlan) {
         newEntries = newEntries.filter(e => !linkedPlan.linkedEntryIds.includes(e.id));
         newPlans = newPlans.filter(p => p.parentEntryId !== id);
       }
       
-      // If removing a linked entry, update the plan
       if (entry?.debtLinkId) {
         newPlans = newPlans.map(p => ({
           ...p,
@@ -152,7 +194,6 @@ export function useFinanceData() {
         linkedIds.push(linkedId);
 
         if (plan.direction === "received") {
-          // Debt received (inflow) → generate repayment outflows
           newEntries.push({
             id: linkedId,
             label: `Repayment - ${parentEntry.label}`,
@@ -167,7 +208,6 @@ export function useFinanceData() {
             debtType: "repayment" as const,
           });
         } else {
-          // Debt given (outflow) → generate recovery inflows
           newEntries.push({
             id: linkedId,
             label: `Recovery - ${parentEntry.label}`,
@@ -224,6 +264,7 @@ export function useFinanceData() {
 
   return {
     data,
+    loaded,
     setData,
     addSubscription, removeSubscription, toggleSubscriptionForecast,
     addEntry, removeEntry, toggleEntryForecast,

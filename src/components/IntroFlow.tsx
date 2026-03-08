@@ -5,13 +5,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { COUNTRIES_CURRENCIES } from "@/lib/constants";
+import { AuthPage } from "@/components/AuthPage";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 import type { AccountType, UserProfile, AccountBalances } from "@/lib/finance-types";
 
 interface IntroFlowProps {
   onComplete: (profile: UserProfile, balances: AccountBalances) => void;
+  initialName?: string;
 }
 
-type Step = 1 | 2 | 3 | 4;
+type Step = 1 | 2 | 3 | 4 | 5;
 
 const ACCOUNT_OPTIONS: { key: AccountType; label: string; creditLabel?: string }[] = [
   { key: "cash", label: "Cash" },
@@ -19,9 +23,10 @@ const ACCOUNT_OPTIONS: { key: AccountType; label: string; creditLabel?: string }
   { key: "creditCard", label: "Credit Card", creditLabel: "Credit Card Limit Available" },
 ];
 
-export function IntroFlow({ onComplete }: IntroFlowProps) {
-  const [step, setStep] = useState<Step>(1);
-  const [name, setName] = useState("");
+export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
+  const { user } = useAuth();
+  const [step, setStep] = useState<Step>(user ? 4 : 1);
+  const [name, setName] = useState(initialName || "");
   const [transitioning, setTransitioning] = useState(false);
 
   // Country/Currency
@@ -47,7 +52,12 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
   };
 
   const handleWelcomeContinue = () => {
-    goToStep(3);
+    // If already authenticated, skip auth step
+    if (user) {
+      goToStep(4);
+    } else {
+      goToStep(3);
+    }
   };
 
   const handleCountrySelect = (c: string) => {
@@ -61,7 +71,7 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
 
   const handleCountryContinue = () => {
     if (!country || !currency) return;
-    goToStep(4);
+    goToStep(5);
   };
 
   const toggleAccount = (acc: AccountType) => {
@@ -75,8 +85,7 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
     return val !== "" && !isNaN(parseFloat(val));
   });
 
-  const handleFinish = () => {
-    localStorage.setItem("finance-buddy-intro-done", "true");
+  const handleFinish = async () => {
     const profile: UserProfile = {
       name: name.trim(),
       country,
@@ -89,6 +98,19 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
       bank: enabledAccounts.includes("bank") ? parseFloat(balances.bank) || 0 : 0,
       creditCard: enabledAccounts.includes("creditCard") ? parseFloat(balances.creditCard) || 0 : 0,
     };
+
+    // Save profile to Supabase
+    if (user) {
+      await supabase.from("profiles").update({
+        name: profile.name,
+        country: profile.country,
+        currency: profile.currency,
+        currency_symbol: profile.currencySymbol,
+        enabled_accounts: profile.enabledAccounts,
+        onboarding_complete: true,
+      }).eq("user_id", user.id);
+    }
+
     onComplete(profile, accountBalances);
   };
 
@@ -96,6 +118,7 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      {/* Step 1: Name */}
       {step === 1 && (
         <div className={`w-full max-w-sm space-y-8 text-center transition-all duration-300 ${animClass}`}>
           <div className="space-y-2">
@@ -118,9 +141,9 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
         </div>
       )}
 
+      {/* Step 2: Welcome message */}
       {step === 2 && (
         <div className={`w-full max-w-sm space-y-8 text-center transition-all duration-300 ${animClass}`}>
-          {/* Decorative top accent */}
           <div className="flex justify-center">
             <div className="relative">
               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-scale-in">
@@ -129,22 +152,15 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
               <div className="absolute -inset-2 rounded-full border border-primary/20 animate-[pulse_3s_ease-in-out_infinite]" />
             </div>
           </div>
-
-          {/* Welcome card */}
           <div className="relative rounded-2xl border border-border bg-card/80 backdrop-blur p-6 space-y-4 shadow-lg animate-fade-in">
-            {/* Subtle gradient overlay */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-            
             <p className="relative text-lg font-medium text-foreground">
               Hii <span className="text-primary font-semibold italic">{name.trim()}</span> 👋
             </p>
-            
             <div className="relative h-px w-12 mx-auto bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-            
             <p className="relative text-sm leading-relaxed text-muted-foreground italic">
               This is your personal financial planner app — built to help you see your future balance before the date arrives.
             </p>
-            
             <div className="relative pt-2">
               <p className="text-xs text-muted-foreground/70 tracking-wide uppercase">
                 Crafted with 💛 by
@@ -154,20 +170,26 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
               </p>
             </div>
           </div>
-
           <Button onClick={handleWelcomeContinue} className="w-full h-12 text-base font-medium animate-fade-in">
             Continue
           </Button>
         </div>
       )}
 
+      {/* Step 3: Auth */}
       {step === 3 && (
+        <div className={`w-full transition-all duration-300 flex justify-center ${animClass}`}>
+          <AuthPage userName={name.trim()} onBack={() => goToStep(2)} />
+        </div>
+      )}
+
+      {/* Step 4: Country/Currency */}
+      {step === 4 && (
         <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
             <h2 className="text-xl font-bold text-foreground">Select your country</h2>
             <p className="text-sm text-muted-foreground">We'll set the default currency for you</p>
           </div>
-
           <div className="space-y-3">
             <div>
               <Label className="text-xs">Country</Label>
@@ -180,7 +202,6 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
                 </SelectContent>
               </Select>
             </div>
-
             {country && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -194,20 +215,19 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
               </div>
             )}
           </div>
-
           <Button onClick={handleCountryContinue} disabled={!country || !currency} className="w-full h-12 text-base">
             Continue
           </Button>
         </div>
       )}
 
-      {step === 4 && (
+      {/* Step 5: Source selection */}
+      {step === 5 && (
         <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
             <h2 className="text-xl font-bold text-foreground">Which sources would you like to add?</h2>
             <p className="text-sm text-muted-foreground">Select your accounts and enter current balances</p>
           </div>
-
           <div className="space-y-4">
             {ACCOUNT_OPTIONS.map(({ key, label, creditLabel }) => (
               <div key={key} className="space-y-2">
@@ -242,7 +262,6 @@ export function IntroFlow({ onComplete }: IntroFlowProps) {
               </div>
             ))}
           </div>
-
           <Button onClick={handleFinish} disabled={!allBalancesFilled} className="w-full h-12 text-base">
             Let's Begin
           </Button>

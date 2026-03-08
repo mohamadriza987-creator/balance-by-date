@@ -5,6 +5,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
+import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
 import { TransactionsTab } from "@/components/TransactionsTab";
@@ -17,6 +18,7 @@ import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 
 const tabs = [
@@ -28,8 +30,9 @@ const tabs = [
 ] as const;
 
 const Index = () => {
+  const { user, loading: authLoading } = useAuth();
   const {
-    data, setData,
+    data, setData, loaded,
     addSubscription, removeSubscription, toggleSubscriptionForecast,
     addEntry, removeEntry, toggleEntryForecast,
     updateSubscription, updateEntry,
@@ -41,7 +44,34 @@ const Index = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
-  const [introDone, setIntroDone] = useState(() => localStorage.getItem("finance-buddy-intro-done") === "true");
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
+  const [profileName, setProfileName] = useState<string>("");
+
+  // Check onboarding status from profile
+  useEffect(() => {
+    if (!user) {
+      setOnboardingComplete(null);
+      return;
+    }
+
+    const checkProfile = async () => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_complete, name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (profile?.onboarding_complete) {
+        setOnboardingComplete(true);
+        if (profile.name) setProfileName(profile.name);
+      } else {
+        setOnboardingComplete(false);
+        if (profile?.name) setProfileName(profile.name);
+      }
+    };
+
+    checkProfile();
+  }, [user]);
 
   const handleIntroComplete = (profile: UserProfile, balances: AccountBalances) => {
     updateUserProfile(profile);
@@ -52,11 +82,30 @@ const Index = () => {
       currentBalance: total,
       userProfile: profile,
     }));
-    setIntroDone(true);
+    setOnboardingComplete(true);
   };
 
-  if (!introDone) {
-    return <IntroFlow onComplete={handleIntroComplete} />;
+  // Show loading while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
+      </div>
+    );
+  }
+
+  // Not logged in or onboarding not complete → show intro
+  if (!user || onboardingComplete === false || onboardingComplete === null) {
+    return <IntroFlow onComplete={handleIntroComplete} initialName={profileName} />;
+  }
+
+  // Waiting for finance data to load
+  if (!loaded) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground text-sm">Loading your data...</div>
+      </div>
+    );
   }
 
   const profile = data.userProfile;
@@ -77,7 +126,9 @@ const Index = () => {
             data={data}
             onReplace={(d) => setData(d)}
             onUpdateForecastDate={updateForecastDate}
-            onReplayIntro={() => { localStorage.removeItem("finance-buddy-intro-done"); setIntroDone(false); }}
+            onReplayIntro={() => {
+              setOnboardingComplete(false);
+            }}
             onUpdateSettings={updateSettings}
           />
         </main>

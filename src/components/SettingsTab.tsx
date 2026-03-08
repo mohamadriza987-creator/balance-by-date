@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,12 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight } from "lucide-react";
+import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User } from "lucide-react";
 import type { AppData, AppSettings } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
 import { getSettings } from "@/lib/account-forecast";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 interface SettingsTabProps {
   data: AppData;
@@ -23,6 +24,7 @@ interface SettingsTabProps {
 
 export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings }: SettingsTabProps) {
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const settings = getSettings(data);
 
@@ -63,7 +65,7 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
 
   const handleReset = () => {
     onReplace(seedData());
-    toast({ title: "Data reset", description: "All data has been reset to demo values." });
+    toast({ title: "Data reset", description: "All data has been reset to defaults." });
   };
 
   const handleHorizonChange = (months: number[]) => {
@@ -71,8 +73,60 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     onUpdateForecastDate(addDays(today, days));
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    toast({ title: "Signed out", description: "You've been logged out successfully." });
+  };
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
+      {/* Account / Profile */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <User className="h-5 w-5" /> Account
+          </CardTitle>
+          <CardDescription>Your profile and authentication</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {user && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm text-muted-foreground">Email</Label>
+                <span className="text-sm text-foreground">{user.email}</span>
+              </div>
+              {data.userProfile?.name && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Name</Label>
+                  <span className="text-sm text-foreground">{data.userProfile.name}</span>
+                </div>
+              )}
+              {data.userProfile?.country && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Country</Label>
+                  <span className="text-sm text-foreground">{data.userProfile.country}</span>
+                </div>
+              )}
+              {data.userProfile?.currency && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Currency</Label>
+                  <span className="text-sm text-foreground">{data.userProfile.currencySymbol} ({data.userProfile.currency})</span>
+                </div>
+              )}
+              {data.userProfile?.enabledAccounts && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Accounts</Label>
+                  <span className="text-sm text-foreground">{data.userProfile.enabledAccounts.join(", ")}</span>
+                </div>
+              )}
+            </div>
+          )}
+          <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4" /> Sign Out
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Forecast Horizon */}
       <Card>
         <CardHeader>
@@ -191,14 +245,14 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" className="w-full justify-start gap-2">
-                <RotateCcw className="h-4 w-4" /> Reset to Demo Data
+                <RotateCcw className="h-4 w-4" /> Reset All Data
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Reset all data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will replace all your current entries, subscriptions, and balance with demo data. This action cannot be undone.
+                  This will clear all your entries, subscriptions, and balances. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
