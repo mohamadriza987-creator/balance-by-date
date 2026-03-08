@@ -71,8 +71,44 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <Label htmlFor="forecast-date" className="text-xs text-muted-foreground whitespace-nowrap">Forecast to:</Label>
-            <Input id="forecast-date" type="date" className="h-7 text-xs flex-1" value={data.forecastDate} onChange={(e) => updateForecastDate(e.target.value)} />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">My position on:</span>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "h-7 text-xs flex-1 justify-start text-left font-normal",
+                    !data.positionDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-1.5 h-3 w-3" />
+                  {data.positionDate ? format(parseISO(data.positionDate), "MMM d, yyyy") : "Today"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={data.positionDate ? parseISO(data.positionDate) : new Date()}
+                  onSelect={(date) => {
+                    if (date) updatePositionDate(format(date, "yyyy-MM-dd"));
+                  }}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                {data.positionDate !== todayStr() && (
+                  <div className="px-3 pb-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full text-xs"
+                      onClick={() => updatePositionDate(todayStr())}
+                    >
+                      Reset to Today
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </header>
