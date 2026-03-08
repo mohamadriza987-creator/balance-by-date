@@ -188,14 +188,14 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
       {/* Key Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="Current Balance" value={formatMoney(filteredData.currentBalance)} icon="balance" variant="success" />
+        <StatCard title="Balance" value={formatMoney(effectiveBalance)} icon="balance" variant="success" />
         <StatCard title={`Forecast ${formatDate(data.forecastDate)}`} value={formatMoney(forecastBalance)} icon="forecast" variant={forecastBalance < 0 ? "danger" : "default"} />
         <StatCard title="Monthly Subs" value={formatMoney(monthSubs)} icon="subscriptions" />
         <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
       </div>
 
       {/* Forecast Chart */}
-      <ForecastChart forecast={forecast} currentBalance={filteredData.currentBalance} forecastDate={filteredData.forecastDate} />
+      <ForecastChart forecast={forecast} currentBalance={effectiveBalance} forecastDate={effectiveData.forecastDate} />
 
       {/* Upcoming Transactions (30 days) */}
       <Card>
