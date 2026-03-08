@@ -204,12 +204,11 @@ export function computeForecast(data: AppData): ForecastItem[] {
 
   for (const sub of data.subscriptions) {
     if (!sub.includeInForecast) continue;
-    // Respect trial: first charge starts at trialEndDate
     const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
     let d = chargeStart;
     while (d <= horizon) {
       if (d >= refDate) {
-        items.push({ date: d, label: sub.name, amount: -sub.amount, balance: 0, type: "subscription" });
+        items.push({ date: d, label: sub.name, amount: -sub.amount, balance: 0, type: "subscription", account: sub.account });
       }
       if (sub.frequency === "once") break;
       d = getNextOccurrence(d, sub.frequency);
@@ -222,14 +221,10 @@ export function computeForecast(data: AppData): ForecastItem[] {
     while (d <= horizon) {
       if (d >= refDate) {
         items.push({
-          date: d,
-          label: entry.label,
-          amount: entry.amount,
-          balance: 0,
+          date: d, label: entry.label, amount: entry.amount, balance: 0,
           type: entry.amount >= 0 ? "income" : "expense",
-          isCheque: entry.isCheque,
-          isDebtLinked: !!entry.debtLinkId,
-          isOptional: entry.isOptional,
+          account: entry.account,
+          isCheque: entry.isCheque, isDebtLinked: !!entry.debtLinkId, isOptional: entry.isOptional,
         });
       }
       if (entry.frequency === "once") break;
@@ -242,14 +237,34 @@ export function computeForecast(data: AppData): ForecastItem[] {
     let d = inv.startDate;
     while (d <= horizon && d <= inv.endDate) {
       if (d >= refDate) {
-        items.push({ date: d, label: `${inv.name} (Investment)`, amount: -inv.amount, balance: 0, type: "expense" });
+        items.push({ date: d, label: `${inv.name} (Investment)`, amount: -inv.amount, balance: 0, type: "expense", account: inv.account });
       }
       if (inv.frequency === "once") break;
       d = getNextOccurrence(d, inv.frequency);
     }
     if (inv.endDate >= refDate && inv.endDate <= horizon) {
       const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
-      items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income" });
+      items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income", account: inv.account });
+    }
+  }
+
+  // CC bill payments
+  const { computeCreditCardBills } = require("./account-forecast");
+  try {
+    const ccBills = computeCreditCardBills(data);
+    for (const bill of ccBills) {
+      // Bank pays → CC limit restores. Net effect on total = 0. Show as internal movement.
+      items.push({ date: bill.date, label: bill.label, amount: -bill.amount, balance: 0, type: "cc_bill", account: "bank" });
+      items.push({ date: bill.date, label: "CC Limit Restored", amount: bill.amount, balance: 0, type: "cc_bill", account: "creditCard" });
+    }
+  } catch {}
+
+  // Applied transfers
+  for (const tr of (data.transfers || [])) {
+    if (!tr.isApplied) continue;
+    if (tr.date >= refDate && tr.date <= horizon) {
+      items.push({ date: tr.date, label: `Transfer: ${tr.reason}`, amount: -tr.amount, balance: 0, type: "transfer", account: tr.fromAccount });
+      items.push({ date: tr.date, label: `Transfer: ${tr.reason}`, amount: tr.amount, balance: 0, type: "transfer", account: tr.toAccount });
     }
   }
 
@@ -259,6 +274,7 @@ export function computeForecast(data: AppData): ForecastItem[] {
   for (const item of items) {
     balance += item.amount;
     item.balance = balance;
+  }
   }
 
   return items;
