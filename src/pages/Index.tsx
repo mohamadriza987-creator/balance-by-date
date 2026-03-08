@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
@@ -9,7 +10,9 @@ import { TransactionsTab } from "@/components/TransactionsTab";
 import { InflowTab } from "@/components/InflowTab";
 import { OutflowTab } from "@/components/OutflowTab";
 import { SettingsTab } from "@/components/SettingsTab";
-import { formatMoney } from "@/lib/finance-utils";
+import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
+import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
