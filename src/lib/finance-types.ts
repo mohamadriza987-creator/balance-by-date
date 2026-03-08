@@ -26,6 +26,7 @@ export interface Entry {
   date: string; // YYYY-MM-DD
   frequency: Frequency;
   category: string;
+  account: AccountType;
   includeInForecast: boolean;
 }
 
