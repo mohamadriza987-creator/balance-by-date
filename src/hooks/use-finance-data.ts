@@ -1,9 +1,13 @@
 import { useState, useCallback } from "react";
-import type { AppData, Entry, Subscription } from "@/lib/finance-types";
+import type { AppData, Entry, Investment, Subscription } from "@/lib/finance-types";
 import { loadData, saveData } from "@/lib/finance-utils";
 
 export function useFinanceData() {
-  const [data, setDataState] = useState<AppData>(loadData);
+  const [data, setDataState] = useState<AppData>(() => {
+    const d = loadData();
+    if (!d.investments) d.investments = [];
+    return d;
+  });
 
   const setData = useCallback((updater: AppData | ((prev: AppData) => AppData)) => {
     setDataState((prev) => {
@@ -21,18 +25,13 @@ export function useFinanceData() {
   }, [setData]);
 
   const removeSubscription = useCallback((id: string) => {
-    setData((prev) => ({
-      ...prev,
-      subscriptions: prev.subscriptions.filter((s) => s.id !== id),
-    }));
+    setData((prev) => ({ ...prev, subscriptions: prev.subscriptions.filter((s) => s.id !== id) }));
   }, [setData]);
 
   const toggleSubscriptionForecast = useCallback((id: string) => {
     setData((prev) => ({
       ...prev,
-      subscriptions: prev.subscriptions.map((s) =>
-        s.id === id ? { ...s, includeInForecast: !s.includeInForecast } : s
-      ),
+      subscriptions: prev.subscriptions.map((s) => s.id === id ? { ...s, includeInForecast: !s.includeInForecast } : s),
     }));
   }, [setData]);
 
@@ -44,36 +43,45 @@ export function useFinanceData() {
   }, [setData]);
 
   const removeEntry = useCallback((id: string) => {
-    setData((prev) => ({
-      ...prev,
-      entries: prev.entries.filter((e) => e.id !== id),
-    }));
+    setData((prev) => ({ ...prev, entries: prev.entries.filter((e) => e.id !== id) }));
   }, [setData]);
 
   const toggleEntryForecast = useCallback((id: string) => {
     setData((prev) => ({
       ...prev,
-      entries: prev.entries.map((e) =>
-        e.id === id ? { ...e, includeInForecast: !e.includeInForecast } : e
-      ),
+      entries: prev.entries.map((e) => e.id === id ? { ...e, includeInForecast: !e.includeInForecast } : e),
     }));
   }, [setData]);
 
   const updateSubscription = useCallback((id: string, updates: Partial<Omit<Subscription, "id">>) => {
     setData((prev) => ({
       ...prev,
-      subscriptions: prev.subscriptions.map((s) =>
-        s.id === id ? { ...s, ...updates } : s
-      ),
+      subscriptions: prev.subscriptions.map((s) => s.id === id ? { ...s, ...updates } : s),
     }));
   }, [setData]);
 
   const updateEntry = useCallback((id: string, updates: Partial<Omit<Entry, "id">>) => {
     setData((prev) => ({
       ...prev,
-      entries: prev.entries.map((e) =>
-        e.id === id ? { ...e, ...updates } : e
-      ),
+      entries: prev.entries.map((e) => e.id === id ? { ...e, ...updates } : e),
+    }));
+  }, [setData]);
+
+  const addInvestment = useCallback((inv: Omit<Investment, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      investments: [...(prev.investments || []), { ...inv, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeInvestment = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, investments: (prev.investments || []).filter((i) => i.id !== id) }));
+  }, [setData]);
+
+  const updateInvestment = useCallback((id: string, updates: Partial<Omit<Investment, "id">>) => {
+    setData((prev) => ({
+      ...prev,
+      investments: (prev.investments || []).map((i) => i.id === id ? { ...i, ...updates } : i),
     }));
   }, [setData]);
 
@@ -88,15 +96,10 @@ export function useFinanceData() {
   return {
     data,
     setData,
-    addSubscription,
-    removeSubscription,
-    toggleSubscriptionForecast,
-    addEntry,
-    removeEntry,
-    toggleEntryForecast,
-    updateSubscription,
-    updateEntry,
-    updateBalance,
-    updateForecastDate,
+    addSubscription, removeSubscription, toggleSubscriptionForecast,
+    addEntry, removeEntry, toggleEntryForecast,
+    updateSubscription, updateEntry,
+    addInvestment, removeInvestment, updateInvestment,
+    updateBalance, updateForecastDate,
   };
 }
