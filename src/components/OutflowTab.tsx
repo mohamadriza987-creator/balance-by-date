@@ -6,14 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Trash2, Pencil, Check, X } from "lucide-react";
+import { CategorySelect } from "@/components/CategorySelect";
+import { FrequencySelect } from "@/components/FrequencySelect";
+import { AccountSelect } from "@/components/AccountSelect";
+import { ACCOUNT_LABELS } from "@/lib/constants";
 import type { Entry, Frequency, Investment, Subscription, AccountType } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney, computeInvestmentValue } from "@/lib/finance-utils";
 
 type OutflowMode = "expense" | "subscription" | "investment";
-
-const ACCOUNT_LABELS: Record<AccountType, string> = { cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
 
 interface OutflowTabProps {
   entries: Entry[];
@@ -30,12 +31,6 @@ interface OutflowTabProps {
   onUpdateEntry: (id: string, updates: Partial<Omit<Entry, "id">>) => void;
   onUpdateSubscription: (id: string, updates: Partial<Omit<Subscription, "id">>) => void;
   onUpdateInvestment: (id: string, updates: Partial<Omit<Investment, "id">>) => void;
-  expenseDescriptions?: string[];
-  subscriptionDescriptions?: string[];
-  investmentDescriptions?: string[];
-  expenseCategories?: string[];
-  subscriptionCategories?: string[];
-  investmentCategories?: string[];
 }
 
 export function OutflowTab({
@@ -44,11 +39,8 @@ export function OutflowTab({
   onRemoveEntry, onRemoveSubscription, onRemoveInvestment,
   onToggleEntry, onToggleSubscription,
   onUpdateEntry, onUpdateSubscription, onUpdateInvestment,
-  expenseDescriptions = [], subscriptionDescriptions = [], investmentDescriptions = [],
-  expenseCategories = [], subscriptionCategories = [], investmentCategories = [],
 }: OutflowTabProps) {
   const [mode, setMode] = useState<OutflowMode>("expense");
-
   const expenseEntries = entries.filter(e => e.amount < 0);
 
   return (
@@ -56,11 +48,9 @@ export function OutflowTab({
       <Card className="border-destructive/30">
         <CardHeader className="px-4 py-3">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base text-destructive">— ADD OUTFLOW</CardTitle>
+            <CardTitle className="text-base text-destructive">— Add Outflow</CardTitle>
             <Select value={mode} onValueChange={(v) => setMode(v as OutflowMode)}>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="h-8 w-[130px] text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="expense">Expense</SelectItem>
                 <SelectItem value="subscription">Subscription</SelectItem>
@@ -70,15 +60,9 @@ export function OutflowTab({
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {mode === "expense" && (
-            <ExpenseForm onAdd={onAddEntry} descriptions={expenseDescriptions} categories={expenseCategories} />
-          )}
-          {mode === "subscription" && (
-            <SubscriptionForm onAdd={onAddSubscription} descriptions={subscriptionDescriptions} categories={subscriptionCategories} />
-          )}
-          {mode === "investment" && (
-            <InvestmentForm onAdd={onAddInvestment} descriptions={investmentDescriptions} categories={investmentCategories} />
-          )}
+          {mode === "expense" && <ExpenseForm onAdd={onAddEntry} />}
+          {mode === "subscription" && <SubscriptionForm onAdd={onAddSubscription} />}
+          {mode === "investment" && <InvestmentForm onAdd={onAddInvestment} />}
         </CardContent>
       </Card>
 
@@ -89,23 +73,8 @@ export function OutflowTab({
   );
 }
 
-function AccountSelect({ value, onChange, className }: { value: AccountType; onChange: (v: AccountType) => void; className?: string }) {
-  return (
-    <Select value={value} onValueChange={(v) => onChange(v as AccountType)}>
-      <SelectTrigger className={className || "h-9"}><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="cash">Cash</SelectItem>
-        <SelectItem value="bank">Bank</SelectItem>
-        <SelectItem value="creditCard">Credit Card</SelectItem>
-      </SelectContent>
-    </Select>
-  );
-}
-
 // ============ EXPENSE FORM ============
-function ExpenseForm({ onAdd, descriptions, categories }: {
-  onAdd: (e: Omit<Entry, "id">) => void; descriptions: string[]; categories: string[];
-}) {
+function ExpenseForm({ onAdd }: { onAdd: (e: Omit<Entry, "id">) => void }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -126,7 +95,7 @@ function ExpenseForm({ onAdd, descriptions, categories }: {
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <Label className="text-xs">Description *</Label>
-        <AutocompleteInput value={name} onChange={setName} suggestions={descriptions} placeholder="e.g. Groceries" capitalize />
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" className="h-9" />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount ($) *</Label>
@@ -138,7 +107,7 @@ function ExpenseForm({ onAdd, descriptions, categories }: {
         <div><Label className="text-xs">Date *</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <AutocompleteInput value={category} onChange={setCategory} suggestions={categories} placeholder="e.g. Food" capitalize /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" /></div>
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
@@ -150,9 +119,7 @@ function ExpenseForm({ onAdd, descriptions, categories }: {
 }
 
 // ============ SUBSCRIPTION FORM ============
-function SubscriptionForm({ onAdd, descriptions, categories }: {
-  onAdd: (s: Omit<Subscription, "id">) => void; descriptions: string[]; categories: string[];
-}) {
+function SubscriptionForm({ onAdd }: { onAdd: (s: Omit<Subscription, "id">) => void }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -174,7 +141,7 @@ function SubscriptionForm({ onAdd, descriptions, categories }: {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div><Label className="text-xs">Service Name *</Label>
-        <AutocompleteInput value={name} onChange={setName} suggestions={descriptions} placeholder="e.g. Netflix" capitalize /></div>
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Netflix" className="h-9" /></div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount ($) *</Label>
           <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
@@ -185,7 +152,7 @@ function SubscriptionForm({ onAdd, descriptions, categories }: {
         <div><Label className="text-xs">Next Billing *</Label>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <AutocompleteInput value={category} onChange={setCategory} suggestions={categories} placeholder="e.g. Entertainment" capitalize /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" /></div>
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
@@ -205,9 +172,7 @@ function SubscriptionForm({ onAdd, descriptions, categories }: {
 }
 
 // ============ INVESTMENT FORM ============
-function InvestmentForm({ onAdd, descriptions, categories }: {
-  onAdd: (i: Omit<Investment, "id">) => void; descriptions: string[]; categories: string[];
-}) {
+function InvestmentForm({ onAdd }: { onAdd: (i: Omit<Investment, "id">) => void }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -229,7 +194,7 @@ function InvestmentForm({ onAdd, descriptions, categories }: {
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div><Label className="text-xs">Investment Name *</Label>
-        <AutocompleteInput value={name} onChange={setName} suggestions={descriptions} placeholder="e.g. Mutual Fund" capitalize /></div>
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Mutual Fund" className="h-9" /></div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount ($) *</Label>
           <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
@@ -244,7 +209,7 @@ function InvestmentForm({ onAdd, descriptions, categories }: {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Category *</Label>
-          <AutocompleteInput value={category} onChange={setCategory} suggestions={categories} placeholder="e.g. Stocks" capitalize /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" /></div>
         <div><Label className="text-xs">Annual Return *</Label>
           <Select value={expectedReturn} onValueChange={setExpectedReturn}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -274,13 +239,11 @@ function ExpenseList({ entries, onToggle, onRemove, onUpdate }: {
         <EditableEntryRow key={entry.id} entry={entry} onSave={(u) => { onUpdate(entry.id, u); setEditingId(null); }} onCancel={() => setEditingId(null)} />
       ) : (
         <ItemRow key={entry.id} label={entry.label} detail={`${formatMoney(Math.abs(entry.amount))} / ${entry.frequency} · ${formatDate(entry.date)}`}
-          category={entry.category} account={entry.account} checked={entry.includeInForecast} onToggle={() => onToggleEntry(entry.id)}
+          category={entry.category} account={entry.account} checked={entry.includeInForecast} onToggle={() => onToggle(entry.id)}
           onEdit={() => setEditingId(entry.id)} onRemove={() => onRemove(entry.id)} />
       ))}
     </div>
   );
-
-  function onToggleEntry(id: string) { onToggle(id); }
 }
 
 function SubscriptionList({ subscriptions, onToggle, onRemove, onUpdate }: {
@@ -399,8 +362,8 @@ function EditableEntryRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (
         <div className="grid grid-cols-2 gap-2">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" className="h-8" />
           <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-8" />
-          <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="h-8" />
-          <FrequencySelect value={frequency} onChange={setFrequency} />
+          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-8" />
+          <FrequencySelect value={frequency} onChange={setFrequency} className="h-8" />
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8" />
           <AccountSelect value={account} onChange={setAccount} className="h-8" />
         </div>
@@ -410,22 +373,5 @@ function EditableEntryRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function FrequencySelect({ value, onChange }: { value: Frequency; onChange: (v: Frequency) => void }) {
-  return (
-    <Select value={value} onValueChange={(v) => onChange(v as Frequency)}>
-      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-      <SelectContent>
-        <SelectItem value="once">One-time</SelectItem>
-        <SelectItem value="weekly">Weekly</SelectItem>
-        <SelectItem value="biweekly">Bi-weekly</SelectItem>
-        <SelectItem value="monthly">Monthly</SelectItem>
-        <SelectItem value="quarterly">Quarterly</SelectItem>
-        <SelectItem value="halfyearly">Half-yearly</SelectItem>
-        <SelectItem value="yearly">Yearly</SelectItem>
-      </SelectContent>
-    </Select>
   );
 }
