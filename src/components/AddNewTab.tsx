@@ -71,20 +71,20 @@ export function AddNewTab({
     if (mode === "subscription") {
       onAddSubscription({
         name, amount: parseFloat(amount), frequency, nextDate: date,
-        category: category || "General", includeInForecast: true,
+        category: category || "General", account: "bank", includeInForecast: true,
         isTrial, trialEndDate: isTrial ? trialEndDate : undefined,
       });
     } else if (mode === "investment") {
       onAddInvestment({
         name, amount: parseFloat(amount), frequency, startDate: date,
-        endDate, category: category || "General", includeInForecast: true,
+        endDate, category: category || "General", account: "bank", includeInForecast: true,
         expectedReturn: parseInt(expectedReturn),
       });
     } else {
       onAddEntry({
         label: name,
         amount: mode === "expense" ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount)),
-        date, frequency, category: category || "General", includeInForecast: true,
+        date, frequency, category: category || "General", account: "bank", includeInForecast: true,
       });
     }
     reset();

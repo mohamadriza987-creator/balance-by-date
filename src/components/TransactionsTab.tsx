@@ -7,7 +7,7 @@ import { AlertBanner } from "@/components/AlertBanner";
 import { ForecastChart } from "@/components/ForecastChart";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, PieChart, Pie } from "recharts";
-import type { AppData, ForecastItem } from "@/lib/finance-types";
+import type { AppData, ForecastItem, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeInvestmentValue,
   formatDate, formatMoney, getBalanceOnDate,
@@ -15,6 +15,8 @@ import {
   getNextOccurrence,
 } from "@/lib/finance-utils";
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+
+type AccountFilter = "all" | AccountType;
 
 interface TransactionsTabProps {
   data: AppData;
@@ -26,11 +28,26 @@ const COLORS = [
   "hsl(340, 70%, 50%)", "hsl(160, 70%, 40%)",
 ];
 
+const FILTER_LABELS: Record<AccountFilter, string> = { all: "All", cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
+
 export function TransactionsTab({ data }: TransactionsTabProps) {
-  const forecast = useMemo(() => computeForecast(data), [data]);
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
+  // Filter data by account
+  const filteredData = useMemo((): AppData => {
+    if (accountFilter === "all") return data;
+    return {
+      ...data,
+      entries: data.entries.filter(e => e.account === accountFilter),
+      subscriptions: data.subscriptions.filter(s => s.account === accountFilter),
+      investments: (data.investments || []).filter(i => i.account === accountFilter),
+      currentBalance: data.accountBalances[accountFilter] || 0,
+    };
+  }, [data, accountFilter]);
+
+  const forecast = useMemo(() => computeForecast(filteredData), [filteredData]);
   const today = todayStr();
-  const forecastBalance = getBalanceOnDate(forecast, data.forecastDate, data.currentBalance);
-  const monthSubs = getMonthSubscriptionTotal(data.subscriptions);
+  const forecastBalance = getBalanceOnDate(forecast, filteredData.forecastDate, filteredData.currentBalance);
+  const monthSubs = getMonthSubscriptionTotal(filteredData.subscriptions);
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
@@ -55,8 +72,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     let income = 0;
     let expense = 0;
 
-    // From entries
-    for (const entry of data.entries) {
+    for (const entry of filteredData.entries) {
       if (!entry.includeInForecast) continue;
       let d = entry.date;
       while (d <= me) {
@@ -69,8 +85,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       }
     }
 
-    // From subscriptions
-    for (const sub of data.subscriptions) {
+    for (const sub of filteredData.subscriptions) {
       if (!sub.includeInForecast) continue;
       let d = sub.nextDate;
       while (d <= me) {
@@ -84,7 +99,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       { name: "Income", value: income, fill: "hsl(var(--success))" },
       { name: "Expense", value: expense, fill: "hsl(var(--destructive))" },
     ].filter(d => d.value > 0);
-  }, [data, selectedMonth]);
+  }, [filteredData, selectedMonth]);
 
   // Income vs expense bar chart (last 6 months)
   const incomeExpenseBarData = useMemo(() => {
@@ -95,7 +110,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       const me = format(endOfMonth(d), "yyyy-MM-dd");
       let income = 0, expense = 0;
 
-      for (const entry of data.entries) {
+      for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
         let dd = entry.date;
         while (dd <= me) {
@@ -107,7 +122,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
           dd = getNextOccurrence(dd, entry.frequency);
         }
       }
-      for (const sub of data.subscriptions) {
+      for (const sub of filteredData.subscriptions) {
         if (!sub.includeInForecast) continue;
         let dd = sub.nextDate;
         while (dd <= me) {
@@ -120,11 +135,11 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       months.push({ month: format(d, "MMM"), income, expense });
     }
     return months;
-  }, [data]);
+  }, [filteredData]);
 
   // Investments summary
   const investmentSummary = useMemo(() => {
-    const investments = data.investments || [];
+    const investments = filteredData.investments || [];
     if (investments.length === 0) return null;
 
     let totalInvested = 0, totalProfit = 0, upcomingAmount = 0;
@@ -146,31 +161,48 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       { name: "Profit", value: totalProfit },
       { name: "Upcoming (30d)", value: upcomingAmount },
     ];
-  }, [data, today]);
+  }, [filteredData, today]);
 
   // Upcoming subscriptions with dates
   const upcomingSubscriptions = useMemo(() => {
-    return data.subscriptions
+    return filteredData.subscriptions
       .filter(s => s.includeInForecast)
       .map(s => ({ ...s, daysUntil: daysBetween(today, s.nextDate) }))
       .filter(s => s.daysUntil >= 0 && s.daysUntil <= 30)
       .sort((a, b) => a.daysUntil - b.daysUntil);
-  }, [data.subscriptions, today]);
+  }, [filteredData.subscriptions, today]);
 
   return (
     <div className="space-y-4">
-      <AlertBanner subscriptions={data.subscriptions} forecast={forecast} />
+      {/* Account Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {(["all", "cash", "bank", "creditCard"] as AccountFilter[]).map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setAccountFilter(filter)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              accountFilter === filter
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            {FILTER_LABELS[filter]}
+          </button>
+        ))}
+      </div>
+
+      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} />
 
       {/* Key Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="Current Balance" value={formatMoney(data.currentBalance)} icon="balance" variant="success" />
+        <StatCard title="Current Balance" value={formatMoney(filteredData.currentBalance)} icon="balance" variant="success" />
         <StatCard title={`Forecast ${formatDate(data.forecastDate)}`} value={formatMoney(forecastBalance)} icon="forecast" variant={forecastBalance < 0 ? "danger" : "default"} />
         <StatCard title="Monthly Subs" value={formatMoney(monthSubs)} icon="subscriptions" />
         <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
       </div>
 
       {/* Forecast Chart */}
-      <ForecastChart forecast={forecast} currentBalance={data.currentBalance} forecastDate={data.forecastDate} />
+      <ForecastChart forecast={forecast} currentBalance={filteredData.currentBalance} forecastDate={filteredData.forecastDate} />
 
       {/* Upcoming Transactions (30 days) */}
       <Card>
@@ -286,7 +318,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         </Card>
       )}
 
-      <SpendingBreakdown data={data} />
+      <SpendingBreakdown data={filteredData} />
     </div>
   );
 }

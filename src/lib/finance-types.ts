@@ -1,4 +1,5 @@
 export type Frequency = "once" | "weekly" | "biweekly" | "monthly" | "quarterly" | "halfyearly" | "yearly";
+export type AccountType = "cash" | "bank" | "creditCard";
 
 export interface AccountBalances {
   cash: number;
@@ -13,6 +14,7 @@ export interface Subscription {
   frequency: Frequency;
   nextDate: string; // YYYY-MM-DD
   category: string;
+  account: AccountType;
   includeInForecast: boolean;
   isTrial?: boolean;
   trialEndDate?: string;
@@ -25,6 +27,7 @@ export interface Entry {
   date: string; // YYYY-MM-DD
   frequency: Frequency;
   category: string;
+  account: AccountType;
   includeInForecast: boolean;
 }
 
@@ -36,6 +39,7 @@ export interface Investment {
   startDate: string;
   endDate: string;
   category: string;
+  account: AccountType;
   expectedReturn: number;
   includeInForecast: boolean;
 }
