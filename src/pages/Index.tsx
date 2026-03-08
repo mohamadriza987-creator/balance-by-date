@@ -88,10 +88,10 @@ const Index = () => {
             <TimelineTab data={data} />
           </TabsContent>
           <TabsContent value="subscriptions">
-            <SubscriptionsTab subscriptions={data.subscriptions} onToggle={toggleSubscriptionForecast} onRemove={removeSubscription} />
+            <SubscriptionsTab subscriptions={data.subscriptions} onToggle={toggleSubscriptionForecast} onRemove={removeSubscription} onUpdate={updateSubscription} />
           </TabsContent>
           <TabsContent value="entries">
-            <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} />
+            <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} onUpdate={updateEntry} />
           </TabsContent>
           <TabsContent value="add">
             <AddNewTab onAddSubscription={addSubscription} onAddEntry={addEntry} />
