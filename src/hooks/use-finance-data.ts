@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
-import type { AppData, Entry, Investment, Subscription } from "@/lib/finance-types";
+import type { AppData, AccountBalances, Entry, Investment, Subscription } from "@/lib/finance-types";
 import { loadData, saveData } from "@/lib/finance-utils";
 
 export function useFinanceData() {
   const [data, setDataState] = useState<AppData>(() => {
     const d = loadData();
     if (!d.investments) d.investments = [];
+    if (!d.accountBalances) d.accountBalances = { cash: 0, bank: d.currentBalance || 0, creditCard: 0 };
     return d;
   });
 
@@ -89,6 +90,11 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, currentBalance: balance }));
   }, [setData]);
 
+  const updateAccountBalances = useCallback((balances: AccountBalances) => {
+    const total = balances.cash + balances.bank + balances.creditCard;
+    setData((prev) => ({ ...prev, accountBalances: balances, currentBalance: total }));
+  }, [setData]);
+
   const updateForecastDate = useCallback((date: string) => {
     setData((prev) => ({ ...prev, forecastDate: date }));
   }, [setData]);
@@ -100,6 +106,6 @@ export function useFinanceData() {
     addEntry, removeEntry, toggleEntryForecast,
     updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
-    updateBalance, updateForecastDate,
+    updateBalance, updateAccountBalances, updateForecastDate,
   };
 }

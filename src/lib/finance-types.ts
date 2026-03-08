@@ -1,5 +1,11 @@
 export type Frequency = "once" | "weekly" | "biweekly" | "monthly" | "quarterly" | "halfyearly" | "yearly";
 
+export interface AccountBalances {
+  cash: number;
+  bank: number;
+  creditCard: number;
+}
+
 export interface Subscription {
   id: string;
   name: string;
@@ -25,17 +31,18 @@ export interface Entry {
 export interface Investment {
   id: string;
   name: string;
-  amount: number; // periodic investment amount
+  amount: number;
   frequency: Frequency;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD (maturity)
+  startDate: string;
+  endDate: string;
   category: string;
-  expectedReturn: number; // annual rate of return (0-40)
+  expectedReturn: number;
   includeInForecast: boolean;
 }
 
 export interface AppData {
   currentBalance: number;
+  accountBalances: AccountBalances;
   forecastDate: string;
   subscriptions: Subscription[];
   entries: Entry[];

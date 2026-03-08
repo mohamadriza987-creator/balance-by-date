@@ -1,4 +1,4 @@
-import { format, addDays as dfnsAddDays, differenceInCalendarDays, addWeeks, addMonths, addYears, parseISO, isBefore, isAfter } from "date-fns";
+import { format, addDays as dfnsAddDays, differenceInCalendarDays, addWeeks, addMonths, addYears, parseISO } from "date-fns";
 import type { AppData, Entry, ForecastItem, Frequency, Investment, Subscription } from "./finance-types";
 
 export const todayStr = () => format(new Date(), "yyyy-MM-dd");
@@ -38,6 +38,7 @@ export function seedData(): AppData {
   const today = todayStr();
   return {
     currentBalance: 4250.0,
+    accountBalances: { cash: 500, bank: 3500, creditCard: 250 },
     forecastDate: addDays(today, 180),
     subscriptions: [
       { id: generateId(), name: "Netflix", amount: 15.99, frequency: "monthly", nextDate: addDays(today, 12), category: "Entertainment", includeInForecast: true },
@@ -57,7 +58,6 @@ export function seedData(): AppData {
   };
 }
 
-// Investment compound interest calculations
 export function getInvestmentOccurrences(inv: Investment, upToDate: string): number {
   let count = 0;
   let d = inv.startDate;
@@ -74,18 +74,15 @@ export function computeInvestmentValue(inv: Investment, asOfDate?: string) {
   const evalDate = today > inv.endDate ? inv.endDate : today;
   const monthlyRate = inv.expectedReturn / 100 / 12;
   
-  // Calculate total invested and future value using compound interest
   let totalInvested = 0;
   let futureValue = 0;
   let d = inv.startDate;
   
   while (d <= inv.endDate) {
-    const monthsToEnd = Math.max(0, differenceInMonths(inv.endDate, d));
     const monthsToEval = Math.max(0, differenceInMonths(evalDate, d));
     
     if (d <= evalDate) {
       totalInvested += inv.amount;
-      // Compound this installment from its date to evalDate
       futureValue += inv.amount * Math.pow(1 + monthlyRate, monthsToEval);
     }
     
@@ -95,7 +92,6 @@ export function computeInvestmentValue(inv: Investment, asOfDate?: string) {
   
   const profit = futureValue - totalInvested;
   
-  // Maturity value: all installments compounded to end date
   let maturityValue = 0;
   let totalInvestedFull = 0;
   let dd = inv.startDate;
@@ -126,7 +122,15 @@ function differenceInMonths(dateStrA: string, dateStrB: string): number {
 export function loadData(): AppData {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Migration: add accountBalances if missing
+      if (!parsed.accountBalances) {
+        parsed.accountBalances = { cash: 0, bank: parsed.currentBalance || 0, creditCard: 0 };
+      }
+      if (!parsed.investments) parsed.investments = [];
+      return parsed;
+    }
   } catch {}
   const data = seedData();
   saveData(data);
@@ -142,7 +146,6 @@ export function computeForecast(data: AppData): ForecastItem[] {
   const horizon = data.forecastDate > addDays(today, 180) ? data.forecastDate : addDays(today, 180);
   const items: ForecastItem[] = [];
 
-  // Generate subscription occurrences
   for (const sub of data.subscriptions) {
     if (!sub.includeInForecast) continue;
     let d = sub.nextDate;
@@ -155,7 +158,6 @@ export function computeForecast(data: AppData): ForecastItem[] {
     }
   }
 
-  // Generate entry occurrences
   for (const entry of data.entries) {
     if (!entry.includeInForecast) continue;
     let d = entry.date;
@@ -174,10 +176,8 @@ export function computeForecast(data: AppData): ForecastItem[] {
     }
   }
 
-  // Generate investment outflows and maturity inflows
   for (const inv of (data.investments || [])) {
     if (!inv.includeInForecast) continue;
-    // Periodic investment outflows
     let d = inv.startDate;
     while (d <= horizon && d <= inv.endDate) {
       if (d >= today) {
@@ -186,7 +186,6 @@ export function computeForecast(data: AppData): ForecastItem[] {
       if (inv.frequency === "once") break;
       d = getNextOccurrence(d, inv.frequency);
     }
-    // Maturity inflow at end date
     if (inv.endDate >= today && inv.endDate <= horizon) {
       const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
       items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income" });
