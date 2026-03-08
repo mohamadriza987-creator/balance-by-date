@@ -14,6 +14,7 @@ export interface Subscription {
   frequency: Frequency;
   nextDate: string; // YYYY-MM-DD
   category: string;
+  account: AccountType;
   includeInForecast: boolean;
   isTrial?: boolean;
   trialEndDate?: string;
