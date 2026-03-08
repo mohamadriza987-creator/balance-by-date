@@ -99,7 +99,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       { name: "Income", value: income, fill: "hsl(var(--success))" },
       { name: "Expense", value: expense, fill: "hsl(var(--destructive))" },
     ].filter(d => d.value > 0);
-  }, [data, selectedMonth]);
+  }, [filteredData, selectedMonth]);
 
   // Income vs expense bar chart (last 6 months)
   const incomeExpenseBarData = useMemo(() => {
