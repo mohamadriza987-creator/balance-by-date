@@ -505,7 +505,6 @@ function EMIPlanner({ data, effectiveBalance }: { data: AppData; effectiveBalanc
 // ============ INVESTMENT ADVISOR ============
 function InvestmentAdvisor({ data, effectiveBalance }: { data: AppData; effectiveBalance: number }) {
   const investments = data.investments || [];
-  if (investments.length === 0) return null;
 
   const [selectedId, setSelectedId] = useState<string>(investments[0]?.id || "");
   const [reduction, setReduction] = useState(50);
@@ -513,7 +512,7 @@ function InvestmentAdvisor({ data, effectiveBalance }: { data: AppData; effectiv
   const [simulated, setSimulated] = useState(false);
 
   const result = useMemo(() => {
-    if (!simulated) return null;
+    if (!simulated || investments.length === 0) return null;
 
     const simData = JSON.parse(JSON.stringify(data)) as AppData;
     simData.investments = (simData.investments || []).map(i => {
