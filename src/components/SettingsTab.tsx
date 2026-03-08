@@ -127,6 +127,12 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {onReplayIntro && (
+            <Button variant="outline" className="w-full justify-start gap-2" onClick={onReplayIntro}>
+              <Heart className="h-4 w-4" /> Replay intro message
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
