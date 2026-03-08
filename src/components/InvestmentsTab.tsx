@@ -33,8 +33,37 @@ export function InvestmentsTab({ investments, onRemove }: InvestmentsTabProps) {
     );
   }
 
+  const totals = investments.reduce(
+    (acc, inv) => {
+      const vals = computeInvestmentValue(inv);
+      acc.invested += vals.totalInvested;
+      acc.profit += vals.profit;
+      acc.value += vals.currentValue;
+      return acc;
+    },
+    { invested: 0, profit: 0, value: 0 }
+  );
+
   return (
     <div className="space-y-4">
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+        <CardContent className="py-5">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Total Invested</p>
+              <p className="text-xl font-bold text-foreground">{formatMoney(totals.invested)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Total Profit</p>
+              <p className="text-xl font-bold text-success">{formatMoney(totals.profit)}</p>
+            </div>
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Portfolio Value</p>
+              <p className="text-xl font-bold text-primary">{formatMoney(totals.value)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       {investments.map((inv) => {
         const vals = computeInvestmentValue(inv);
         const isMatured = new Date(inv.endDate) <= new Date();
