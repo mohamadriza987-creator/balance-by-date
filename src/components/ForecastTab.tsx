@@ -141,6 +141,8 @@ export function ForecastTab({ data }: ForecastTabProps) {
                 <SelectItem value="income">Inflow</SelectItem>
                 <SelectItem value="expense">Expense</SelectItem>
                 <SelectItem value="subscription">Subscription</SelectItem>
+                <SelectItem value="cc_bill">CC Bills</SelectItem>
+                <SelectItem value="transfer">Transfers</SelectItem>
               </SelectContent>
             </Select>
           </div>
