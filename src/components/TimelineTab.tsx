@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/StatCard";
 import { AlertBanner } from "@/components/AlertBanner";
 import { ForecastChart } from "@/components/ForecastChart";
+import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import type { AppData, ForecastItem } from "@/lib/finance-types";
 import {
   computeForecast,
@@ -40,6 +41,8 @@ export function TimelineTab({ data }: TimelineTabProps) {
       </div>
 
       <ForecastChart forecast={forecast} currentBalance={data.currentBalance} forecastDate={data.forecastDate} />
+
+      <SpendingBreakdown data={data} />
 
       {/* Upcoming Timeline */}
       <Card>
