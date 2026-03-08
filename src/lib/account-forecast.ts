@@ -208,29 +208,33 @@ export function computeAccountForecasts(data: AppData): {
   const seenShortfalls = new Set<string>();
 
   for (const ev of events) {
-    const prevBal = balances[ev.account];
-    balances[ev.account] += ev.amount;
+    const acct = ev.account || "bank";
+    if (!balances.hasOwnProperty(acct)) continue;
+    
+    const prevBal = balances[acct];
+    balances[acct] += ev.amount;
 
-    accountItems[ev.account].push({
+    if (!accountItems[acct]) accountItems[acct] = [];
+    accountItems[acct].push({
       date: ev.date,
       label: ev.label,
       amount: ev.amount,
-      runningBalance: balances[ev.account],
+      runningBalance: balances[acct],
       type: ev.type,
     });
 
     // Check shortfall
-    if (balances[ev.account] < -0.01 && ev.amount < 0) {
-      const key = `${ev.date}-${ev.account}-${ev.label}`;
+    if (balances[acct] < -0.01 && ev.amount < 0) {
+      const key = `${ev.date}-${acct}-${ev.label}`;
       if (!seenShortfalls.has(key)) {
         seenShortfalls.add(key);
         shortfalls.push({
           date: ev.date,
-          account: ev.account,
+          account: acct,
           itemLabel: ev.label,
           requiredAmount: Math.abs(ev.amount),
           availableAmount: Math.max(0, prevBal),
-          shortageAmount: Math.abs(balances[ev.account]),
+          shortageAmount: Math.abs(balances[acct]),
         });
       }
     }
