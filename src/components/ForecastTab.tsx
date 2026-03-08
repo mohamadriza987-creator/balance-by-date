@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { TrendingUp, TrendingDown, Shield, AlertTriangle, Calculator, Minus, Pause, Play, Scale } from "lucide-react";
-import type { AppData, ForecastItem, Frequency } from "@/lib/finance-types";
+import type { AppData, ForecastItem, Frequency, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeBalanceAtPosition, formatDate, formatMoney,
   getBalanceOnDate, getRiskDate, getMonthSubscriptionTotal,
