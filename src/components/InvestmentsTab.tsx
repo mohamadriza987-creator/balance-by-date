@@ -76,7 +76,7 @@ function AllocationChart({ investments }: { investments: Investment[] }) {
   );
 }
 
-
+export function InvestmentsTab({ investments, onRemove }: InvestmentsTabProps) {
   if (investments.length === 0) {
     return (
       <Card>
