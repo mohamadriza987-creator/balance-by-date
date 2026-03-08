@@ -15,7 +15,8 @@ import { formatMoney } from "@/lib/finance-utils";
 const Index = () => {
   const {
     data, setData, addSubscription, removeSubscription, toggleSubscriptionForecast,
-    addEntry, removeEntry, toggleEntryForecast, updateBalance, updateForecastDate,
+    addEntry, removeEntry, toggleEntryForecast, updateSubscription, updateEntry,
+    updateBalance, updateForecastDate,
   } = useFinanceData();
 
   const [editingBalance, setEditingBalance] = useState(false);
