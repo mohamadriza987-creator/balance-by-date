@@ -76,6 +76,9 @@ const Index = () => {
             <TabsTrigger value="add" className="gap-1.5 text-xs sm:text-sm">
               <PlusCircle className="h-4 w-4 hidden sm:block" /> Add New
             </TabsTrigger>
+            <TabsTrigger value="settings" className="gap-1.5 text-xs sm:text-sm">
+              <Settings className="h-4 w-4 hidden sm:block" /> Settings
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="timeline">
