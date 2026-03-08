@@ -1,37 +1,52 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, CreditCard, List, PlusCircle, Settings, TrendingUp } from "lucide-react";
+import { Banknote, ArrowDownLeft, ArrowUpRight, BarChart3, Settings } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { TimelineTab } from "@/components/TimelineTab";
-import { SubscriptionsTab } from "@/components/SubscriptionsTab";
-import { EntriesTab } from "@/components/EntriesTab";
-import { AddNewTab } from "@/components/AddNewTab";
-import { InvestmentsTab } from "@/components/InvestmentsTab";
+import { AccountsTab } from "@/components/AccountsTab";
+import { TransactionsTab } from "@/components/TransactionsTab";
+import { InflowTab } from "@/components/InflowTab";
+import { OutflowTab } from "@/components/OutflowTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { formatMoney } from "@/lib/finance-utils";
 
 const tabs = [
-  { value: "timeline", label: "Overview", icon: CalendarDays },
-  { value: "subscriptions", label: "Subs", icon: CreditCard },
-  { value: "entries", label: "Income", icon: List },
-  { value: "investments", label: "Invest", icon: TrendingUp },
-  { value: "add", label: "Add", icon: PlusCircle },
-  { value: "settings", label: "Settings", icon: Settings },
+  { value: "accounts", label: "Accounts", icon: Banknote },
+  { value: "transactions", label: "Transactions", icon: BarChart3 },
+  { value: "inflow", label: "Inflow", icon: ArrowDownLeft },
+  { value: "outflow", label: "Outflow", icon: ArrowUpRight },
 ] as const;
 
 const Index = () => {
   const {
-    data, setData, addSubscription, removeSubscription, toggleSubscriptionForecast,
-    addEntry, removeEntry, toggleEntryForecast, updateSubscription, updateEntry,
+    data, setData,
+    addSubscription, removeSubscription, toggleSubscriptionForecast,
+    addEntry, removeEntry, toggleEntryForecast,
+    updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
-    updateBalance, updateForecastDate,
+    updateBalance, updateAccountBalances, updateForecastDate,
   } = useFinanceData();
 
-  const [editingBalance, setEditingBalance] = useState(false);
-  const [balanceInput, setBalanceInput] = useState(String(data.currentBalance));
-  const [activeTab, setActiveTab] = useState("timeline");
+  const [activeTab, setActiveTab] = useState("transactions");
+  const [showSettings, setShowSettings] = useState(false);
+
+  if (showSettings) {
+    return (
+      <div className="min-h-screen bg-background pb-20">
+        <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+          <div className="px-4 py-3 flex items-center justify-between">
+            <button onClick={() => setShowSettings(false)} className="text-sm text-primary font-medium">← Back</button>
+            <h1 className="text-lg font-bold text-foreground">Settings</h1>
+            <ThemeToggle />
+          </div>
+        </header>
+        <main className="px-3 py-4">
+          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -44,19 +59,12 @@ const Index = () => {
               <p className="text-xs text-muted-foreground">Finance forecast planner</p>
             </div>
             <div className="flex items-center gap-2">
-              {editingBalance ? (
-                <Input
-                  id="balance" type="number" step="0.01" className="w-28 h-8 text-sm"
-                  value={balanceInput} onChange={(e) => setBalanceInput(e.target.value)}
-                  onBlur={() => { updateBalance(parseFloat(balanceInput) || 0); setEditingBalance(false); }}
-                  onKeyDown={(e) => { if (e.key === "Enter") { updateBalance(parseFloat(balanceInput) || 0); setEditingBalance(false); } }}
-                  autoFocus
-                />
-              ) : (
-                <button onClick={() => { setBalanceInput(String(data.currentBalance)); setEditingBalance(true); }} className="text-base font-bold text-foreground hover:text-primary transition-colors">
-                  {formatMoney(data.currentBalance)}
-                </button>
-              )}
+              <button
+                onClick={() => setShowSettings(true)}
+                className="rounded-lg p-2 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              >
+                <Settings className="h-5 w-5" />
+              </button>
               <ThemeToggle />
             </div>
           </div>
@@ -69,39 +77,50 @@ const Index = () => {
 
       {/* Main Content */}
       <main className="px-3 py-4">
-        {activeTab === "timeline" && <TimelineTab data={data} />}
-        {activeTab === "subscriptions" && (
-          <SubscriptionsTab subscriptions={data.subscriptions} onToggle={toggleSubscriptionForecast} onRemove={removeSubscription} onUpdate={updateSubscription} />
+        {activeTab === "accounts" && (
+          <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
         )}
-        {activeTab === "entries" && (
-          <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} onUpdate={updateEntry} />
-        )}
-        {activeTab === "investments" && (
-          <InvestmentsTab investments={data.investments || []} onRemove={removeInvestment} onUpdate={updateInvestment} />
-        )}
-        {activeTab === "add" && (
-          <AddNewTab
-            onAddSubscription={addSubscription}
+        {activeTab === "transactions" && <TransactionsTab data={data} />}
+        {activeTab === "inflow" && (
+          <InflowTab
+            entries={data.entries}
             onAddEntry={addEntry}
-            onAddInvestment={addInvestment}
+            onToggle={toggleEntryForecast}
+            onRemove={removeEntry}
+            onUpdate={updateEntry}
             incomeDescriptions={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.label))]}
+            incomeCategories={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.category))]}
+          />
+        )}
+        {activeTab === "outflow" && (
+          <OutflowTab
+            entries={data.entries}
+            subscriptions={data.subscriptions}
+            investments={data.investments || []}
+            onAddEntry={addEntry}
+            onAddSubscription={addSubscription}
+            onAddInvestment={addInvestment}
+            onRemoveEntry={removeEntry}
+            onRemoveSubscription={removeSubscription}
+            onRemoveInvestment={removeInvestment}
+            onToggleEntry={toggleEntryForecast}
+            onToggleSubscription={toggleSubscriptionForecast}
+            onUpdateEntry={updateEntry}
+            onUpdateSubscription={updateSubscription}
+            onUpdateInvestment={updateInvestment}
             expenseDescriptions={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.label))]}
             subscriptionDescriptions={[...new Set(data.subscriptions.map(s => s.name))]}
             investmentDescriptions={[...new Set((data.investments || []).map(i => i.name))]}
-            incomeCategories={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.category))]}
             expenseCategories={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.category))]}
             subscriptionCategories={[...new Set(data.subscriptions.map(s => s.category))]}
             investmentCategories={[...new Set((data.investments || []).map(i => i.category))]}
           />
         )}
-        {activeTab === "settings" && (
-          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
-        )}
       </main>
 
       {/* Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
-        <div className="grid grid-cols-6 h-16">
+        <div className="grid grid-cols-4 h-16">
           {tabs.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
