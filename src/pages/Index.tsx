@@ -27,7 +27,7 @@ const Index = () => {
     addEntry, removeEntry, toggleEntryForecast,
     updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
-    updateBalance, updateAccountBalances, updateForecastDate,
+    updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
