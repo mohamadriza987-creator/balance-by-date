@@ -202,7 +202,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       </div>
 
       {/* Forecast Chart */}
-      <ForecastChart forecast={forecast} currentBalance={data.currentBalance} forecastDate={data.forecastDate} />
+      <ForecastChart forecast={forecast} currentBalance={filteredData.currentBalance} forecastDate={filteredData.forecastDate} />
 
       {/* Upcoming Transactions (30 days) */}
       <Card>
