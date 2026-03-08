@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, CreditCard, List, PlusCircle } from "lucide-react";
+import { CalendarDays, CreditCard, List, PlusCircle, Settings } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { TimelineTab } from "@/components/TimelineTab";
 import { SubscriptionsTab } from "@/components/SubscriptionsTab";
 import { EntriesTab } from "@/components/EntriesTab";
 import { AddNewTab } from "@/components/AddNewTab";
+import { SettingsTab } from "@/components/SettingsTab";
 import { formatMoney } from "@/lib/finance-utils";
 
 const Index = () => {
