@@ -130,6 +130,13 @@ export function loadData(): AppData {
       if (!parsed.investments) parsed.investments = [];
       if (!parsed.debtPlans) parsed.debtPlans = [];
       if (!parsed.positionDate) parsed.positionDate = todayStr();
+      if (!parsed.transfers) parsed.transfers = [];
+      if (!parsed.settings) parsed.settings = {
+        creditCardBillDay: 15,
+        transferSuggestionsEnabled: true,
+        transferLeadDays: 1,
+        includeCreditCardInBalance: false,
+      };
       return parsed;
     }
   } catch {}
