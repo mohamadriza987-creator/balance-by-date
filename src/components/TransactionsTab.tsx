@@ -10,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } fro
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { AppData, ForecastItem, AccountType, Entry, Subscription, Investment } from "@/lib/finance-types";
 import {
-  computeForecast, computeInvestmentValue,
+  computeForecast, computeInvestmentValue, computeBalanceAtPosition,
   formatDate, formatMoney, getBalanceOnDate,
   getMonthSubscriptionTotal, getRiskDate, todayStr, daysBetween, toMonthlyAmount,
   getNextOccurrence,
@@ -45,10 +45,19 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     };
   }, [data, accountFilter]);
 
-  const forecast = useMemo(() => computeForecast(filteredData), [filteredData]);
   const today = data.positionDate || todayStr();
-  const forecastBalance = getBalanceOnDate(forecast, filteredData.forecastDate, filteredData.currentBalance);
-  const monthSubs = getMonthSubscriptionTotal(filteredData.subscriptions);
+
+  // Compute effective balance at position date (simulates all transactions up to positionDate)
+  const effectiveBalance = useMemo(() => computeBalanceAtPosition(filteredData), [filteredData]);
+
+  const effectiveData = useMemo((): AppData => ({
+    ...filteredData,
+    currentBalance: effectiveBalance,
+  }), [filteredData, effectiveBalance]);
+
+  const forecast = useMemo(() => computeForecast(effectiveData), [effectiveData]);
+  const forecastBalance = getBalanceOnDate(forecast, effectiveData.forecastDate, effectiveBalance);
+  const monthSubs = getMonthSubscriptionTotal(effectiveData.subscriptions);
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
@@ -118,14 +127,14 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     let nextMaturity: { date: string; value: number; name: string } | null = null;
 
     targets.forEach(inv => {
-      const vals = computeInvestmentValue(inv);
+      const vals = computeInvestmentValue(inv, today);
       totalInvested += vals.totalInvested;
       totalProfit += vals.profit;
 
-      // Find next upcoming installment
+      // Find next upcoming installment (after positionDate)
       let d = inv.startDate;
       while (d <= inv.endDate) {
-        if (d >= today) {
+        if (d > today) {
           if (!nextUpcoming || d < nextUpcoming.date) {
             nextUpcoming = { date: d, amount: inv.amount };
           }
@@ -135,8 +144,8 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         d = getNextOccurrence(d, inv.frequency);
       }
 
-      // Maturity
-      const isMatured = new Date(inv.endDate) <= new Date();
+      // Maturity - check against positionDate
+      const isMatured = inv.endDate <= today;
       if (!isMatured) {
         if (!nextMaturity || inv.endDate < nextMaturity.date) {
           nextMaturity = { date: inv.endDate, value: vals.maturityValue, name: inv.name };
@@ -179,14 +188,14 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
       {/* Key Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="Current Balance" value={formatMoney(filteredData.currentBalance)} icon="balance" variant="success" />
+        <StatCard title="Balance" value={formatMoney(effectiveBalance)} icon="balance" variant="success" />
         <StatCard title={`Forecast ${formatDate(data.forecastDate)}`} value={formatMoney(forecastBalance)} icon="forecast" variant={forecastBalance < 0 ? "danger" : "default"} />
         <StatCard title="Monthly Subs" value={formatMoney(monthSubs)} icon="subscriptions" />
         <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
       </div>
 
       {/* Forecast Chart */}
-      <ForecastChart forecast={forecast} currentBalance={filteredData.currentBalance} forecastDate={filteredData.forecastDate} />
+      <ForecastChart forecast={forecast} currentBalance={effectiveBalance} forecastDate={effectiveData.forecastDate} />
 
       {/* Upcoming Transactions (30 days) */}
       <Card>

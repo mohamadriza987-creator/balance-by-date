@@ -142,8 +142,58 @@ export function saveData(data: AppData) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
+/** Compute effective balance at positionDate by simulating all transactions from actual today */
+export function computeBalanceAtPosition(data: AppData): number {
+  const actualToday = todayStr();
+  const posDate = data.positionDate || actualToday;
+  
+  // If position date is today or before, return current balance as-is
+  if (posDate <= actualToday) return data.currentBalance;
+  
+  // Simulate all transactions from actual today to positionDate
+  let balance = data.currentBalance;
+  
+  for (const sub of data.subscriptions) {
+    if (!sub.includeInForecast) continue;
+    let d = sub.nextDate;
+    while (d <= posDate) {
+      if (d >= actualToday) balance -= sub.amount;
+      if (sub.frequency === "once") break;
+      d = getNextOccurrence(d, sub.frequency);
+    }
+  }
+  
+  for (const entry of data.entries) {
+    if (!entry.includeInForecast) continue;
+    let d = entry.date;
+    while (d <= posDate) {
+      if (d >= actualToday) balance += entry.amount;
+      if (entry.frequency === "once") break;
+      d = getNextOccurrence(d, entry.frequency);
+    }
+  }
+  
+  for (const inv of (data.investments || [])) {
+    if (!inv.includeInForecast) continue;
+    let d = inv.startDate;
+    while (d <= posDate && d <= inv.endDate) {
+      if (d >= actualToday) balance -= inv.amount;
+      if (inv.frequency === "once") break;
+      d = getNextOccurrence(d, inv.frequency);
+    }
+    // If maturity falls before positionDate, add maturity value
+    if (inv.endDate >= actualToday && inv.endDate <= posDate) {
+      const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
+      balance += maturityValue;
+    }
+  }
+  
+  return balance;
+}
+
 export function computeForecast(data: AppData): ForecastItem[] {
   const refDate = data.positionDate || todayStr();
+  const effectiveBalance = computeBalanceAtPosition(data);
   const horizon = data.forecastDate > addDays(refDate, 180) ? data.forecastDate : addDays(refDate, 180);
   const items: ForecastItem[] = [];
 
@@ -195,7 +245,7 @@ export function computeForecast(data: AppData): ForecastItem[] {
 
   items.sort((a, b) => a.date.localeCompare(b.date));
 
-  let balance = data.currentBalance;
+  let balance = effectiveBalance;
   for (const item of items) {
     balance += item.amount;
     item.balance = balance;
