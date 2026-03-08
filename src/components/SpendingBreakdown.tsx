@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AppData } from "@/lib/finance-types";
-import { formatMoney } from "@/lib/finance-utils";
+import { formatMoney, toMonthlyAmount } from "@/lib/finance-utils";
 
 const COLORS = [
   "hsl(0, 72%, 55%)",
