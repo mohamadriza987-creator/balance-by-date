@@ -31,19 +31,19 @@ export interface Entry {
   includeInForecast: boolean;
   isCheque?: boolean;
   isOptional?: boolean;
-  debtLinkId?: string; // links to parent debt entry id
-  debtType?: "repayment" | "recovery"; // what kind of linked debt item this is
+  debtLinkId?: string;
+  debtType?: "repayment" | "recovery";
 }
 
 export interface DebtPlan {
   id: string;
-  parentEntryId: string; // the inflow or outflow entry that created this debt
-  direction: "received" | "given"; // received = inflow debt, given = outflow debt
+  parentEntryId: string;
+  direction: "received" | "given";
   totalAmount: number;
   splits: number;
   frequency: Frequency;
   startDate: string;
-  linkedEntryIds: string[]; // generated repayment/recovery entry ids
+  linkedEntryIds: string[];
 }
 
 export interface Investment {
@@ -59,6 +59,49 @@ export interface Investment {
   includeInForecast: boolean;
 }
 
+export interface Transfer {
+  id: string;
+  fromAccount: AccountType;
+  toAccount: AccountType;
+  amount: number;
+  date: string;
+  reason: string;
+  isApplied: boolean; // false = suggestion, true = confirmed
+  linkedItemId?: string; // which expense/sub triggered this suggestion
+}
+
+export interface TransferSuggestion {
+  fromAccount: AccountType;
+  toAccount: AccountType;
+  amount: number;
+  suggestedDate: string;
+  reason: string;
+  linkedItemLabel: string;
+  feasibility: "feasible" | "risky" | "not_feasible";
+}
+
+export interface AccountShortfall {
+  date: string;
+  account: AccountType;
+  itemLabel: string;
+  requiredAmount: number;
+  availableAmount: number;
+  shortageAmount: number;
+}
+
+export interface CreditCardBillItem {
+  date: string; // bill payment date
+  amount: number; // total due
+  label: string;
+}
+
+export interface AppSettings {
+  creditCardBillDay: number; // 1-28, default 15
+  transferSuggestionsEnabled: boolean;
+  transferLeadDays: number; // 0-3, default 1
+  includeCreditCardInBalance: boolean;
+}
+
 export interface UserProfile {
   name: string;
   country: string;
@@ -71,11 +114,13 @@ export interface AppData {
   currentBalance: number;
   accountBalances: AccountBalances;
   forecastDate: string;
-  positionDate: string; // "today" reference date for all calculations
+  positionDate: string;
   subscriptions: Subscription[];
   entries: Entry[];
   investments: Investment[];
   debtPlans: DebtPlan[];
+  transfers: Transfer[];
+  settings: AppSettings;
   userProfile?: UserProfile;
 }
 
@@ -84,8 +129,17 @@ export interface ForecastItem {
   label: string;
   amount: number;
   balance: number;
-  type: "subscription" | "income" | "expense";
+  type: "subscription" | "income" | "expense" | "cc_bill" | "transfer";
+  account?: AccountType;
   isCheque?: boolean;
   isDebtLinked?: boolean;
   isOptional?: boolean;
+}
+
+export interface AccountForecastItem {
+  date: string;
+  label: string;
+  amount: number;
+  runningBalance: number;
+  type: string;
 }
