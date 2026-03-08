@@ -52,6 +52,7 @@ const Index = () => {
                   </button>
                 )}
               </div>
+              <ThemeToggle />
               <div className="flex items-center gap-2">
                 <Label htmlFor="forecast-date" className="text-sm text-muted-foreground whitespace-nowrap">Forecast to:</Label>
                 <Input id="forecast-date" type="date" className="w-40 h-8" value={data.forecastDate} onChange={(e) => updateForecastDate(e.target.value)} />
