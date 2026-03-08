@@ -1,6 +1,5 @@
 import { DollarSign, TrendingUp, CreditCard, AlertTriangle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatMoney } from "@/lib/finance-utils";
 
 interface StatCardProps {
   title: string;
@@ -34,13 +33,13 @@ export function StatCard({ title, value, icon, variant = "default" }: StatCardPr
   const Icon = iconMap[icon];
   return (
     <Card className={variantStyles[variant]}>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={`rounded-xl p-3 ${iconBgStyles[variant]}`}>
-          <Icon className="h-5 w-5" />
+      <CardContent className="flex items-center gap-3 p-3">
+        <div className={`rounded-lg p-2 ${iconBgStyles[variant]}`}>
+          <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm text-muted-foreground truncate">{title}</p>
-          <p className="text-xl font-bold tracking-tight truncate">{value}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{title}</p>
+          <p className="text-base font-bold tracking-tight truncate">{value}</p>
         </div>
       </CardContent>
     </Card>

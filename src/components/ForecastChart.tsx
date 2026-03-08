@@ -14,7 +14,6 @@ export function ForecastChart({ forecast, currentBalance, forecastDate }: Foreca
   const chartData = useMemo(() => {
     if (forecast.length === 0) return [];
 
-    // Aggregate by date to avoid too many points
     const byDate = new Map<string, number>();
     for (const item of forecast) {
       byDate.set(item.date, item.balance);
@@ -25,9 +24,8 @@ export function ForecastChart({ forecast, currentBalance, forecastDate }: Foreca
       points.push({ date: formatDate(date), balance, rawDate: date });
     }
 
-    // Limit to ~60 points for readability
-    if (points.length > 60) {
-      const step = Math.ceil(points.length / 60);
+    if (points.length > 40) {
+      const step = Math.ceil(points.length / 40);
       return points.filter((_, i) => i === 0 || i === points.length - 1 || i % step === 0);
     }
     return points;
@@ -41,12 +39,12 @@ export function ForecastChart({ forecast, currentBalance, forecastDate }: Foreca
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Balance Forecast</CardTitle>
+      <CardHeader className="px-4 py-3">
+        <CardTitle className="text-base">Balance Forecast</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+      <CardContent className="px-2 pb-3">
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
             <defs>
               <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="hsl(168, 70%, 38%)" stopOpacity={0.3} />
@@ -56,18 +54,19 @@ export function ForecastChart({ forecast, currentBalance, forecastDate }: Foreca
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(214, 20%, 90%)" />
             <XAxis
               dataKey="date"
-              tick={{ fontSize: 11, fill: "hsl(215, 14%, 46%)" }}
+              tick={{ fontSize: 9, fill: "hsl(215, 14%, 46%)" }}
               tickLine={false}
               axisLine={{ stroke: "hsl(214, 20%, 90%)" }}
               interval="preserveStartEnd"
-              minTickGap={50}
+              minTickGap={40}
             />
             <YAxis
-              tick={{ fontSize: 11, fill: "hsl(215, 14%, 46%)" }}
+              tick={{ fontSize: 9, fill: "hsl(215, 14%, 46%)" }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => `$${(v / 1000).toFixed(1)}k`}
+              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
               domain={[Math.min(minBalance * 1.1, 0), maxBalance * 1.1]}
+              width={40}
             />
             <Tooltip
               formatter={(value: number) => [formatMoney(value), "Balance"]}
@@ -75,7 +74,7 @@ export function ForecastChart({ forecast, currentBalance, forecastDate }: Foreca
                 backgroundColor: "hsl(0, 0%, 100%)",
                 border: "1px solid hsl(214, 20%, 90%)",
                 borderRadius: "0.5rem",
-                fontSize: "0.875rem",
+                fontSize: "0.75rem",
               }}
             />
             {hasNegative && <ReferenceLine y={0} stroke="hsl(0, 72%, 55%)" strokeDasharray="4 4" strokeWidth={1.5} />}
