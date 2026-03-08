@@ -40,6 +40,7 @@ export function seedData(): AppData {
     currentBalance: 4250.0,
     accountBalances: { cash: 500, bank: 3500, creditCard: 250 },
     forecastDate: addDays(today, 180),
+    positionDate: today,
     subscriptions: [
       { id: generateId(), name: "Netflix", amount: 15.99, frequency: "monthly", nextDate: addDays(today, 12), category: "Entertainment", account: "bank", includeInForecast: true },
       { id: generateId(), name: "Spotify", amount: 9.99, frequency: "monthly", nextDate: addDays(today, 5), category: "Entertainment", account: "bank", includeInForecast: true },

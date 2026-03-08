@@ -48,6 +48,7 @@ export interface AppData {
   currentBalance: number;
   accountBalances: AccountBalances;
   forecastDate: string;
+  positionDate: string; // "today" reference date for all calculations
   subscriptions: Subscription[];
   entries: Entry[];
   investments: Investment[];
