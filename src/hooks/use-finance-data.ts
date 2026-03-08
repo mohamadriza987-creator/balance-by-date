@@ -207,6 +207,21 @@ export function useFinanceData() {
     });
   }, [setData]);
 
+  const addTransfer = useCallback((transfer: Omit<Transfer, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      transfers: [...(prev.transfers || []), { ...transfer, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeTransfer = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, transfers: (prev.transfers || []).filter((t) => t.id !== id) }));
+  }, [setData]);
+
+  const updateSettings = useCallback((updates: Partial<AppSettings>) => {
+    setData((prev) => ({ ...prev, settings: { ...prev.settings, ...updates } }));
+  }, [setData]);
+
   return {
     data,
     setData,
@@ -216,6 +231,7 @@ export function useFinanceData() {
     addInvestment, removeInvestment, updateInvestment,
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
     updateUserProfile, addDebtWithPlan,
+    addTransfer, removeTransfer, updateSettings,
   };
 }
 
