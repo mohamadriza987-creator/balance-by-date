@@ -165,12 +165,12 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
   // Upcoming subscriptions with dates
   const upcomingSubscriptions = useMemo(() => {
-    return data.subscriptions
+    return filteredData.subscriptions
       .filter(s => s.includeInForecast)
       .map(s => ({ ...s, daysUntil: daysBetween(today, s.nextDate) }))
       .filter(s => s.daysUntil >= 0 && s.daysUntil <= 30)
       .sort((a, b) => a.daysUntil - b.daysUntil);
-  }, [data.subscriptions, today]);
+  }, [filteredData.subscriptions, today]);
 
   return (
     <div className="space-y-4">
