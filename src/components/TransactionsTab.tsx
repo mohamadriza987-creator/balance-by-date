@@ -160,8 +160,8 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       { name: "Invested", value: totalInvested },
       { name: "Profit", value: totalProfit },
       { name: "Upcoming (30d)", value: upcomingAmount },
-    ]filteredD
-  }, [data, today]);
+    ];
+  }, [filteredData, today]);
 
   // Upcoming subscriptions with dates
   const upcomingSubscriptions = useMemo(() => {
