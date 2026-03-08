@@ -409,7 +409,7 @@ function TimelineRow({ item, fm }: { item: ForecastItem; fm: (n: number) => stri
     }`}>
       <div className="flex items-center gap-2 min-w-0">
         <Badge variant="outline" className={`text-[9px] shrink-0 px-1.5 ${TYPE_COLORS[item.type] || ""}`}>
-          {item.type === "income" ? "inflow" : item.type}
+          {item.type === "income" ? "inflow" : item.type === "cc_bill" ? "CC Bill" : item.type}
         </Badge>
         <div className="min-w-0">
           <div className="flex items-center gap-1">
