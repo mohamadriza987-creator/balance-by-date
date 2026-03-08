@@ -318,7 +318,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         </Card>
       )}
 
-      <SpendingBreakdown data={data} />
+      <SpendingBreakdown data={filteredData} />
     </div>
   );
 }
