@@ -6,8 +6,9 @@ import { StatCard } from "@/components/StatCard";
 import { AlertBanner } from "@/components/AlertBanner";
 import { ForecastChart } from "@/components/ForecastChart";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, PieChart, Pie } from "recharts";
-import type { AppData, ForecastItem, AccountType } from "@/lib/finance-types";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import type { AppData, ForecastItem, AccountType, Entry, Subscription, Investment } from "@/lib/finance-types";
 import {
   computeForecast, computeInvestmentValue,
   formatDate, formatMoney, getBalanceOnDate,
