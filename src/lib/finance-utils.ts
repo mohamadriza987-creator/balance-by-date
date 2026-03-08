@@ -275,7 +275,6 @@ export function computeForecast(data: AppData): ForecastItem[] {
     balance += item.amount;
     item.balance = balance;
   }
-  }
 
   return items;
 }
