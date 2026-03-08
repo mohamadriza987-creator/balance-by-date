@@ -39,6 +39,8 @@ export function TimelineTab({ data }: TimelineTabProps) {
         <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
       </div>
 
+      <ForecastChart forecast={forecast} currentBalance={data.currentBalance} forecastDate={data.forecastDate} />
+
       {/* Upcoming Timeline */}
       <Card>
         <CardHeader>
