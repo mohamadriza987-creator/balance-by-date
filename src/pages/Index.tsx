@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CalendarDays, CreditCard, List, PlusCircle, Settings } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { TimelineTab } from "@/components/TimelineTab";
 import { SubscriptionsTab } from "@/components/SubscriptionsTab";
 import { EntriesTab } from "@/components/EntriesTab";
@@ -51,6 +52,7 @@ const Index = () => {
                   </button>
                 )}
               </div>
+              <ThemeToggle />
               <div className="flex items-center gap-2">
                 <Label htmlFor="forecast-date" className="text-sm text-muted-foreground whitespace-nowrap">Forecast to:</Label>
                 <Input id="forecast-date" type="date" className="w-40 h-8" value={data.forecastDate} onChange={(e) => updateForecastDate(e.target.value)} />
