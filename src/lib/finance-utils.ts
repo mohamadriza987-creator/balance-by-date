@@ -174,6 +174,25 @@ export function computeForecast(data: AppData): ForecastItem[] {
     }
   }
 
+  // Generate investment outflows and maturity inflows
+  for (const inv of (data.investments || [])) {
+    if (!inv.includeInForecast) continue;
+    // Periodic investment outflows
+    let d = inv.startDate;
+    while (d <= horizon && d <= inv.endDate) {
+      if (d >= today) {
+        items.push({ date: d, label: `${inv.name} (Investment)`, amount: -inv.amount, balance: 0, type: "expense" });
+      }
+      if (inv.frequency === "once") break;
+      d = getNextOccurrence(d, inv.frequency);
+    }
+    // Maturity inflow at end date
+    if (inv.endDate >= today && inv.endDate <= horizon) {
+      const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
+      items.push({ date: inv.endDate, label: `${inv.name} (Maturity)`, amount: maturityValue, balance: 0, type: "income" });
+    }
+  }
+
   items.sort((a, b) => a.date.localeCompare(b.date));
 
   let balance = data.currentBalance;
