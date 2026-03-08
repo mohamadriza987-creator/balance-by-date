@@ -66,6 +66,10 @@ export function InvestmentsTab({ investments, onRemove }: InvestmentsTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Allocation Pie Chart */}
+      <AllocationChart investments={investments} />
+
       {investments.map((inv) => {
         const vals = computeInvestmentValue(inv);
         const isMatured = new Date(inv.endDate) <= new Date();
