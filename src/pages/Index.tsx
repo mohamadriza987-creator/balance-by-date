@@ -53,7 +53,7 @@ const Index = () => {
           </div>
         </header>
         <main className="px-3 py-4">
-          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
+          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} onReplayIntro={() => { localStorage.removeItem("finance-buddy-intro-done"); setIntroDone(false); }} />
         </main>
       </div>
     );
