@@ -50,6 +50,13 @@ export function seedData(): AppData {
     entries: [],
     investments: [],
     debtPlans: [],
+    transfers: [],
+    settings: {
+      creditCardBillDay: 15,
+      transferSuggestionsEnabled: true,
+      transferLeadDays: 1,
+      includeCreditCardInBalance: false,
+    },
   };
 }
 
