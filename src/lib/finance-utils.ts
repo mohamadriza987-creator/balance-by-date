@@ -125,11 +125,11 @@ export function loadData(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      // Migration: add accountBalances if missing
       if (!parsed.accountBalances) {
         parsed.accountBalances = { cash: 0, bank: parsed.currentBalance || 0, creditCard: 0 };
       }
       if (!parsed.investments) parsed.investments = [];
+      if (!parsed.positionDate) parsed.positionDate = todayStr();
       return parsed;
     }
   } catch {}
