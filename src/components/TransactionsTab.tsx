@@ -123,8 +123,11 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     const targets = selectedInvestment === "all" ? investments : investments.filter(i => i.id === selectedInvestment);
 
     let totalInvested = 0, totalProfit = 0;
-    let nextUpcoming: { date: string; amount: number } | null = null;
-    let nextMaturity: { date: string; value: number; name: string } | null = null;
+    let totalUpcomingAmount = 0;
+    let earliestUpcomingDate: string | null = null;
+    let totalMaturityValue = 0;
+    let earliestMaturityDate: string | null = null;
+    let maturityCount = 0;
 
     targets.forEach(inv => {
       const vals = computeInvestmentValue(inv, today);
@@ -135,8 +138,9 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       let d = inv.startDate;
       while (d <= inv.endDate) {
         if (d > today) {
-          if (!nextUpcoming || d < nextUpcoming.date) {
-            nextUpcoming = { date: d, amount: inv.amount };
+          totalUpcomingAmount += inv.amount;
+          if (!earliestUpcomingDate || d < earliestUpcomingDate) {
+            earliestUpcomingDate = d;
           }
           break;
         }
@@ -147,11 +151,16 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       // Maturity - check against positionDate
       const isMatured = inv.endDate <= today;
       if (!isMatured) {
-        if (!nextMaturity || inv.endDate < nextMaturity.date) {
-          nextMaturity = { date: inv.endDate, value: vals.maturityValue, name: inv.name };
+        totalMaturityValue += vals.maturityValue;
+        maturityCount++;
+        if (!earliestMaturityDate || inv.endDate < earliestMaturityDate) {
+          earliestMaturityDate = inv.endDate;
         }
       }
     });
+
+    const nextUpcoming = earliestUpcomingDate ? { date: earliestUpcomingDate, amount: totalUpcomingAmount } : null;
+    const nextMaturity = earliestMaturityDate ? { date: earliestMaturityDate, value: totalMaturityValue, count: maturityCount } : null;
 
     return { totalInvested, totalProfit, nextUpcoming, nextMaturity, investments };
   }, [filteredData, selectedInvestment, today]);
