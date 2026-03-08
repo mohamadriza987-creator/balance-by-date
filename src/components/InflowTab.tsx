@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Trash2, Pencil, Check, X } from "lucide-react";
-import type { Entry, Frequency } from "@/lib/finance-types";
+import type { Entry, Frequency, AccountType } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney } from "@/lib/finance-utils";
+
+const ACCOUNT_LABELS: Record<AccountType, string> = { cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
 
 interface InflowTabProps {
   entries: Entry[];
@@ -30,13 +32,14 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("");
+  const [account, setAccount] = useState<AccountType>("bank");
 
   const isValid = useMemo(() => {
     return !!(name.trim() && amount && date && category.trim());
   }, [name, amount, date, category]);
 
   const reset = () => {
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("");
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -44,14 +47,13 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
     if (!isValid) return;
     onAddEntry({
       label: name, amount: Math.abs(parseFloat(amount)),
-      date, frequency, category: category || "General", includeInForecast: true,
+      date, frequency, category: category || "General", account, includeInForecast: true,
     });
     reset();
   };
 
   return (
     <div className="space-y-4">
-      {/* Always-visible Add Form */}
       <Card className="border-success/30">
         <CardHeader className="px-4 py-3">
           <CardTitle className="text-base text-success">+ ADD INFLOW</CardTitle>
@@ -93,6 +95,17 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
                 <AutocompleteInput value={category} onChange={setCategory} suggestions={incomeCategories} placeholder="e.g. Salary" capitalize />
               </div>
             </div>
+            <div>
+              <Label className="text-xs">Account *</Label>
+              <Select value={account} onValueChange={(v) => setAccount(v as AccountType)}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="bank">Bank</SelectItem>
+                  <SelectItem value="creditCard">Credit Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="submit" className="w-full bg-success hover:bg-success/90 text-success-foreground" disabled={!isValid}>
               + Add Inflow
             </Button>
@@ -100,7 +113,6 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
         </CardContent>
       </Card>
 
-      {/* Existing Entries */}
       {incomeEntries.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground px-1">INFLOW ENTRIES ({incomeEntries.length})</p>
@@ -131,6 +143,7 @@ function EntryRow({ entry, onToggle, onRemove, onEdit }: { entry: Entry; onToggl
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="secondary" className="text-[10px]">{ACCOUNT_LABELS[entry.account] || "Bank"}</Badge>
           <Badge variant="outline" className="text-[10px]">{entry.category}</Badge>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>
           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemove(entry.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -146,6 +159,7 @@ function EditableRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (updat
   const [frequency, setFrequency] = useState<Frequency>(entry.frequency);
   const [date, setDate] = useState(entry.date);
   const [category, setCategory] = useState(entry.category);
+  const [account, setAccount] = useState<AccountType>(entry.account || "bank");
 
   return (
     <Card className="border-2 border-primary/30">
@@ -167,10 +181,18 @@ function EditableRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (updat
             </SelectContent>
           </Select>
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8" />
+          <Select value={account} onValueChange={(v) => setAccount(v as AccountType)}>
+            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="cash">Cash</SelectItem>
+              <SelectItem value="bank">Bank</SelectItem>
+              <SelectItem value="creditCard">Credit Card</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}><X className="h-4 w-4 mr-1" /> Cancel</Button>
-          <Button size="sm" onClick={() => onSave({ label, amount: parseFloat(amount) || 0, frequency, date, category })}><Check className="h-4 w-4 mr-1" /> Save</Button>
+          <Button size="sm" onClick={() => onSave({ label, amount: parseFloat(amount) || 0, frequency, date, category, account })}><Check className="h-4 w-4 mr-1" /> Save</Button>
         </div>
       </CardContent>
     </Card>

@@ -8,10 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Trash2, Pencil, Check, X } from "lucide-react";
-import type { Entry, Frequency, Investment, Subscription } from "@/lib/finance-types";
+import type { Entry, Frequency, Investment, Subscription, AccountType } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney, computeInvestmentValue } from "@/lib/finance-utils";
 
 type OutflowMode = "expense" | "subscription" | "investment";
+
+const ACCOUNT_LABELS: Record<AccountType, string> = { cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
 
 interface OutflowTabProps {
   entries: Entry[];
@@ -51,7 +53,6 @@ export function OutflowTab({
 
   return (
     <div className="space-y-4">
-      {/* Always-visible Add Form with mode dropdown */}
       <Card className="border-destructive/30">
         <CardHeader className="px-4 py-3">
           <div className="flex items-center justify-between">
@@ -81,11 +82,23 @@ export function OutflowTab({
         </CardContent>
       </Card>
 
-      {/* List */}
       {mode === "expense" && <ExpenseList entries={expenseEntries} onToggle={onToggleEntry} onRemove={onRemoveEntry} onUpdate={onUpdateEntry} />}
       {mode === "subscription" && <SubscriptionList subscriptions={subscriptions} onToggle={onToggleSubscription} onRemove={onRemoveSubscription} onUpdate={onUpdateSubscription} />}
       {mode === "investment" && <InvestmentList investments={investments} onRemove={onRemoveInvestment} onUpdate={onUpdateInvestment} />}
     </div>
+  );
+}
+
+function AccountSelect({ value, onChange, className }: { value: AccountType; onChange: (v: AccountType) => void; className?: string }) {
+  return (
+    <Select value={value} onValueChange={(v) => onChange(v as AccountType)}>
+      <SelectTrigger className={className || "h-9"}><SelectValue /></SelectTrigger>
+      <SelectContent>
+        <SelectItem value="cash">Cash</SelectItem>
+        <SelectItem value="bank">Bank</SelectItem>
+        <SelectItem value="creditCard">Credit Card</SelectItem>
+      </SelectContent>
+    </Select>
   );
 }
 
@@ -98,14 +111,15 @@ function ExpenseForm({ onAdd, descriptions, categories }: {
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("");
+  const [account, setAccount] = useState<AccountType>("bank");
 
   const isValid = !!(name.trim() && amount && date && category.trim());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
-    onAdd({ label: name, amount: -Math.abs(parseFloat(amount)), date, frequency, category, includeInForecast: true });
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("");
+    onAdd({ label: name, amount: -Math.abs(parseFloat(amount)), date, frequency, category, account, includeInForecast: true });
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank");
   };
 
   return (
@@ -126,6 +140,10 @@ function ExpenseForm({ onAdd, descriptions, categories }: {
         <div><Label className="text-xs">Category *</Label>
           <AutocompleteInput value={category} onChange={setCategory} suggestions={categories} placeholder="e.g. Food" capitalize /></div>
       </div>
+      <div>
+        <Label className="text-xs">Account *</Label>
+        <AccountSelect value={account} onChange={setAccount} />
+      </div>
       <Button type="submit" variant="destructive" className="w-full" disabled={!isValid}>— Add Expense</Button>
     </form>
   );
@@ -140,6 +158,7 @@ function SubscriptionForm({ onAdd, descriptions, categories }: {
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("");
+  const [account, setAccount] = useState<AccountType>("bank");
   const [isTrial, setIsTrial] = useState(false);
   const [trialEndDate, setTrialEndDate] = useState("");
 
@@ -148,8 +167,8 @@ function SubscriptionForm({ onAdd, descriptions, categories }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
-    onAdd({ name, amount: parseFloat(amount), frequency, nextDate: date, category, includeInForecast: true, isTrial, trialEndDate: isTrial ? trialEndDate : undefined });
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setIsTrial(false); setTrialEndDate("");
+    onAdd({ name, amount: parseFloat(amount), frequency, nextDate: date, category, account, includeInForecast: true, isTrial, trialEndDate: isTrial ? trialEndDate : undefined });
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank"); setIsTrial(false); setTrialEndDate("");
   };
 
   return (
@@ -167,6 +186,10 @@ function SubscriptionForm({ onAdd, descriptions, categories }: {
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" /></div>
         <div><Label className="text-xs">Category *</Label>
           <AutocompleteInput value={category} onChange={setCategory} suggestions={categories} placeholder="e.g. Entertainment" capitalize /></div>
+      </div>
+      <div>
+        <Label className="text-xs">Account *</Label>
+        <AccountSelect value={account} onChange={setAccount} />
       </div>
       <div className="flex items-center gap-3">
         <Switch checked={isTrial} onCheckedChange={setIsTrial} />
@@ -191,6 +214,7 @@ function InvestmentForm({ onAdd, descriptions, categories }: {
   const [date, setDate] = useState(todayStr());
   const [endDate, setEndDate] = useState("");
   const [category, setCategory] = useState("");
+  const [account, setAccount] = useState<AccountType>("bank");
   const [expectedReturn, setExpectedReturn] = useState("10");
 
   const isValid = !!(name.trim() && amount && date && endDate && category.trim());
@@ -198,8 +222,8 @@ function InvestmentForm({ onAdd, descriptions, categories }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
-    onAdd({ name, amount: parseFloat(amount), frequency, startDate: date, endDate, category, expectedReturn: parseInt(expectedReturn), includeInForecast: true });
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setEndDate(""); setCategory(""); setExpectedReturn("10");
+    onAdd({ name, amount: parseFloat(amount), frequency, startDate: date, endDate, category, account, expectedReturn: parseInt(expectedReturn), includeInForecast: true });
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setEndDate(""); setCategory(""); setAccount("bank"); setExpectedReturn("10");
   };
 
   return (
@@ -227,6 +251,10 @@ function InvestmentForm({ onAdd, descriptions, categories }: {
             <SelectContent>{Array.from({ length: 41 }, (_, i) => (<SelectItem key={i} value={String(i)}>{i}%</SelectItem>))}</SelectContent>
           </Select></div>
       </div>
+      <div>
+        <Label className="text-xs">Account *</Label>
+        <AccountSelect value={account} onChange={setAccount} />
+      </div>
       <Button type="submit" variant="destructive" className="w-full" disabled={!isValid}>— Add Investment</Button>
     </form>
   );
@@ -246,7 +274,7 @@ function ExpenseList({ entries, onToggle, onRemove, onUpdate }: {
         <EditableEntryRow key={entry.id} entry={entry} onSave={(u) => { onUpdate(entry.id, u); setEditingId(null); }} onCancel={() => setEditingId(null)} />
       ) : (
         <ItemRow key={entry.id} label={entry.label} detail={`${formatMoney(Math.abs(entry.amount))} / ${entry.frequency} · ${formatDate(entry.date)}`}
-          category={entry.category} checked={entry.includeInForecast} onToggle={() => onToggleEntry(entry.id)}
+          category={entry.category} account={entry.account} checked={entry.includeInForecast} onToggle={() => onToggleEntry(entry.id)}
           onEdit={() => setEditingId(entry.id)} onRemove={() => onRemove(entry.id)} />
       ))}
     </div>
@@ -265,7 +293,7 @@ function SubscriptionList({ subscriptions, onToggle, onRemove, onUpdate }: {
       <p className="text-xs font-semibold text-muted-foreground px-1">SUBSCRIPTIONS ({subscriptions.length})</p>
       {subscriptions.map(sub => (
         <ItemRow key={sub.id} label={sub.name} detail={`${formatMoney(sub.amount)} / ${sub.frequency} · Next: ${formatDate(sub.nextDate)}`}
-          category={sub.category} checked={sub.includeInForecast} onToggle={() => onToggle(sub.id)}
+          category={sub.category} account={sub.account} checked={sub.includeInForecast} onToggle={() => onToggle(sub.id)}
           onRemove={() => onRemove(sub.id)}
           extra={sub.isTrial ? <Badge className="text-[9px] bg-warning/20 text-warning border-warning/30">Trial</Badge> : null}
         />
@@ -310,6 +338,7 @@ function InvestmentList({ investments, onRemove, onUpdate }: {
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="text-sm font-medium truncate">{inv.name}</p>
                   <Badge variant="outline" className="text-[10px]">{inv.category}</Badge>
+                  <Badge variant="secondary" className="text-[10px]">{ACCOUNT_LABELS[inv.account] || "Bank"}</Badge>
                   <Badge variant={isMatured ? "default" : "secondary"} className="text-[10px]">{isMatured ? "Matured" : "Active"}</Badge>
                 </div>
                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive shrink-0" onClick={() => onRemove(inv.id)}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -328,8 +357,8 @@ function InvestmentList({ investments, onRemove, onUpdate }: {
 }
 
 // ============ SHARED COMPONENTS ============
-function ItemRow({ label, detail, category, checked, onToggle, onEdit, onRemove, extra }: {
-  label: string; detail: string; category: string; checked: boolean;
+function ItemRow({ label, detail, category, account, checked, onToggle, onEdit, onRemove, extra }: {
+  label: string; detail: string; category: string; account?: AccountType; checked: boolean;
   onToggle: () => void; onEdit?: () => void; onRemove: () => void; extra?: React.ReactNode;
 }) {
   return (
@@ -346,6 +375,7 @@ function ItemRow({ label, detail, category, checked, onToggle, onEdit, onRemove,
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          {account && <Badge variant="secondary" className="text-[10px]">{ACCOUNT_LABELS[account]}</Badge>}
           <Badge variant="outline" className="text-[10px]">{category}</Badge>
           {onEdit && <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}><Pencil className="h-3.5 w-3.5" /></Button>}
           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onRemove}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -361,6 +391,7 @@ function EditableEntryRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (
   const [frequency, setFrequency] = useState<Frequency>(entry.frequency);
   const [date, setDate] = useState(entry.date);
   const [category, setCategory] = useState(entry.category);
+  const [account, setAccount] = useState<AccountType>(entry.account || "bank");
 
   return (
     <Card className="border-2 border-primary/30">
@@ -371,10 +402,11 @@ function EditableEntryRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (
           <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="h-8" />
           <FrequencySelect value={frequency} onChange={setFrequency} />
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8" />
+          <AccountSelect value={account} onChange={setAccount} className="h-8" />
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}><X className="h-4 w-4 mr-1" /> Cancel</Button>
-          <Button size="sm" onClick={() => onSave({ label, amount: -Math.abs(parseFloat(amount) || 0), frequency, date, category })}><Check className="h-4 w-4 mr-1" /> Save</Button>
+          <Button size="sm" onClick={() => onSave({ label, amount: -Math.abs(parseFloat(amount) || 0), frequency, date, category, account })}><Check className="h-4 w-4 mr-1" /> Save</Button>
         </div>
       </CardContent>
     </Card>
