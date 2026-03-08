@@ -273,6 +273,7 @@ export function getRiskDate(forecast: ForecastItem[]): string | null {
 
 export function toMonthlyAmount(amount: number, freq: Frequency): number {
   switch (freq) {
+    case "daily": return amount * 30;
     case "weekly": return amount * 4.33;
     case "biweekly": return amount * 2.167;
     case "monthly": return amount;
