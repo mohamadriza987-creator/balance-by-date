@@ -42,6 +42,8 @@ export function TimelineTab({ data }: TimelineTabProps) {
 
       <ForecastChart forecast={forecast} currentBalance={data.currentBalance} forecastDate={data.forecastDate} />
 
+      <SpendingBreakdown data={data} />
+
       {/* Upcoming Timeline */}
       <Card>
         <CardHeader>
