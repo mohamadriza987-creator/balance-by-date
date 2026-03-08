@@ -111,6 +111,6 @@ export function useFinanceData() {
     addEntry, removeEntry, toggleEntryForecast,
     updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
-    updateBalance, updateAccountBalances, updateForecastDate,
+    updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
   };
 }
