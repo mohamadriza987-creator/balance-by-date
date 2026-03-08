@@ -248,16 +248,65 @@ export function computeForecast(data: AppData): ForecastItem[] {
     }
   }
 
-  // CC bill payments
-  const { computeCreditCardBills } = require("./account-forecast");
-  try {
-    const ccBills = computeCreditCardBills(data);
-    for (const bill of ccBills) {
-      // Bank pays → CC limit restores. Net effect on total = 0. Show as internal movement.
-      items.push({ date: bill.date, label: bill.label, amount: -bill.amount, balance: 0, type: "cc_bill", account: "bank" });
-      items.push({ date: bill.date, label: "CC Limit Restored", amount: bill.amount, balance: 0, type: "cc_bill", account: "creditCard" });
+  // CC bill payments - inline to avoid circular dependency
+  {
+    const billDay = (data.settings?.creditCardBillDay) || 15;
+    const billMap: Record<string, number> = {};
+    
+    const getNextBillDateInline = (afterDate: string): string => {
+      const ad = parseISO(afterDate);
+      const day = Math.min(billDay, 28);
+      let billDate = new Date(ad.getFullYear(), ad.getMonth() + 1, day);
+      if (billDate <= ad) billDate = new Date(ad.getFullYear(), ad.getMonth() + 2, day);
+      return format(billDate, "yyyy-MM-dd");
+    };
+
+    // Collect CC expenses
+    for (const entry of data.entries) {
+      if (!entry.includeInForecast || entry.amount >= 0 || entry.account !== "creditCard") continue;
+      let d = entry.date;
+      while (d <= horizon) {
+        if (d >= refDate) {
+          const bd = getNextBillDateInline(d);
+          if (bd <= horizon) billMap[bd] = (billMap[bd] || 0) + Math.abs(entry.amount);
+        }
+        if (entry.frequency === "once") break;
+        d = getNextOccurrence(d, entry.frequency);
+      }
     }
-  } catch {}
+    for (const sub of data.subscriptions) {
+      if (!sub.includeInForecast || sub.account !== "creditCard") continue;
+      const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
+      let d = chargeStart;
+      while (d <= horizon) {
+        if (d >= refDate) {
+          const bd = getNextBillDateInline(d);
+          if (bd <= horizon) billMap[bd] = (billMap[bd] || 0) + sub.amount;
+        }
+        if (sub.frequency === "once") break;
+        d = getNextOccurrence(d, sub.frequency);
+      }
+    }
+    for (const inv of (data.investments || [])) {
+      if (!inv.includeInForecast || inv.account !== "creditCard") continue;
+      let d = inv.startDate;
+      while (d <= horizon && d <= inv.endDate) {
+        if (d >= refDate) {
+          const bd = getNextBillDateInline(d);
+          if (bd <= horizon) billMap[bd] = (billMap[bd] || 0) + inv.amount;
+        }
+        if (inv.frequency === "once") break;
+        d = getNextOccurrence(d, inv.frequency);
+      }
+    }
+
+    for (const [bDate, bAmount] of Object.entries(billMap)) {
+      if (bAmount > 0.01) {
+        items.push({ date: bDate, label: "Credit Card Bill Payment", amount: -bAmount, balance: 0, type: "cc_bill" as const, account: "bank" as const });
+        items.push({ date: bDate, label: "CC Limit Restored", amount: bAmount, balance: 0, type: "cc_bill" as const, account: "creditCard" as const });
+      }
+    }
+  }
 
   // Applied transfers
   for (const tr of (data.transfers || [])) {
