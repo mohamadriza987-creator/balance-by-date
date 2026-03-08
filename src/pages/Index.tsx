@@ -1,14 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarDays, CreditCard, List, PlusCircle, Settings } from "lucide-react";
+import { CalendarDays, CreditCard, List, PlusCircle, Settings, TrendingUp } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TimelineTab } from "@/components/TimelineTab";
 import { SubscriptionsTab } from "@/components/SubscriptionsTab";
 import { EntriesTab } from "@/components/EntriesTab";
 import { AddNewTab } from "@/components/AddNewTab";
+import { InvestmentsTab } from "@/components/InvestmentsTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { formatMoney } from "@/lib/finance-utils";
 
@@ -16,6 +17,7 @@ const Index = () => {
   const {
     data, setData, addSubscription, removeSubscription, toggleSubscriptionForecast,
     addEntry, removeEntry, toggleEntryForecast, updateSubscription, updateEntry,
+    addInvestment, removeInvestment, updateInvestment,
     updateBalance, updateForecastDate,
   } = useFinanceData();
 
@@ -37,12 +39,8 @@ const Index = () => {
                 <Label htmlFor="balance" className="text-sm text-muted-foreground whitespace-nowrap">Balance:</Label>
                 {editingBalance ? (
                   <Input
-                    id="balance"
-                    type="number"
-                    step="0.01"
-                    className="w-32 h-8"
-                    value={balanceInput}
-                    onChange={(e) => setBalanceInput(e.target.value)}
+                    id="balance" type="number" step="0.01" className="w-32 h-8"
+                    value={balanceInput} onChange={(e) => setBalanceInput(e.target.value)}
                     onBlur={() => { updateBalance(parseFloat(balanceInput) || 0); setEditingBalance(false); }}
                     onKeyDown={(e) => { if (e.key === "Enter") { updateBalance(parseFloat(balanceInput) || 0); setEditingBalance(false); } }}
                     autoFocus
@@ -66,7 +64,7 @@ const Index = () => {
       {/* Main */}
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="timeline" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5">
+          <TabsList className="grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="timeline" className="gap-1.5 text-xs sm:text-sm">
               <CalendarDays className="h-4 w-4 hidden sm:block" /> Timeline
             </TabsTrigger>
@@ -75,6 +73,9 @@ const Index = () => {
             </TabsTrigger>
             <TabsTrigger value="entries" className="gap-1.5 text-xs sm:text-sm">
               <List className="h-4 w-4 hidden sm:block" /> Income/Exp
+            </TabsTrigger>
+            <TabsTrigger value="investments" className="gap-1.5 text-xs sm:text-sm">
+              <TrendingUp className="h-4 w-4 hidden sm:block" /> Investments
             </TabsTrigger>
             <TabsTrigger value="add" className="gap-1.5 text-xs sm:text-sm">
               <PlusCircle className="h-4 w-4 hidden sm:block" /> Add New
@@ -93,16 +94,22 @@ const Index = () => {
           <TabsContent value="entries">
             <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} onUpdate={updateEntry} />
           </TabsContent>
+          <TabsContent value="investments">
+            <InvestmentsTab investments={data.investments || []} onRemove={removeInvestment} onUpdate={updateInvestment} />
+          </TabsContent>
           <TabsContent value="add">
             <AddNewTab
               onAddSubscription={addSubscription}
               onAddEntry={addEntry}
+              onAddInvestment={addInvestment}
               incomeDescriptions={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.label))]}
               expenseDescriptions={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.label))]}
               subscriptionDescriptions={[...new Set(data.subscriptions.map(s => s.name))]}
+              investmentDescriptions={[...new Set((data.investments || []).map(i => i.name))]}
               incomeCategories={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.category))]}
               expenseCategories={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.category))]}
               subscriptionCategories={[...new Set(data.subscriptions.map(s => s.category))]}
+              investmentCategories={[...new Set((data.investments || []).map(i => i.category))]}
             />
           </TabsContent>
           <TabsContent value="settings">
