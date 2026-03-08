@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CalendarDays, CreditCard, List, PlusCircle, Settings } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { TimelineTab } from "@/components/TimelineTab";
 import { SubscriptionsTab } from "@/components/SubscriptionsTab";
 import { EntriesTab } from "@/components/EntriesTab";
