@@ -127,14 +127,14 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     let nextMaturity: { date: string; value: number; name: string } | null = null;
 
     targets.forEach(inv => {
-      const vals = computeInvestmentValue(inv);
+      const vals = computeInvestmentValue(inv, today);
       totalInvested += vals.totalInvested;
       totalProfit += vals.profit;
 
-      // Find next upcoming installment
+      // Find next upcoming installment (after positionDate)
       let d = inv.startDate;
       while (d <= inv.endDate) {
-        if (d >= today) {
+        if (d > today) {
           if (!nextUpcoming || d < nextUpcoming.date) {
             nextUpcoming = { date: d, amount: inv.amount };
           }
@@ -144,8 +144,8 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         d = getNextOccurrence(d, inv.frequency);
       }
 
-      // Maturity
-      const isMatured = new Date(inv.endDate) <= new Date();
+      // Maturity - check against positionDate
+      const isMatured = inv.endDate <= today;
       if (!isMatured) {
         if (!nextMaturity || inv.endDate < nextMaturity.date) {
           nextMaturity = { date: inv.endDate, value: vals.maturityValue, name: inv.name };
