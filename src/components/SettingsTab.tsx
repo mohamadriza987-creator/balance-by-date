@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw } from "lucide-react";
+import { Download, Upload, RotateCcw, Heart } from "lucide-react";
 import type { AppData } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
 import { useToast } from "@/hooks/use-toast";
@@ -14,9 +14,10 @@ interface SettingsTabProps {
   data: AppData;
   onReplace: (data: AppData) => void;
   onUpdateForecastDate: (date: string) => void;
+  onReplayIntro?: () => void;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate }: SettingsTabProps) {
+export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro }: SettingsTabProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -126,6 +127,12 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate }: SettingsT
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {onReplayIntro && (
+            <Button variant="outline" className="w-full justify-start gap-2" onClick={onReplayIntro}>
+              <Heart className="h-4 w-4" /> Replay intro message
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

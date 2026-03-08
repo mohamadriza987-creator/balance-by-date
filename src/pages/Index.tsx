@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { IntroFlow } from "@/components/IntroFlow";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp } from "lucide-react";
@@ -35,6 +36,11 @@ const Index = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
+  const [introDone, setIntroDone] = useState(() => localStorage.getItem("finance-buddy-intro-done") === "true");
+
+  if (!introDone) {
+    return <IntroFlow onComplete={() => setIntroDone(true)} />;
+  }
 
   if (showSettings) {
     return (
@@ -47,7 +53,7 @@ const Index = () => {
           </div>
         </header>
         <main className="px-3 py-4">
-          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
+          <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} onReplayIntro={() => { localStorage.removeItem("finance-buddy-intro-done"); setIntroDone(false); }} />
         </main>
       </div>
     );
