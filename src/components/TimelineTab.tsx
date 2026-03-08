@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/StatCard";
 import { AlertBanner } from "@/components/AlertBanner";
+import { ForecastChart } from "@/components/ForecastChart";
 import type { AppData, ForecastItem } from "@/lib/finance-types";
 import {
   computeForecast,
@@ -37,6 +38,8 @@ export function TimelineTab({ data }: TimelineTabProps) {
         <StatCard title="Monthly Subscriptions" value={formatMoney(monthSubs)} icon="subscriptions" />
         <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
       </div>
+
+      <ForecastChart forecast={forecast} currentBalance={data.currentBalance} forecastDate={data.forecastDate} />
 
       {/* Upcoming Timeline */}
       <Card>
