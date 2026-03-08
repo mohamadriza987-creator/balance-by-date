@@ -39,6 +39,7 @@ export interface Investment {
   startDate: string;
   endDate: string;
   category: string;
+  account: AccountType;
   expectedReturn: number;
   includeInForecast: boolean;
 }
