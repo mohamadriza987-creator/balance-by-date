@@ -1,13 +1,17 @@
 import { format, addDays as dfnsAddDays, differenceInCalendarDays, addWeeks, addMonths, addYears, parseISO } from "date-fns";
-import type { AppData, Entry, ForecastItem, Frequency, Investment, Subscription } from "./finance-types";
+import type { AppData, Entry, ForecastItem, Frequency, Investment, Subscription, UserProfile } from "./finance-types";
 
 export const todayStr = () => format(new Date(), "yyyy-MM-dd");
 
 export const addDays = (dateStr: string, days: number) =>
   format(dfnsAddDays(parseISO(dateStr), days), "yyyy-MM-dd");
 
-export const formatMoney = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(n);
+export const formatMoney = (n: number, profile?: UserProfile) => {
+  const symbol = profile?.currencySymbol || "$";
+  const abs = Math.abs(n);
+  const formatted = abs.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n < 0 ? `-${symbol}${formatted}` : `${symbol}${formatted}`;
+};
 
 export const formatDate = (dateStr: string) =>
   format(parseISO(dateStr), "MMM d, yyyy");
@@ -38,25 +42,14 @@ export function getNextOccurrence(dateStr: string, freq: Frequency): string {
 export function seedData(): AppData {
   const today = todayStr();
   return {
-    currentBalance: 4250.0,
-    accountBalances: { cash: 500, bank: 3500, creditCard: 250 },
+    currentBalance: 0,
+    accountBalances: { cash: 0, bank: 0, creditCard: 0 },
     forecastDate: addDays(today, 180),
     positionDate: today,
-    subscriptions: [
-      { id: generateId(), name: "Netflix", amount: 15.99, frequency: "monthly", nextDate: addDays(today, 12), category: "Entertainment", account: "bank", includeInForecast: true },
-      { id: generateId(), name: "Spotify", amount: 9.99, frequency: "monthly", nextDate: addDays(today, 5), category: "Entertainment", account: "bank", includeInForecast: true },
-      { id: generateId(), name: "AWS", amount: 45.0, frequency: "monthly", nextDate: addDays(today, 18), category: "Tech", account: "creditCard", includeInForecast: true },
-      { id: generateId(), name: "Gym", amount: 29.99, frequency: "monthly", nextDate: addDays(today, 3), category: "Health", account: "bank", includeInForecast: true },
-      { id: generateId(), name: "Adobe CC", amount: 54.99, frequency: "monthly", nextDate: addDays(today, 25), category: "Tech", account: "creditCard", includeInForecast: true, isTrial: true, trialEndDate: addDays(today, 6) },
-    ],
-    entries: [
-      { id: generateId(), label: "Salary", amount: 3800, date: addDays(today, 15), frequency: "monthly", category: "Income", account: "bank", includeInForecast: true },
-      { id: generateId(), label: "Freelance Project", amount: 1200, date: addDays(today, 22), frequency: "once", category: "Income", account: "bank", includeInForecast: true },
-      { id: generateId(), label: "Rent", amount: -1500, date: addDays(today, 1), frequency: "monthly", category: "Housing", account: "bank", includeInForecast: true },
-      { id: generateId(), label: "Groceries", amount: -400, date: addDays(today, 7), frequency: "monthly", category: "Food", account: "cash", includeInForecast: true },
-      { id: generateId(), label: "Utilities", amount: -180, date: addDays(today, 10), frequency: "monthly", category: "Bills", account: "bank", includeInForecast: true },
-    ],
+    subscriptions: [],
+    entries: [],
     investments: [],
+    debtPlans: [],
   };
 }
 
@@ -82,12 +75,10 @@ export function computeInvestmentValue(inv: Investment, asOfDate?: string) {
   
   while (d <= inv.endDate) {
     const monthsToEval = Math.max(0, differenceInMonths(evalDate, d));
-    
     if (d <= evalDate) {
       totalInvested += inv.amount;
       futureValue += inv.amount * Math.pow(1 + monthlyRate, monthsToEval);
     }
-    
     if (inv.frequency === "once") break;
     d = getNextOccurrence(d, inv.frequency);
   }
@@ -130,6 +121,7 @@ export function loadData(): AppData {
         parsed.accountBalances = { cash: 0, bank: parsed.currentBalance || 0, creditCard: 0 };
       }
       if (!parsed.investments) parsed.investments = [];
+      if (!parsed.debtPlans) parsed.debtPlans = [];
       if (!parsed.positionDate) parsed.positionDate = todayStr();
       return parsed;
     }
@@ -147,16 +139,15 @@ export function saveData(data: AppData) {
 export function computeBalanceAtPosition(data: AppData): number {
   const actualToday = todayStr();
   const posDate = data.positionDate || actualToday;
-  
-  // If position date is today or before, return current balance as-is
   if (posDate <= actualToday) return data.currentBalance;
   
-  // Simulate all transactions from actual today to positionDate
   let balance = data.currentBalance;
   
   for (const sub of data.subscriptions) {
     if (!sub.includeInForecast) continue;
-    let d = sub.nextDate;
+    // Respect trial: skip charges before trialEndDate
+    const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
+    let d = chargeStart;
     while (d <= posDate) {
       if (d >= actualToday) balance -= sub.amount;
       if (sub.frequency === "once") break;
@@ -182,7 +173,6 @@ export function computeBalanceAtPosition(data: AppData): number {
       if (inv.frequency === "once") break;
       d = getNextOccurrence(d, inv.frequency);
     }
-    // If maturity falls before positionDate, add maturity value
     if (inv.endDate >= actualToday && inv.endDate <= posDate) {
       const { maturityValue } = computeInvestmentValue(inv, inv.endDate);
       balance += maturityValue;
@@ -200,7 +190,9 @@ export function computeForecast(data: AppData): ForecastItem[] {
 
   for (const sub of data.subscriptions) {
     if (!sub.includeInForecast) continue;
-    let d = sub.nextDate;
+    // Respect trial: first charge starts at trialEndDate
+    const chargeStart = (sub.isTrial && sub.trialEndDate) ? sub.trialEndDate : sub.nextDate;
+    let d = chargeStart;
     while (d <= horizon) {
       if (d >= refDate) {
         items.push({ date: d, label: sub.name, amount: -sub.amount, balance: 0, type: "subscription" });
@@ -221,6 +213,9 @@ export function computeForecast(data: AppData): ForecastItem[] {
           amount: entry.amount,
           balance: 0,
           type: entry.amount >= 0 ? "income" : "expense",
+          isCheque: entry.isCheque,
+          isDebtLinked: !!entry.debtLinkId,
+          isOptional: entry.isOptional,
         });
       }
       if (entry.frequency === "once") break;
