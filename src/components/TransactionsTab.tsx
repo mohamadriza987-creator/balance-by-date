@@ -174,11 +174,28 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
   return (
     <div className="space-y-4">
-      <AlertBanner subscriptions={data.subscriptions} forecast={forecast} />
+      {/* Account Filter */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {(["all", "cash", "bank", "creditCard"] as AccountFilter[]).map((filter) => (
+          <button
+            key={filter}
+            onClick={() => setAccountFilter(filter)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              accountFilter === filter
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            }`}
+          >
+            {FILTER_LABELS[filter]}
+          </button>
+        ))}
+      </div>
+
+      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} />
 
       {/* Key Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="Current Balance" value={formatMoney(data.currentBalance)} icon="balance" variant="success" />
+        <StatCard title="Current Balance" value={formatMoney(filteredData.currentBalance)} icon="balance" variant="success" />
         <StatCard title={`Forecast ${formatDate(data.forecastDate)}`} value={formatMoney(forecastBalance)} icon="forecast" variant={forecastBalance < 0 ? "danger" : "default"} />
         <StatCard title="Monthly Subs" value={formatMoney(monthSubs)} icon="subscriptions" />
         <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
