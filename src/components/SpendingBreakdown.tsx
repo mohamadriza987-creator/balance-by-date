@@ -42,10 +42,17 @@ export function SpendingBreakdown({ data }: SpendingBreakdownProps) {
   }, [data]);
 
   const total = breakdown.reduce((s, b) => s + b.value, 0);
-  if (breakdown.length === 0) return null;
 
   // Show top 4 + "Other" in compact mode
   const compactData = useMemo(() => {
+    if (expanded || breakdown.length <= 5) return breakdown;
+    const top4 = breakdown.slice(0, 4);
+    const otherValue = breakdown.slice(4).reduce((sum, b) => sum + b.value, 0);
+    if (otherValue > 0) top4.push({ name: "Other", value: Math.round(otherValue * 100) / 100 });
+    return top4;
+  }, [breakdown, expanded]);
+
+  if (breakdown.length === 0) return null;
     if (expanded || breakdown.length <= 5) return breakdown;
     const top4 = breakdown.slice(0, 4);
     const otherValue = breakdown.slice(4).reduce((sum, b) => sum + b.value, 0);
