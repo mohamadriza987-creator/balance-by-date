@@ -13,7 +13,7 @@ import { formatMoney } from "@/lib/finance-utils";
 
 const Index = () => {
   const {
-    data, addSubscription, removeSubscription, toggleSubscriptionForecast,
+    data, setData, addSubscription, removeSubscription, toggleSubscriptionForecast,
     addEntry, removeEntry, toggleEntryForecast, updateBalance, updateForecastDate,
   } = useFinanceData();
 
