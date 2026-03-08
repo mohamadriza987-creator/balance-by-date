@@ -7,7 +7,7 @@ import { AlertBanner } from "@/components/AlertBanner";
 import { ForecastChart } from "@/components/ForecastChart";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell, PieChart, Pie } from "recharts";
-import type { AppData, ForecastItem } from "@/lib/finance-types";
+import type { AppData, ForecastItem, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeInvestmentValue,
   formatDate, formatMoney, getBalanceOnDate,
@@ -15,6 +15,8 @@ import {
   getNextOccurrence,
 } from "@/lib/finance-utils";
 import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+
+type AccountFilter = "all" | AccountType;
 
 interface TransactionsTabProps {
   data: AppData;
@@ -26,7 +28,10 @@ const COLORS = [
   "hsl(340, 70%, 50%)", "hsl(160, 70%, 40%)",
 ];
 
+const FILTER_LABELS: Record<AccountFilter, string> = { all: "All", cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
+
 export function TransactionsTab({ data }: TransactionsTabProps) {
+  const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
   const forecast = useMemo(() => computeForecast(data), [data]);
   const today = todayStr();
   const forecastBalance = getBalanceOnDate(forecast, data.forecastDate, data.currentBalance);
