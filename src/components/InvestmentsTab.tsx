@@ -1,7 +1,9 @@
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, TrendingUp } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import type { Investment } from "@/lib/finance-types";
 import { formatMoney, formatDate, computeInvestmentValue } from "@/lib/finance-utils";
 
@@ -20,6 +22,59 @@ const freqLabel: Record<string, string> = {
   halfyearly: "Half-yearly",
   yearly: "Yearly",
 };
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(210, 70%, 50%)",
+  "hsl(340, 70%, 50%)",
+  "hsl(160, 70%, 40%)",
+];
+
+function AllocationChart({ investments }: { investments: Investment[] }) {
+  const data = useMemo(() => {
+    const byCategory: Record<string, number> = {};
+    investments.forEach((inv) => {
+      const vals = computeInvestmentValue(inv);
+      byCategory[inv.category] = (byCategory[inv.category] || 0) + vals.currentValue;
+    });
+    return Object.entries(byCategory).map(([name, value]) => ({ name, value }));
+  }, [investments]);
+
+  if (data.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">Allocation by Category</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={250}>
+          <PieChart>
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              innerRadius={60}
+              outerRadius={90}
+              paddingAngle={3}
+              dataKey="value"
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+            >
+              {data.map((_, idx) => (
+                <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value: number) => formatMoney(value)} />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function InvestmentsTab({ investments, onRemove }: InvestmentsTabProps) {
   if (investments.length === 0) {
@@ -64,6 +119,10 @@ export function InvestmentsTab({ investments, onRemove }: InvestmentsTabProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Allocation Pie Chart */}
+      <AllocationChart investments={investments} />
+
       {investments.map((inv) => {
         const vals = computeInvestmentValue(inv);
         const isMatured = new Date(inv.endDate) <= new Date();
