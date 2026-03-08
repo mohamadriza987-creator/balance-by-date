@@ -22,11 +22,24 @@ export interface Entry {
   includeInForecast: boolean;
 }
 
+export interface Investment {
+  id: string;
+  name: string;
+  amount: number; // periodic investment amount
+  frequency: Frequency;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD (maturity)
+  category: string;
+  expectedReturn: number; // annual rate of return (0-40)
+  includeInForecast: boolean;
+}
+
 export interface AppData {
   currentBalance: number;
   forecastDate: string;
   subscriptions: Subscription[];
   entries: Entry[];
+  investments: Investment[];
 }
 
 export interface ForecastItem {
