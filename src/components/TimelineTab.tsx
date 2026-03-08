@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/StatCard";
 import { AlertBanner } from "@/components/AlertBanner";
+import { ForecastChart } from "@/components/ForecastChart";
 import type { AppData, ForecastItem } from "@/lib/finance-types";
 import {
   computeForecast,
