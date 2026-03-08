@@ -47,7 +47,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   const forecast = useMemo(() => computeForecast(filteredData), [filteredData]);
   const today = todayStr();
   const forecastBalance = getBalanceOnDate(forecast, filteredData.forecastDate, filteredData.currentBalance);
-  const monthSubs = getMonthSubscriptionTotal(data.subscriptions);
+  const monthSubs = getMonthSubscriptionTotal(filteredData.subscriptions);
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
