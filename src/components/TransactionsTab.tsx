@@ -72,8 +72,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     let income = 0;
     let expense = 0;
 
-    // From entries
-    for (const entry of data.entries) {
+    for (const entry of filteredData.entries) {
       if (!entry.includeInForecast) continue;
       let d = entry.date;
       while (d <= me) {
