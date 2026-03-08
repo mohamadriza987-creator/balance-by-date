@@ -25,7 +25,10 @@ export function getNextOccurrence(dateStr: string, freq: Frequency): string {
   const d = parseISO(dateStr);
   switch (freq) {
     case "weekly": return format(addWeeks(d, 1), "yyyy-MM-dd");
+    case "biweekly": return format(addWeeks(d, 2), "yyyy-MM-dd");
     case "monthly": return format(addMonths(d, 1), "yyyy-MM-dd");
+    case "quarterly": return format(addMonths(d, 3), "yyyy-MM-dd");
+    case "halfyearly": return format(addMonths(d, 6), "yyyy-MM-dd");
     case "yearly": return format(addYears(d, 1), "yyyy-MM-dd");
     default: return dateStr;
   }
