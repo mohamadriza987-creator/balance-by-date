@@ -2,15 +2,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon } from "lucide-react";
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
 import { TransactionsTab } from "@/components/TransactionsTab";
 import { InflowTab } from "@/components/InflowTab";
 import { OutflowTab } from "@/components/OutflowTab";
+import { ForecastTab } from "@/components/ForecastTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
+import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +20,7 @@ const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "inflow", label: "Inflow", icon: ArrowDownLeft },
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
+  { value: "forecast", label: "Forecast", icon: TrendingUp },
 ] as const;
 
 const Index = () => {
@@ -57,8 +60,8 @@ const Index = () => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-lg font-bold tracking-tight text-foreground">BalanceByDate</h1>
-              <p className="text-xs text-muted-foreground">Finance forecast planner</p>
+              <h1 className="text-lg font-bold tracking-tight text-foreground">{APP_NAME}</h1>
+              <p className="text-[10px] text-muted-foreground">{APP_TAGLINE}</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -71,7 +74,7 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">My position on:</span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Balance as of</span>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -128,8 +131,6 @@ const Index = () => {
             onToggle={toggleEntryForecast}
             onRemove={removeEntry}
             onUpdate={updateEntry}
-            incomeDescriptions={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.label))]}
-            incomeCategories={[...new Set(data.entries.filter(e => e.amount > 0).map(e => e.category))]}
           />
         )}
         {activeTab === "outflow" && (
@@ -148,19 +149,16 @@ const Index = () => {
             onUpdateEntry={updateEntry}
             onUpdateSubscription={updateSubscription}
             onUpdateInvestment={updateInvestment}
-            expenseDescriptions={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.label))]}
-            subscriptionDescriptions={[...new Set(data.subscriptions.map(s => s.name))]}
-            investmentDescriptions={[...new Set((data.investments || []).map(i => i.name))]}
-            expenseCategories={[...new Set(data.entries.filter(e => e.amount < 0).map(e => e.category))]}
-            subscriptionCategories={[...new Set(data.subscriptions.map(s => s.category))]}
-            investmentCategories={[...new Set((data.investments || []).map(i => i.category))]}
           />
+        )}
+        {activeTab === "forecast" && (
+          <ForecastTab data={data} />
         )}
       </main>
 
       {/* Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
-        <div className="grid grid-cols-3 h-16">
+        <div className="grid grid-cols-4 h-16">
           {tabs.map(({ value, label, icon: Icon }) => (
             <button
               key={value}

@@ -6,16 +6,18 @@ import { StatCard } from "@/components/StatCard";
 import { AlertBanner } from "@/components/AlertBanner";
 import { ForecastChart } from "@/components/ForecastChart";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
+import { InsightsCard } from "@/components/InsightsCard";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import type { AppData, ForecastItem, AccountType, Entry, Subscription, Investment } from "@/lib/finance-types";
+import { ChevronUp } from "lucide-react";
+import type { AppData, ForecastItem, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeInvestmentValue, computeBalanceAtPosition,
   formatDate, formatMoney, getBalanceOnDate,
   getMonthSubscriptionTotal, getRiskDate, todayStr, daysBetween, toMonthlyAmount,
   getNextOccurrence,
 } from "@/lib/finance-utils";
-import { format, parseISO, startOfMonth, endOfMonth, subMonths, addMonths } from "date-fns";
+import { ACCOUNT_LABELS, TYPE_COLORS } from "@/lib/constants";
+import { format, parseISO, startOfMonth, endOfMonth, subMonths } from "date-fns";
 
 type AccountFilter = "all" | AccountType;
 
@@ -29,11 +31,12 @@ const COLORS = [
   "hsl(340, 70%, 50%)", "hsl(160, 70%, 40%)",
 ];
 
-const FILTER_LABELS: Record<AccountFilter, string> = { all: "All", cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
+const FILTER_LABELS: Record<AccountFilter, string> = {
+  all: "All", cash: "Cash", bank: "Bank", creditCard: "Card Outstanding"
+};
 
 export function TransactionsTab({ data }: TransactionsTabProps) {
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
-  // Filter data by account
   const filteredData = useMemo((): AppData => {
     if (accountFilter === "all") return data;
     return {
@@ -46,13 +49,9 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   }, [data, accountFilter]);
 
   const today = data.positionDate || todayStr();
-
-  // Compute effective balance at position date (simulates all transactions up to positionDate)
   const effectiveBalance = useMemo(() => computeBalanceAtPosition(filteredData), [filteredData]);
-
   const effectiveData = useMemo((): AppData => ({
-    ...filteredData,
-    currentBalance: effectiveBalance,
+    ...filteredData, currentBalance: effectiveBalance,
   }), [filteredData, effectiveBalance]);
 
   const forecast = useMemo(() => computeForecast(effectiveData), [effectiveData]);
@@ -61,11 +60,16 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
   const riskDate = getRiskDate(forecast);
   const upcoming = forecast.filter((f) => daysBetween(today, f.date) <= 30).slice(0, 10);
 
-  // Bar chart click state
+  // Date-based insights near position date
+  const dateInsights = useMemo(() => {
+    const nextInflow = forecast.find(f => f.amount > 0);
+    const nextOutflow = forecast.find(f => f.amount < 0);
+    return { nextInflow, nextOutflow };
+  }, [forecast]);
+
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [expandedType, setExpandedType] = useState<"income" | "expense" | null>(null);
 
-  // Income vs expense bar chart (last 6 months) with line items
   const incomeExpenseBarData = useMemo(() => {
     const months: { month: string; monthKey: string; income: number; expense: number;
       incomeItems: { label: string; amount: number; date: string }[];
@@ -101,7 +105,6 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
           dd = getNextOccurrence(dd, sub.frequency);
         }
       }
-
       months.push({ month: format(d, "MMM"), monthKey: format(d, "yyyy-MM"), income, expense, incomeItems, expenseItems });
     }
     return months;
@@ -114,14 +117,11 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
     return expandedType === "income" ? m.incomeItems : m.expenseItems;
   }, [expandedMonth, expandedType, incomeExpenseBarData]);
 
-  // Investments detailed data
   const [selectedInvestment, setSelectedInvestment] = useState<string>("all");
   const investmentDetails = useMemo(() => {
     const investments = filteredData.investments || [];
     if (investments.length === 0) return null;
-
     const targets = selectedInvestment === "all" ? investments : investments.filter(i => i.id === selectedInvestment);
-
     let totalInvested = 0, totalProfit = 0;
     let totalUpcomingAmount = 0;
     let earliestUpcomingDate: string | null = null;
@@ -133,39 +133,32 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       const vals = computeInvestmentValue(inv, today);
       totalInvested += vals.totalInvested;
       totalProfit += vals.profit;
-
-      // Find next upcoming installment (after positionDate)
       let d = inv.startDate;
       while (d <= inv.endDate) {
         if (d > today) {
           totalUpcomingAmount += inv.amount;
-          if (!earliestUpcomingDate || d < earliestUpcomingDate) {
-            earliestUpcomingDate = d;
-          }
+          if (!earliestUpcomingDate || d < earliestUpcomingDate) earliestUpcomingDate = d;
           break;
         }
         if (inv.frequency === "once") break;
         d = getNextOccurrence(d, inv.frequency);
       }
-
-      // Maturity - check against positionDate
       const isMatured = inv.endDate <= today;
       if (!isMatured) {
         totalMaturityValue += vals.maturityValue;
         maturityCount++;
-        if (!earliestMaturityDate || inv.endDate < earliestMaturityDate) {
-          earliestMaturityDate = inv.endDate;
-        }
+        if (!earliestMaturityDate || inv.endDate < earliestMaturityDate) earliestMaturityDate = inv.endDate;
       }
     });
 
-    const nextUpcoming = earliestUpcomingDate ? { date: earliestUpcomingDate, amount: totalUpcomingAmount } : null;
-    const nextMaturity = earliestMaturityDate ? { date: earliestMaturityDate, value: totalMaturityValue, count: maturityCount } : null;
-
-    return { totalInvested, totalProfit, nextUpcoming, nextMaturity, investments };
+    return {
+      totalInvested, totalProfit,
+      nextUpcoming: earliestUpcomingDate ? { date: earliestUpcomingDate, amount: totalUpcomingAmount } : null,
+      nextMaturity: earliestMaturityDate ? { date: earliestMaturityDate, value: totalMaturityValue, count: maturityCount } : null,
+      investments,
+    };
   }, [filteredData, selectedInvestment, today]);
 
-  // Upcoming subscriptions with dates
   const upcomingSubscriptions = useMemo(() => {
     return filteredData.subscriptions
       .filter(s => s.includeInForecast)
@@ -193,20 +186,49 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         ))}
       </div>
 
-      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} positionDate={today} />
+      {/* 1. Current Balance (already shown in AccountsTab above) */}
 
-      {/* Key Stats */}
+      {/* 2. Projected Balance on Selected Date */}
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+        <CardContent className="py-4 px-4 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Projected Balance on {formatDate(data.forecastDate)}</p>
+          <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
+            {formatMoney(forecastBalance)}
+          </p>
+          {/* Date-based insights */}
+          <div className="flex justify-center gap-4 mt-2">
+            {dateInsights.nextInflow && (
+              <div className="text-left">
+                <p className="text-[9px] text-muted-foreground">Next Inflow</p>
+                <p className="text-[10px] font-medium text-success">{dateInsights.nextInflow.label} · {formatDate(dateInsights.nextInflow.date)}</p>
+              </div>
+            )}
+            {dateInsights.nextOutflow && (
+              <div className="text-left">
+                <p className="text-[9px] text-muted-foreground">Next Outflow</p>
+                <p className="text-[10px] font-medium text-destructive">{dateInsights.nextOutflow.label} · {formatDate(dateInsights.nextOutflow.date)}</p>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 3. Safe Until / Next Negative Date */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard title="Balance" value={formatMoney(effectiveBalance)} icon="balance" variant="success" />
-        <StatCard title={`Forecast ${formatDate(data.forecastDate)}`} value={formatMoney(forecastBalance)} icon="forecast" variant={forecastBalance < 0 ? "danger" : "default"} />
-        <StatCard title="Monthly Subs" value={formatMoney(monthSubs)} icon="subscriptions" />
-        <StatCard title="Risk Date" value={riskDate ? formatDate(riskDate) : "None 🎉"} icon="risk" variant={riskDate ? "danger" : "success"} />
+        <StatCard
+          title={riskDate ? "Next Negative Date" : "Safe Until"}
+          value={riskDate ? formatDate(riskDate) : "No negative balance forecast"}
+          icon="risk"
+          variant={riskDate ? "danger" : "success"}
+        />
+        <StatCard
+          title="Monthly Subscriptions"
+          value={formatMoney(monthSubs)}
+          icon="subscriptions"
+        />
       </div>
 
-      {/* Forecast Chart */}
-      <ForecastChart forecast={forecast} currentBalance={effectiveBalance} forecastDate={effectiveData.forecastDate} />
-
-      {/* Upcoming Transactions (30 days) */}
+      {/* 4. Upcoming 30 Days */}
       <Card>
         <CardHeader className="px-4 py-3">
           <CardTitle className="text-base">Upcoming (30 days)</CardTitle>
@@ -215,7 +237,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
           {upcoming.length === 0 ? (
             <p className="text-muted-foreground text-sm">No upcoming transactions.</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {upcoming.map((item, i) => (
                 <TimelineRow key={i} item={item} />
               ))}
@@ -224,7 +246,54 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         </CardContent>
       </Card>
 
-      {/* Income vs Expense Bar Chart - tap to expand */}
+      {/* 5. Balance Forecast Chart */}
+      <ForecastChart forecast={forecast} currentBalance={effectiveBalance} forecastDate={effectiveData.forecastDate} />
+
+      {/* 6. Subscription Alerts */}
+      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} positionDate={today} />
+
+      {upcomingSubscriptions.length > 0 && (
+        <Card>
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">Upcoming Subscriptions</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-2">
+              {upcomingSubscriptions.map((sub) => {
+                const urgency = sub.daysUntil <= 2 ? "critical" : sub.daysUntil <= 5 ? "upcoming" : "info";
+                const urgencyColors = {
+                  critical: "border-l-4 border-l-destructive",
+                  upcoming: "border-l-4 border-l-warning",
+                  info: "border-l-4 border-l-info",
+                };
+                return (
+                  <div key={sub.id} className={`flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5 ${urgencyColors[urgency]}`}>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium truncate">{sub.name}</p>
+                        {sub.isTrial && <Badge className="text-[9px] bg-warning/20 text-warning border-warning/30">Trial</Badge>}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">{formatDate(sub.nextDate)} · {sub.daysUntil === 0 ? "Today" : `${sub.daysUntil}d`}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="outline" className="text-[10px]">{sub.category}</Badge>
+                      <p className="text-sm font-bold text-destructive">-{formatMoney(sub.amount)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 7. Spending Breakdown */}
+      <SpendingBreakdown data={filteredData} />
+
+      {/* Insights */}
+      <InsightsCard data={filteredData} forecast={forecast} />
+
+      {/* Income vs Expense Bar Chart */}
       <Card>
         <CardHeader className="px-4 py-3">
           <CardTitle className="text-base">Income vs Expense (6 months)</CardTitle>
@@ -235,7 +304,6 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
             <BarChart data={incomeExpenseBarData} onClick={(state) => {
               if (state?.activePayload?.[0]) {
                 const monthKey = state.activePayload[0].payload.monthKey;
-                // Determine which bar was clicked based on cursor position
                 setExpandedMonth(prev => prev === monthKey && expandedType ? null : monthKey);
               }
             }}>
@@ -250,7 +318,6 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
             </BarChart>
           </ResponsiveContainer>
 
-          {/* Expanded detail */}
           {expandedMonth && expandedType && expandedData && (
             <div className="mt-3 rounded-lg border border-border/50 p-3">
               <div className="flex items-center justify-between mb-2">
@@ -309,7 +376,6 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                 <p className="text-sm font-bold text-success">{formatMoney(investmentDetails.totalProfit)}</p>
               </div>
             </div>
-
             {investmentDetails.nextUpcoming && (
               <div className="mt-3 rounded-lg border border-border/50 p-3">
                 <p className="text-[10px] text-muted-foreground mb-0.5">Next Installment</p>
@@ -319,7 +385,6 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                 </div>
               </div>
             )}
-
             {investmentDetails.nextMaturity && (
               <div className="mt-2 rounded-lg border border-dashed border-primary/30 p-3">
                 <p className="text-[10px] text-muted-foreground mb-0.5">
@@ -334,57 +399,24 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
           </CardContent>
         </Card>
       )}
-
-      {/* Upcoming Subscriptions */}
-      {upcomingSubscriptions.length > 0 && (
-        <Card>
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">Upcoming Subscriptions</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="space-y-2">
-              {upcomingSubscriptions.map((sub) => (
-                <div key={sub.id} className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{sub.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{formatDate(sub.nextDate)} · {sub.daysUntil === 0 ? "Today" : `${sub.daysUntil}d`}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Badge variant="outline" className="text-[10px]">{sub.category}</Badge>
-                    <p className="text-sm font-bold text-destructive">-{formatMoney(sub.amount)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <SpendingBreakdown data={filteredData} />
     </div>
   );
 }
 
 function TimelineRow({ item }: { item: ForecastItem }) {
-  const typeColors = {
-    income: "bg-success/10 text-success",
-    expense: "bg-destructive/10 text-destructive",
-    subscription: "bg-warning/10 text-warning",
-  };
-
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2.5">
+    <div className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2">
       <div className="flex items-center gap-2 min-w-0">
-        <Badge variant="outline" className={`text-[10px] shrink-0 px-1.5 ${typeColors[item.type]}`}>
+        <Badge variant="outline" className={`text-[9px] shrink-0 px-1.5 ${TYPE_COLORS[item.type] || ""}`}>
           {item.type === "income" ? "inflow" : item.type}
         </Badge>
         <div className="min-w-0">
-          <p className="text-sm font-medium truncate">{item.label}</p>
+          <p className="text-xs font-medium truncate">{item.label}</p>
           <p className="text-[10px] text-muted-foreground">{formatDate(item.date)}</p>
         </div>
       </div>
       <div className="text-right shrink-0 ml-2">
-        <p className={`text-sm font-bold ${item.amount >= 0 ? "text-success" : "text-destructive"}`}>
+        <p className={`text-xs font-bold ${item.amount >= 0 ? "text-success" : "text-destructive"}`}>
           {item.amount >= 0 ? "+" : ""}{formatMoney(item.amount)}
         </p>
         <p className={`text-[10px] ${item.balance < 0 ? "text-destructive" : "text-muted-foreground"}`}>

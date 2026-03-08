@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Banknote, Building2, CreditCard, Settings } from "lucide-react";
+import { Banknote, Building2, CreditCard } from "lucide-react";
 import type { AccountBalances, AppData } from "@/lib/finance-types";
 import { formatMoney } from "@/lib/finance-utils";
 
@@ -13,7 +13,7 @@ interface AccountsTabProps {
 const accounts = [
   { key: "cash" as const, label: "Cash", icon: Banknote, color: "text-success" },
   { key: "bank" as const, label: "Bank", icon: Building2, color: "text-info" },
-  { key: "creditCard" as const, label: "Credit Card", icon: CreditCard, color: "text-warning" },
+  { key: "creditCard" as const, label: "Card Outstanding", icon: CreditCard, color: "text-warning" },
 ];
 
 export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps) {
@@ -35,15 +35,13 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
 
   return (
     <div className="space-y-4">
-      {/* Summary Card */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
         <CardContent className="py-5 px-4 text-center">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total Balance</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Current Balance</p>
           <p className="text-3xl font-bold text-foreground">{formatMoney(totalBalance)}</p>
         </CardContent>
       </Card>
 
-      {/* Account List */}
       <div className="space-y-2">
         {accounts.map(({ key, label, icon: Icon, color }) => (
           <Card key={key} className="border-border/50">

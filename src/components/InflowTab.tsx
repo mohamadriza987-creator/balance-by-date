@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AutocompleteInput } from "@/components/AutocompleteInput";
 import { Trash2, Pencil, Check, X } from "lucide-react";
+import { CategorySelect } from "@/components/CategorySelect";
+import { FrequencySelect } from "@/components/FrequencySelect";
+import { AccountSelect } from "@/components/AccountSelect";
+import { ACCOUNT_LABELS } from "@/lib/constants";
 import type { Entry, Frequency, AccountType } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney } from "@/lib/finance-utils";
-
-const ACCOUNT_LABELS: Record<AccountType, string> = { cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
 
 interface InflowTabProps {
   entries: Entry[];
@@ -19,11 +19,9 @@ interface InflowTabProps {
   onToggle: (id: string) => void;
   onRemove: (id: string) => void;
   onUpdate: (id: string, updates: Partial<Omit<Entry, "id">>) => void;
-  incomeDescriptions?: string[];
-  incomeCategories?: string[];
 }
 
-export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, incomeDescriptions = [], incomeCategories = [] }: InflowTabProps) {
+export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate }: InflowTabProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const incomeEntries = entries.filter((e) => e.amount >= 0);
 
@@ -34,9 +32,7 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState<AccountType>("bank");
 
-  const isValid = useMemo(() => {
-    return !!(name.trim() && amount && date && category.trim());
-  }, [name, amount, date, category]);
+  const isValid = useMemo(() => !!(name.trim() && amount && date && category.trim()), [name, amount, date, category]);
 
   const reset = () => {
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank");
@@ -56,13 +52,13 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
     <div className="space-y-4">
       <Card className="border-success/30">
         <CardHeader className="px-4 py-3">
-          <CardTitle className="text-base text-success">+ ADD INFLOW</CardTitle>
+          <CardTitle className="text-base text-success">+ Add Inflow</CardTitle>
         </CardHeader>
         <CardContent className="px-4 pb-4">
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <Label className="text-xs">Description *</Label>
-              <AutocompleteInput value={name} onChange={setName} suggestions={incomeDescriptions} placeholder="e.g. Salary" capitalize />
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Salary" className="h-9" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -71,18 +67,7 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
               </div>
               <div>
                 <Label className="text-xs">Frequency *</Label>
-                <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="once">One-time</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
-                    <SelectItem value="monthly">Monthly</SelectItem>
-                    <SelectItem value="quarterly">Quarterly</SelectItem>
-                    <SelectItem value="halfyearly">Half-yearly</SelectItem>
-                    <SelectItem value="yearly">Yearly</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FrequencySelect value={frequency} onChange={setFrequency} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -92,19 +77,12 @@ export function InflowTab({ entries, onAddEntry, onToggle, onRemove, onUpdate, i
               </div>
               <div>
                 <Label className="text-xs">Category *</Label>
-                <AutocompleteInput value={category} onChange={setCategory} suggestions={incomeCategories} placeholder="e.g. Salary" capitalize />
+                <CategorySelect value={category} onChange={setCategory} type="income" />
               </div>
             </div>
             <div>
               <Label className="text-xs">Account *</Label>
-              <Select value={account} onValueChange={(v) => setAccount(v as AccountType)}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="bank">Bank</SelectItem>
-                  <SelectItem value="creditCard">Credit Card</SelectItem>
-                </SelectContent>
-              </Select>
+              <AccountSelect value={account} onChange={setAccount} />
             </div>
             <Button type="submit" className="w-full bg-success hover:bg-success/90 text-success-foreground" disabled={!isValid}>
               + Add Inflow
@@ -167,28 +145,10 @@ function EditableRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (updat
         <div className="grid grid-cols-2 gap-2">
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label" className="h-8" />
           <Input type="number" inputMode="decimal" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount" className="h-8" />
-          <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Category" className="h-8" />
-          <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
-            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="once">One-time</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="biweekly">Bi-weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-              <SelectItem value="quarterly">Quarterly</SelectItem>
-              <SelectItem value="halfyearly">Half-yearly</SelectItem>
-              <SelectItem value="yearly">Yearly</SelectItem>
-            </SelectContent>
-          </Select>
+          <CategorySelect value={category} onChange={setCategory} type="income" className="h-8" />
+          <FrequencySelect value={frequency} onChange={setFrequency} className="h-8" />
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8" />
-          <Select value={account} onValueChange={(v) => setAccount(v as AccountType)}>
-            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="cash">Cash</SelectItem>
-              <SelectItem value="bank">Bank</SelectItem>
-              <SelectItem value="creditCard">Credit Card</SelectItem>
-            </SelectContent>
-          </Select>
+          <AccountSelect value={account} onChange={setAccount} className="h-8" />
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}><X className="h-4 w-4 mr-1" /> Cancel</Button>
