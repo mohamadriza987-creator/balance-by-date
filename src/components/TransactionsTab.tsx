@@ -174,7 +174,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
         ))}
       </div>
 
-      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} />
+      <AlertBanner subscriptions={filteredData.subscriptions} forecast={forecast} positionDate={today} />
 
       {/* Key Stats */}
       <div className="grid grid-cols-2 gap-3">
