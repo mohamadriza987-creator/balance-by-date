@@ -1,5 +1,5 @@
-import { format, addDays as dfnsAddDays, differenceInCalendarDays, addWeeks, addMonths, addYears, parseISO } from "date-fns";
-import type { AppData, Entry, ForecastItem, Frequency, Subscription } from "./finance-types";
+import { format, addDays as dfnsAddDays, differenceInCalendarDays, addWeeks, addMonths, addYears, parseISO, isBefore, isAfter } from "date-fns";
+import type { AppData, Entry, ForecastItem, Frequency, Investment, Subscription } from "./finance-types";
 
 export const todayStr = () => format(new Date(), "yyyy-MM-dd");
 
