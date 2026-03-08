@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AppData } from "@/lib/finance-types";
-import { formatMoney } from "@/lib/finance-utils";
+import { formatMoney, toMonthlyAmount } from "@/lib/finance-utils";
 
 const COLORS = [
   "hsl(0, 72%, 55%)",
@@ -26,20 +26,14 @@ export function SpendingBreakdown({ data }: SpendingBreakdownProps) {
     // Aggregate monthly spending from subscriptions
     for (const sub of data.subscriptions) {
       if (!sub.includeInForecast) continue;
-      let monthly = sub.amount;
-      if (sub.frequency === "weekly") monthly = sub.amount * 4.33;
-      else if (sub.frequency === "yearly") monthly = sub.amount / 12;
+      const monthly = toMonthlyAmount(sub.amount, sub.frequency);
       categoryMap[sub.category] = (categoryMap[sub.category] || 0) + monthly;
     }
 
     // Aggregate monthly spending from expense entries
     for (const entry of data.entries) {
       if (!entry.includeInForecast || entry.amount >= 0) continue;
-      const absAmount = Math.abs(entry.amount);
-      let monthly = absAmount;
-      if (entry.frequency === "weekly") monthly = absAmount * 4.33;
-      else if (entry.frequency === "yearly") monthly = absAmount / 12;
-      else if (entry.frequency === "once") monthly = absAmount; // show as-is
+      const monthly = toMonthlyAmount(Math.abs(entry.amount), entry.frequency);
       categoryMap[entry.category] = (categoryMap[entry.category] || 0) + monthly;
     }
 

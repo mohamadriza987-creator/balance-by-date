@@ -25,7 +25,10 @@ export function getNextOccurrence(dateStr: string, freq: Frequency): string {
   const d = parseISO(dateStr);
   switch (freq) {
     case "weekly": return format(addWeeks(d, 1), "yyyy-MM-dd");
+    case "biweekly": return format(addWeeks(d, 2), "yyyy-MM-dd");
     case "monthly": return format(addMonths(d, 1), "yyyy-MM-dd");
+    case "quarterly": return format(addMonths(d, 3), "yyyy-MM-dd");
+    case "halfyearly": return format(addMonths(d, 6), "yyyy-MM-dd");
     case "yearly": return format(addYears(d, 1), "yyyy-MM-dd");
     default: return dateStr;
   }
@@ -131,14 +134,21 @@ export function getRiskDate(forecast: ForecastItem[]): string | null {
   return null;
 }
 
+export function toMonthlyAmount(amount: number, freq: Frequency): number {
+  switch (freq) {
+    case "weekly": return amount * 4.33;
+    case "biweekly": return amount * 2.167;
+    case "monthly": return amount;
+    case "quarterly": return amount / 3;
+    case "halfyearly": return amount / 6;
+    case "yearly": return amount / 12;
+    default: return amount;
+  }
+}
+
 export function getMonthSubscriptionTotal(subscriptions: Subscription[]): number {
   return subscriptions.reduce((sum, s) => {
     if (!s.includeInForecast) return sum;
-    switch (s.frequency) {
-      case "weekly": return sum + s.amount * 4.33;
-      case "monthly": return sum + s.amount;
-      case "yearly": return sum + s.amount / 12;
-      default: return sum;
-    }
+    return sum + toMonthlyAmount(s.amount, s.frequency);
   }, 0);
 }

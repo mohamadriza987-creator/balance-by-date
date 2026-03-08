@@ -5,27 +5,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AutocompleteInput } from "@/components/AutocompleteInput";
 import type { Entry, Frequency, Subscription } from "@/lib/finance-types";
 import { todayStr } from "@/lib/finance-utils";
+
+type Mode = "income" | "expense" | "subscription";
 
 interface AddNewTabProps {
   onAddSubscription: (sub: Omit<Subscription, "id">) => void;
   onAddEntry: (entry: Omit<Entry, "id">) => void;
+  existingDescriptions?: string[];
+  existingCategories?: string[];
 }
 
-export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
-  const [mode, setMode] = useState<"subscription" | "entry">("entry");
+export function AddNewTab({ onAddSubscription, onAddEntry, existingDescriptions = [], existingCategories = [] }: AddNewTabProps) {
+  const [mode, setMode] = useState<Mode>("expense");
 
-  // Shared
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("");
-  const [includeInForecast, setIncludeInForecast] = useState(true);
-
-  // Entry-specific
-  const [isExpense, setIsExpense] = useState(true);
 
   // Subscription-specific
   const [isTrial, setIsTrial] = useState(false);
@@ -33,7 +33,7 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
 
   const reset = () => {
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr());
-    setCategory(""); setIncludeInForecast(true); setIsTrial(false); setTrialEndDate("");
+    setCategory(""); setIsTrial(false); setTrialEndDate("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,22 +47,24 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
         frequency,
         nextDate: date,
         category: category || "General",
-        includeInForecast,
+        includeInForecast: true,
         isTrial,
         trialEndDate: isTrial ? trialEndDate : undefined,
       });
     } else {
       onAddEntry({
         label: name,
-        amount: isExpense ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount)),
+        amount: mode === "expense" ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount)),
         date,
         frequency,
         category: category || "General",
-        includeInForecast,
+        includeInForecast: true,
       });
     }
     reset();
   };
+
+  const modeLabel = mode === "subscription" ? "Subscription" : mode === "income" ? "Income" : "Expense";
 
   return (
     <Card className="max-w-lg mx-auto">
@@ -71,10 +73,13 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Mode toggle */}
+          {/* Mode buttons */}
           <div className="flex gap-2">
-            <Button type="button" variant={mode === "entry" ? "default" : "outline"} size="sm" onClick={() => setMode("entry")}>
-              Income / Expense
+            <Button type="button" variant={mode === "income" ? "default" : "outline"} size="sm" onClick={() => setMode("income")}>
+              Income
+            </Button>
+            <Button type="button" variant={mode === "expense" ? "default" : "outline"} size="sm" onClick={() => setMode("expense")}>
+              Expense
             </Button>
             <Button type="button" variant={mode === "subscription" ? "default" : "outline"} size="sm" onClick={() => setMode("subscription")}>
               Subscription
@@ -84,7 +89,14 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
           <div className="space-y-4">
             <div>
               <Label htmlFor="name">{mode === "subscription" ? "Service Name" : "Description"}</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder={mode === "subscription" ? "e.g. Netflix" : "e.g. Salary"} />
+              <AutocompleteInput
+                id="name"
+                value={name}
+                onChange={setName}
+                suggestions={existingDescriptions}
+                placeholder={mode === "subscription" ? "e.g. Netflix" : "e.g. Salary"}
+                capitalize
+              />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -99,7 +111,10 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
                   <SelectContent>
                     <SelectItem value="once">One-time</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>
+                    <SelectItem value="biweekly">Bi-weekly</SelectItem>
                     <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="halfyearly">Half-yearly</SelectItem>
                     <SelectItem value="yearly">Yearly</SelectItem>
                   </SelectContent>
                 </Select>
@@ -113,16 +128,16 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Input id="category" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="e.g. Entertainment" />
+                <AutocompleteInput
+                  id="category"
+                  value={category}
+                  onChange={setCategory}
+                  suggestions={existingCategories}
+                  placeholder="e.g. Entertainment"
+                  capitalize
+                />
               </div>
             </div>
-
-            {mode === "entry" && (
-              <div className="flex items-center gap-3">
-                <Switch checked={isExpense} onCheckedChange={setIsExpense} />
-                <Label>{isExpense ? "Expense" : "Income"}</Label>
-              </div>
-            )}
 
             {mode === "subscription" && (
               <>
@@ -138,15 +153,10 @@ export function AddNewTab({ onAddSubscription, onAddEntry }: AddNewTabProps) {
                 )}
               </>
             )}
-
-            <div className="flex items-center gap-3">
-              <Switch checked={includeInForecast} onCheckedChange={setIncludeInForecast} />
-              <Label>Include in Forecast</Label>
-            </div>
           </div>
 
           <Button type="submit" className="w-full">
-            Add {mode === "subscription" ? "Subscription" : isExpense ? "Expense" : "Income"}
+            Add {modeLabel}
           </Button>
         </form>
       </CardContent>

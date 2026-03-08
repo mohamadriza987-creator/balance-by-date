@@ -1,4 +1,4 @@
-export type Frequency = "once" | "weekly" | "monthly" | "yearly";
+export type Frequency = "once" | "weekly" | "biweekly" | "monthly" | "quarterly" | "halfyearly" | "yearly";
 
 export interface Subscription {
   id: string;

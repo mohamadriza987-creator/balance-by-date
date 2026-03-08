@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -94,7 +94,22 @@ const Index = () => {
             <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} onUpdate={updateEntry} />
           </TabsContent>
           <TabsContent value="add">
-            <AddNewTab onAddSubscription={addSubscription} onAddEntry={addEntry} />
+            <AddNewTab
+              onAddSubscription={addSubscription}
+              onAddEntry={addEntry}
+              existingDescriptions={[
+                ...new Set([
+                  ...data.entries.map((e) => e.label),
+                  ...data.subscriptions.map((s) => s.name),
+                ]),
+              ]}
+              existingCategories={[
+                ...new Set([
+                  ...data.entries.map((e) => e.category),
+                  ...data.subscriptions.map((s) => s.category),
+                ]),
+              ]}
+            />
           </TabsContent>
           <TabsContent value="settings">
             <SettingsTab data={data} onReplace={(d) => setData(d)} onUpdateForecastDate={updateForecastDate} />
