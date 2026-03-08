@@ -84,7 +84,10 @@ function EditableSubRow({ sub, onSave, onCancel }: { sub: Subscription; onSave: 
           <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="weekly">Weekly</SelectItem>
+            <SelectItem value="biweekly">Bi-weekly</SelectItem>
             <SelectItem value="monthly">Monthly</SelectItem>
+            <SelectItem value="quarterly">Quarterly</SelectItem>
+            <SelectItem value="halfyearly">Half-yearly</SelectItem>
             <SelectItem value="yearly">Yearly</SelectItem>
           </SelectContent>
         </Select>

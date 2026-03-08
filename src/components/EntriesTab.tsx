@@ -99,9 +99,12 @@ function EditableEntryRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (
         <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
           <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="once">Once</SelectItem>
+            <SelectItem value="once">One-time</SelectItem>
             <SelectItem value="weekly">Weekly</SelectItem>
+            <SelectItem value="biweekly">Bi-weekly</SelectItem>
             <SelectItem value="monthly">Monthly</SelectItem>
+            <SelectItem value="quarterly">Quarterly</SelectItem>
+            <SelectItem value="halfyearly">Half-yearly</SelectItem>
             <SelectItem value="yearly">Yearly</SelectItem>
           </SelectContent>
         </Select>
