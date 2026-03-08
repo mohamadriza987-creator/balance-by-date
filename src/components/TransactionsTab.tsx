@@ -10,7 +10,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } fro
 import { ChevronDown, ChevronUp } from "lucide-react";
 import type { AppData, ForecastItem, AccountType, Entry, Subscription, Investment } from "@/lib/finance-types";
 import {
-  computeForecast, computeInvestmentValue,
+  computeForecast, computeInvestmentValue, computeBalanceAtPosition,
   formatDate, formatMoney, getBalanceOnDate,
   getMonthSubscriptionTotal, getRiskDate, todayStr, daysBetween, toMonthlyAmount,
   getNextOccurrence,
