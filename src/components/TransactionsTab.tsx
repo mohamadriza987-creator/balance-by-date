@@ -323,7 +323,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
             {investmentDetails.nextMaturity && (
               <div className="mt-2 rounded-lg border border-dashed border-primary/30 p-3">
                 <p className="text-[10px] text-muted-foreground mb-0.5">
-                  Maturity{selectedInvestment !== "all" ? "" : ` (${investmentDetails.nextMaturity.name})`}
+                  {selectedInvestment === "all" ? `Total Maturity (${investmentDetails.nextMaturity.count} funds)` : "Maturity"}
                 </p>
                 <div className="flex justify-between items-baseline">
                   <p className="text-base font-bold text-primary">{formatMoney(investmentDetails.nextMaturity.value)}</p>
