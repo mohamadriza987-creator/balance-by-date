@@ -85,8 +85,7 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
       }
     }
 
-    // From subscriptions
-    for (const sub of data.subscriptions) {
+    for (const sub of filteredData.subscriptions) {
       if (!sub.includeInForecast) continue;
       let d = sub.nextDate;
       while (d <= me) {
