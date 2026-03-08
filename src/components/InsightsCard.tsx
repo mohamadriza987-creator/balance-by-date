@@ -6,6 +6,7 @@ import {
   formatMoney, formatDate, getMonthSubscriptionTotal, toMonthlyAmount,
   daysBetween, getRiskDate, todayStr,
 } from "@/lib/finance-utils";
+import { getAccountInsights } from "@/lib/account-forecast";
 
 interface InsightsCardProps {
   data: AppData;
@@ -16,11 +17,12 @@ export function InsightsCard({ data, forecast }: InsightsCardProps) {
   const insights = useMemo(() => {
     const items: string[] = [];
     const today = data.positionDate || todayStr();
+    const fm = (n: number) => formatMoney(n, data.userProfile);
 
     // Monthly subscription total
     const monthSubs = getMonthSubscriptionTotal(data.subscriptions);
     if (monthSubs > 0) {
-      items.push(`Your subscriptions total ${formatMoney(monthSubs)} per month.`);
+      items.push(`Your subscriptions total ${fm(monthSubs)} per month.`);
     }
 
     // Largest expense category
@@ -78,16 +80,22 @@ export function InsightsCard({ data, forecast }: InsightsCardProps) {
       }
     }
 
+    // Account-level insights
+    try {
+      const accountInsights = getAccountInsights(data);
+      items.push(...accountInsights.slice(0, 3));
+    } catch {}
+
     // Optional subscriptions savings
     const optionalCats = ["Entertainment", "Shopping"];
     const optionalTotal = data.subscriptions
       .filter(s => s.includeInForecast && optionalCats.includes(s.category))
       .reduce((sum, s) => sum + toMonthlyAmount(s.amount, s.frequency), 0);
     if (optionalTotal > 50) {
-      items.push(`Reducing optional subscriptions would save up to ${formatMoney(optionalTotal)}/mo.`);
+      items.push(`Reducing optional subscriptions would save up to ${fm(optionalTotal)}/mo.`);
     }
 
-    return items.slice(0, 5);
+    return items.slice(0, 8);
   }, [data, forecast]);
 
   if (insights.length === 0) return null;
