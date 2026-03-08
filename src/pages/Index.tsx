@@ -1,12 +1,96 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { CalendarDays, CreditCard, List, PlusCircle } from "lucide-react";
+import { useFinanceData } from "@/hooks/use-finance-data";
+import { TimelineTab } from "@/components/TimelineTab";
+import { SubscriptionsTab } from "@/components/SubscriptionsTab";
+import { EntriesTab } from "@/components/EntriesTab";
+import { AddNewTab } from "@/components/AddNewTab";
+import { formatMoney } from "@/lib/finance-utils";
 
 const Index = () => {
+  const {
+    data, addSubscription, removeSubscription, toggleSubscriptionForecast,
+    addEntry, removeEntry, toggleEntryForecast, updateBalance, updateForecastDate,
+  } = useFinanceData();
+
+  const [editingBalance, setEditingBalance] = useState(false);
+  const [balanceInput, setBalanceInput] = useState(String(data.currentBalance));
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="container mx-auto px-4 py-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">BalanceByDate</h1>
+              <p className="text-sm text-muted-foreground">Personal finance forecast planner</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="balance" className="text-sm text-muted-foreground whitespace-nowrap">Balance:</Label>
+                {editingBalance ? (
+                  <Input
+                    id="balance"
+                    type="number"
+                    step="0.01"
+                    className="w-32 h-8"
+                    value={balanceInput}
+                    onChange={(e) => setBalanceInput(e.target.value)}
+                    onBlur={() => { updateBalance(parseFloat(balanceInput) || 0); setEditingBalance(false); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { updateBalance(parseFloat(balanceInput) || 0); setEditingBalance(false); } }}
+                    autoFocus
+                  />
+                ) : (
+                  <button onClick={() => { setBalanceInput(String(data.currentBalance)); setEditingBalance(true); }} className="text-lg font-bold text-foreground hover:text-primary transition-colors">
+                    {formatMoney(data.currentBalance)}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="forecast-date" className="text-sm text-muted-foreground whitespace-nowrap">Forecast to:</Label>
+                <Input id="forecast-date" type="date" className="w-40 h-8" value={data.forecastDate} onChange={(e) => updateForecastDate(e.target.value)} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main */}
+      <main className="container mx-auto px-4 py-6">
+        <Tabs defaultValue="timeline" className="space-y-6">
+          <TabsList className="grid w-full max-w-lg grid-cols-4">
+            <TabsTrigger value="timeline" className="gap-1.5 text-xs sm:text-sm">
+              <CalendarDays className="h-4 w-4 hidden sm:block" /> Timeline
+            </TabsTrigger>
+            <TabsTrigger value="subscriptions" className="gap-1.5 text-xs sm:text-sm">
+              <CreditCard className="h-4 w-4 hidden sm:block" /> Subs
+            </TabsTrigger>
+            <TabsTrigger value="entries" className="gap-1.5 text-xs sm:text-sm">
+              <List className="h-4 w-4 hidden sm:block" /> Income/Exp
+            </TabsTrigger>
+            <TabsTrigger value="add" className="gap-1.5 text-xs sm:text-sm">
+              <PlusCircle className="h-4 w-4 hidden sm:block" /> Add New
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="timeline">
+            <TimelineTab data={data} />
+          </TabsContent>
+          <TabsContent value="subscriptions">
+            <SubscriptionsTab subscriptions={data.subscriptions} onToggle={toggleSubscriptionForecast} onRemove={removeSubscription} />
+          </TabsContent>
+          <TabsContent value="entries">
+            <EntriesTab entries={data.entries} onToggle={toggleEntryForecast} onRemove={removeEntry} />
+          </TabsContent>
+          <TabsContent value="add">
+            <AddNewTab onAddSubscription={addSubscription} onAddEntry={addEntry} />
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   );
 };
