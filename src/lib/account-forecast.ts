@@ -208,14 +208,18 @@ export function computeAccountForecasts(data: AppData): {
   const seenShortfalls = new Set<string>();
 
   for (const ev of events) {
-    const prevBal = balances[ev.account];
-    balances[ev.account] += ev.amount;
+    const acct = ev.account || "bank";
+    if (!balances.hasOwnProperty(acct)) continue;
+    
+    const prevBal = balances[acct];
+    balances[acct] += ev.amount;
 
-    accountItems[ev.account].push({
+    if (!accountItems[acct]) accountItems[acct] = [];
+    accountItems[acct].push({
       date: ev.date,
       label: ev.label,
       amount: ev.amount,
-      runningBalance: balances[ev.account],
+      runningBalance: balances[acct],
       type: ev.type,
     });
 
