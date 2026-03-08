@@ -16,6 +16,7 @@ import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
+import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -32,15 +33,31 @@ const Index = () => {
     updateSubscription, updateEntry,
     addInvestment, removeInvestment, updateInvestment,
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
+    updateUserProfile, addDebtWithPlan,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
   const [introDone, setIntroDone] = useState(() => localStorage.getItem("finance-buddy-intro-done") === "true");
 
+  const handleIntroComplete = (profile: UserProfile, balances: AccountBalances) => {
+    updateUserProfile(profile);
+    const total = balances.cash + balances.bank + balances.creditCard;
+    setData(prev => ({
+      ...prev,
+      accountBalances: balances,
+      currentBalance: total,
+      userProfile: profile,
+    }));
+    setIntroDone(true);
+  };
+
   if (!introDone) {
-    return <IntroFlow onComplete={() => setIntroDone(true)} />;
+    return <IntroFlow onComplete={handleIntroComplete} />;
   }
+
+  const profile = data.userProfile;
+  const fm = (n: number) => formatMoney(n, profile);
 
   if (showSettings) {
     return (
@@ -61,7 +78,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Compact Mobile Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
@@ -106,12 +122,7 @@ const Index = () => {
                 />
                 {data.positionDate !== todayStr() && (
                   <div className="px-3 pb-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs"
-                      onClick={() => updatePositionDate(todayStr())}
-                    >
+                    <Button variant="ghost" size="sm" className="w-full text-xs" onClick={() => updatePositionDate(todayStr())}>
                       Reset to Today
                     </Button>
                   </div>
@@ -122,7 +133,6 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="px-3 py-4">
         {activeTab === "overview" && (
           <div className="space-y-4">
@@ -133,10 +143,12 @@ const Index = () => {
         {activeTab === "inflow" && (
           <InflowTab
             entries={data.entries}
+            data={data}
             onAddEntry={addEntry}
             onToggle={toggleEntryForecast}
             onRemove={removeEntry}
             onUpdate={updateEntry}
+            onAddDebtWithPlan={addDebtWithPlan}
           />
         )}
         {activeTab === "outflow" && (
@@ -144,6 +156,7 @@ const Index = () => {
             entries={data.entries}
             subscriptions={data.subscriptions}
             investments={data.investments || []}
+            data={data}
             onAddEntry={addEntry}
             onAddSubscription={addSubscription}
             onAddInvestment={addInvestment}
@@ -155,6 +168,7 @@ const Index = () => {
             onUpdateEntry={updateEntry}
             onUpdateSubscription={updateSubscription}
             onUpdateInvestment={updateInvestment}
+            onAddDebtWithPlan={addDebtWithPlan}
           />
         )}
         {activeTab === "forecast" && (
@@ -162,7 +176,6 @@ const Index = () => {
         )}
       </main>
 
-      {/* Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
         <div className="grid grid-cols-4 h-16">
           {tabs.map(({ value, label, icon: Icon }) => (
