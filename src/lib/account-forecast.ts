@@ -224,17 +224,17 @@ export function computeAccountForecasts(data: AppData): {
     });
 
     // Check shortfall
-    if (balances[ev.account] < -0.01 && ev.amount < 0) {
-      const key = `${ev.date}-${ev.account}-${ev.label}`;
+    if (balances[acct] < -0.01 && ev.amount < 0) {
+      const key = `${ev.date}-${acct}-${ev.label}`;
       if (!seenShortfalls.has(key)) {
         seenShortfalls.add(key);
         shortfalls.push({
           date: ev.date,
-          account: ev.account,
+          account: acct,
           itemLabel: ev.label,
           requiredAmount: Math.abs(ev.amount),
           availableAmount: Math.max(0, prevBal),
-          shortageAmount: Math.abs(balances[ev.account]),
+          shortageAmount: Math.abs(balances[acct]),
         });
       }
     }
