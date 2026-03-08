@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw } from "lucide-react";
+import { Download, Upload, RotateCcw, Heart } from "lucide-react";
 import type { AppData } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
 import { useToast } from "@/hooks/use-toast";

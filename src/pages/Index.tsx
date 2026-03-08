@@ -36,6 +36,11 @@ const Index = () => {
 
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
+  const [introDone, setIntroDone] = useState(() => localStorage.getItem("finance-buddy-intro-done") === "true");
+
+  if (!introDone) {
+    return <IntroFlow onComplete={() => setIntroDone(true)} />;
+  }
 
   if (showSettings) {
     return (
