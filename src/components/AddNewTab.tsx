@@ -31,18 +31,13 @@ export function AddNewTab({
   incomeCategories = [], expenseCategories = [], subscriptionCategories = [], investmentCategories = [],
 }: AddNewTabProps) {
   const [mode, setMode] = useState<Mode>("expense");
-
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("");
-
-  // Subscription-specific
   const [isTrial, setIsTrial] = useState(false);
   const [trialEndDate, setTrialEndDate] = useState("");
-
-  // Investment-specific
   const [endDate, setEndDate] = useState("");
   const [expectedReturn, setExpectedReturn] = useState("10");
 
@@ -98,41 +93,42 @@ export function AddNewTab({
   const modeLabel = mode === "subscription" ? "Subscription" : mode === "income" ? "Income" : mode === "investment" ? "Investment" : "Expense";
 
   return (
-    <Card className="max-w-lg mx-auto">
-      <CardHeader>
-        <CardTitle className="text-lg">Add New</CardTitle>
+    <Card>
+      <CardHeader className="px-4 py-3">
+        <CardTitle className="text-base">Add New</CardTitle>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-5">
+      <CardContent className="px-4 pb-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Mode buttons */}
-          <div className="flex gap-2 flex-wrap">
+          <div className="grid grid-cols-4 gap-1.5">
             {(["income", "expense", "subscription", "investment"] as Mode[]).map((m) => (
               <Button key={m} type="button" variant={mode === m ? "default" : "outline"} size="sm"
+                className="text-xs h-8 px-2"
                 onClick={() => { setMode(m); reset(); }}>
-                {m === "investment" ? "Goals / Investment" : m.charAt(0).toUpperCase() + m.slice(1)}
+                {m === "investment" ? "Goals" : m === "subscription" ? "Subs" : m.charAt(0).toUpperCase() + m.slice(1)}
               </Button>
             ))}
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <Label htmlFor="name">{mode === "subscription" ? "Service Name" : mode === "investment" ? "Investment Name" : "Description"} <span className="text-destructive">*</span></Label>
+              <Label className="text-xs">{mode === "subscription" ? "Service Name" : mode === "investment" ? "Investment Name" : "Description"} *</Label>
               <AutocompleteInput
-                id="name" value={name} onChange={setName} suggestions={descriptions}
+                value={name} onChange={setName} suggestions={descriptions}
                 placeholder={mode === "subscription" ? "e.g. Netflix" : mode === "investment" ? "e.g. Mutual Fund" : "e.g. Salary"}
                 capitalize
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="amount">Amount ($) <span className="text-destructive">*</span></Label>
-                <Input id="amount" type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
+                <Label className="text-xs">Amount ($) *</Label>
+                <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" />
               </div>
               <div>
-                <Label htmlFor="freq">Frequency <span className="text-destructive">*</span></Label>
+                <Label className="text-xs">Frequency *</Label>
                 <Select value={frequency} onValueChange={(v) => setFrequency(v as Frequency)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="once">One-time</SelectItem>
                     <SelectItem value="weekly">Weekly</SelectItem>
@@ -146,15 +142,15 @@ export function AddNewTab({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="date">{mode === "subscription" ? "Next Billing Date" : mode === "investment" ? "Start Date" : "Date"} <span className="text-destructive">*</span></Label>
-                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <Label className="text-xs">{mode === "subscription" ? "Next Billing" : mode === "investment" ? "Start Date" : "Date"} *</Label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
               </div>
               <div>
-                <Label htmlFor="category">Category <span className="text-destructive">*</span></Label>
+                <Label className="text-xs">Category *</Label>
                 <AutocompleteInput
-                  id="category" value={category} onChange={setCategory} suggestions={categories}
+                  value={category} onChange={setCategory} suggestions={categories}
                   placeholder="e.g. Entertainment" capitalize
                 />
               </div>
@@ -164,37 +160,35 @@ export function AddNewTab({
               <>
                 <div className="flex items-center gap-3">
                   <Switch checked={isTrial} onCheckedChange={setIsTrial} />
-                  <Label>Free Trial</Label>
+                  <Label className="text-xs">Free Trial</Label>
                 </div>
                 {isTrial && (
                   <div>
-                    <Label htmlFor="trialEnd">Trial End Date <span className="text-destructive">*</span></Label>
-                    <Input id="trialEnd" type="date" value={trialEndDate} onChange={(e) => setTrialEndDate(e.target.value)} />
+                    <Label className="text-xs">Trial End Date *</Label>
+                    <Input type="date" value={trialEndDate} onChange={(e) => setTrialEndDate(e.target.value)} className="h-9" />
                   </div>
                 )}
               </>
             )}
 
             {mode === "investment" && (
-              <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="endDate">End Date (Maturity) <span className="text-destructive">*</span></Label>
-                    <Input id="endDate" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label htmlFor="returnRate">Expected Rate of Return (Annual) <span className="text-destructive">*</span></Label>
-                    <Select value={expectedReturn} onValueChange={setExpectedReturn}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Array.from({ length: 41 }, (_, i) => (
-                          <SelectItem key={i} value={String(i)}>{i}%</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">End Date *</Label>
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="h-9" />
                 </div>
-              </>
+                <div>
+                  <Label className="text-xs">Annual Return *</Label>
+                  <Select value={expectedReturn} onValueChange={setExpectedReturn}>
+                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 41 }, (_, i) => (
+                        <SelectItem key={i} value={String(i)}>{i}%</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             )}
           </div>
 

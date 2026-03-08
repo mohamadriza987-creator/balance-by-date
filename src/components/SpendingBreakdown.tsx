@@ -23,14 +23,12 @@ export function SpendingBreakdown({ data }: SpendingBreakdownProps) {
   const breakdown = useMemo(() => {
     const categoryMap: Record<string, number> = {};
 
-    // Aggregate monthly spending from subscriptions
     for (const sub of data.subscriptions) {
       if (!sub.includeInForecast) continue;
       const monthly = toMonthlyAmount(sub.amount, sub.frequency);
       categoryMap[sub.category] = (categoryMap[sub.category] || 0) + monthly;
     }
 
-    // Aggregate monthly spending from expense entries
     for (const entry of data.entries) {
       if (!entry.includeInForecast || entry.amount >= 0) continue;
       const monthly = toMonthlyAmount(Math.abs(entry.amount), entry.frequency);
@@ -44,26 +42,24 @@ export function SpendingBreakdown({ data }: SpendingBreakdownProps) {
 
   const total = breakdown.reduce((s, b) => s + b.value, 0);
 
-  if (breakdown.length === 0) {
-    return null;
-  }
+  if (breakdown.length === 0) return null;
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Monthly Spending by Category</CardTitle>
+      <CardHeader className="px-4 py-3">
+        <CardTitle className="text-base">Monthly Spending</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col lg:flex-row items-center gap-6">
-          <div className="w-full lg:w-1/2 h-[280px]">
+      <CardContent className="px-4 pb-4">
+        <div className="flex flex-col gap-4">
+          <div className="w-full h-[200px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={breakdown}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
+                  innerRadius={45}
+                  outerRadius={75}
                   paddingAngle={3}
                   dataKey="value"
                   stroke="none"
@@ -79,31 +75,32 @@ export function SpendingBreakdown({ data }: SpendingBreakdownProps) {
                     border: "1px solid hsl(var(--border))",
                     background: "hsl(var(--card))",
                     color: "hsl(var(--card-foreground))",
+                    fontSize: "0.75rem",
                   }}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: "0.7rem" }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="w-full lg:w-1/2 space-y-2">
+          <div className="space-y-1.5">
             {breakdown.map((item, i) => (
-              <div key={item.name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
+              <div key={item.name} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
                   <span
-                    className="h-3 w-3 rounded-full shrink-0"
+                    className="h-2.5 w-2.5 rounded-full shrink-0"
                     style={{ backgroundColor: COLORS[i % COLORS.length] }}
                   />
                   <span className="text-foreground">{item.name}</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="font-medium text-foreground">{formatMoney(item.value)}</span>
-                  <span className="text-muted-foreground w-12 text-right">
+                  <span className="text-muted-foreground w-10 text-right">
                     {((item.value / total) * 100).toFixed(0)}%
                   </span>
                 </div>
               </div>
             ))}
-            <div className="flex items-center justify-between text-sm pt-2 border-t border-border font-bold">
+            <div className="flex items-center justify-between text-xs pt-1.5 border-t border-border font-bold">
               <span className="text-foreground">Total</span>
               <span className="text-foreground">{formatMoney(total)}/mo</span>
             </div>
