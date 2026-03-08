@@ -100,6 +100,10 @@ export interface AppSettings {
   transferSuggestionsEnabled: boolean;
   transferLeadDays: number; // 0-3, default 1
   includeCreditCardInBalance: boolean;
+  preferredNisabBasis?: "gold" | "silver";
+  defaultGoldPrice?: string;
+  defaultSilverPrice?: string;
+  defaultCompoundingFrequency?: "monthly" | "halfyearly" | "annually";
 }
 
 export interface UserProfile {

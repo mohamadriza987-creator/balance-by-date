@@ -15,6 +15,8 @@ import {
 } from "@/lib/finance-utils";
 import { ForecastChart } from "@/components/ForecastChart";
 import { FrequencySelect } from "@/components/FrequencySelect";
+import { InvestmentCalculator } from "@/components/InvestmentCalculator";
+import { ZakatCalculator } from "@/components/ZakatCalculator";
 import { TYPE_COLORS } from "@/lib/constants";
 
 interface ForecastTabProps {
@@ -190,6 +192,20 @@ export function ForecastTab({ data }: ForecastTabProps) {
 
       {/* EMI Planner */}
       <EMIPlanner data={data} effectiveBalance={effectiveBalance} fm={fm} />
+
+      {/* Investment Calculator */}
+      <InvestmentCalculator
+        fm={fm}
+        defaultCompounding={data.settings?.defaultCompoundingFrequency || "monthly"}
+      />
+
+      {/* Zakat Calculator */}
+      <ZakatCalculator
+        fm={fm}
+        defaultNisabBasis={data.settings?.preferredNisabBasis || "silver"}
+        defaultGoldPrice={data.settings?.defaultGoldPrice || ""}
+        defaultSilverPrice={data.settings?.defaultSilverPrice || ""}
+      />
 
       {/* Investment Advisor */}
       <InvestmentAdvisor data={data} effectiveBalance={effectiveBalance} fm={fm} />

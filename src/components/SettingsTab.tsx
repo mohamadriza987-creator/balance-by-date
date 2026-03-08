@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User } from "lucide-react";
+import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, TrendingUp } from "lucide-react";
 import type { AppData, AppSettings } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
 import { getSettings } from "@/lib/account-forecast";
@@ -226,7 +226,66 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
         </CardContent>
       </Card>
 
-      {/* Export / Import */}
+      {/* Zakat & Investment Preferences */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Landmark className="h-5 w-5" /> Zakat & Investments
+          </CardTitle>
+          <CardDescription>Defaults for calculators in the Forecast tab</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label className="text-sm">Preferred Nisab Basis</Label>
+            <p className="text-xs text-muted-foreground mb-2">Used as default in the Zakat calculator</p>
+            <Select
+              value={settings.preferredNisabBasis || "silver"}
+              onValueChange={(v) => onUpdateSettings?.({ preferredNisabBasis: v as "gold" | "silver" })}
+            >
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gold">Gold (87.48g)</SelectItem>
+                <SelectItem value="silver">Silver (612.36g)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-sm">Default Gold Price/g</Label>
+              <Input
+                type="number" inputMode="decimal" placeholder="Manual price"
+                value={settings.defaultGoldPrice || ""}
+                onChange={e => onUpdateSettings?.({ defaultGoldPrice: e.target.value })}
+                className="h-9"
+              />
+            </div>
+            <div>
+              <Label className="text-sm">Default Silver Price/g</Label>
+              <Input
+                type="number" inputMode="decimal" placeholder="Manual price"
+                value={settings.defaultSilverPrice || ""}
+                onChange={e => onUpdateSettings?.({ defaultSilverPrice: e.target.value })}
+                className="h-9"
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-sm">Default Compounding Frequency</Label>
+            <p className="text-xs text-muted-foreground mb-2">Used in the Investment calculator</p>
+            <Select
+              value={settings.defaultCompoundingFrequency || "monthly"}
+              onValueChange={(v) => onUpdateSettings?.({ defaultCompoundingFrequency: v as "monthly" | "halfyearly" | "annually" })}
+            >
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="halfyearly">Half-Yearly</SelectItem>
+                <SelectItem value="annually">Annually</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Data Management</CardTitle>
