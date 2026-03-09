@@ -103,7 +103,7 @@ export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAd
           <BuySomethingForm data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
         )}
         {step === "pay_off_debt" && (
-          <PayOffDebtForm data={data} onAddGoal={onAddGoal} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
+          <PayOffDebtForm data={data} onAddGoal={onAddGoal} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
         )}
       </CardContent>
     </Card>
