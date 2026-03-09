@@ -29,6 +29,7 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
   const settings = getSettings(data);
   const [includeCCInBalance, setIncludeCCInBalance] = useState(settings.includeCreditCardInBalance);
   const profile = data.userProfile;
+  const enabledAccounts = profile?.enabledAccounts || ["cash", "bank", "creditCard"];
   const fm = (n: number) => formatMoney(n, profile);
 
   const startEdit = (key: string, val: number) => {
