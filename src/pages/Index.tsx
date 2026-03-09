@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { IntroFlow } from "@/components/IntroFlow";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight, Landmark } from "lucide-react";
@@ -15,6 +14,8 @@ import { ForecastTab } from "@/components/ForecastTab";
 import { TransfersTab } from "@/components/TransfersTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { OtherAssetsTab } from "@/components/OtherAssetsTab";
+import { GuidedTour } from "@/components/GuidedTour";
+import { IntroFlow } from "@/components/IntroFlow";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
