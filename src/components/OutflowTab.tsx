@@ -11,8 +11,6 @@ import { Trash2, Pencil, Check, X } from "lucide-react";
 import { CategorySelect } from "@/components/CategorySelect";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { AccountSelect } from "@/components/AccountSelect";
-import { FrequencySelect } from "@/components/FrequencySelect";
-import { AccountSelect } from "@/components/AccountSelect";
 import { ACCOUNT_LABELS } from "@/lib/constants";
 import type { AppData, Entry, Frequency, Investment, Subscription, AccountType } from "@/lib/finance-types";
 import { todayStr, formatDate, formatMoney, computeInvestmentValue } from "@/lib/finance-utils";
