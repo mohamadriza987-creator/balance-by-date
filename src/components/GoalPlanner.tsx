@@ -449,12 +449,13 @@ function BuySomethingForm({
 
 // ============ PAY OFF DEBT ============
 function PayOffDebtForm({
-  data, onAddGoal, onAddEntry, onAddLiabilityPayoff, onBack, fm, avgBalance,
+  data, onAddGoal, onAddEntry, onAddLiabilityPayoff, onAddTransfer, onBack, fm, avgBalance,
 }: {
   data: AppData;
   onAddGoal: (goal: Omit<Goal, "id">) => void;
   onAddEntry: (entry: Omit<Entry, "id">) => string;
   onAddLiabilityPayoff?: (payoff: Omit<LiabilityPayoff, "id">) => void;
+  onAddTransfer?: (transfer: Omit<Transfer, "id">) => void;
   onBack: () => void;
   fm: (n: number) => string;
   avgBalance: number;
