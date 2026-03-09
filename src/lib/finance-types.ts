@@ -111,10 +111,25 @@ export interface Goal {
   sourceAccount: AccountType;
   annualReturn: number;
   vehicle?: "RD" | "FD" | "Mutual Funds" | "Other Investment";
+  vehicleName?: string; // for "Other Investment" type
   debtType?: string;
   interestRate?: number;
   status: GoalStatus;
   linkedAssetId?: string; // only for purchase goals
+  linkedEntryIds?: string[]; // recurring contribution entry IDs
+}
+
+export interface LiabilityPayoff {
+  id: string;
+  name: string;
+  originalAmount: number;
+  payoffAmount: number;
+  payoffFrequency: Frequency;
+  startDate: string;
+  targetDate: string;
+  sourceAccount: AccountType;
+  status: GoalStatus;
+  linkedEntryIds?: string[];
 }
 
 export interface OtherAsset {
