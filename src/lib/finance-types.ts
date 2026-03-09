@@ -182,6 +182,7 @@ export interface AppData {
   transfers: Transfer[];
   goals: Goal[];
   otherAssets: OtherAsset[];
+  liabilityPayoffs: LiabilityPayoff[];
   settings: AppSettings;
   userProfile?: UserProfile;
 }
