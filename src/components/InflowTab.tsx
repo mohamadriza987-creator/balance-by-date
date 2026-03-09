@@ -122,7 +122,7 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
             </div>
             <div>
               <Label className="text-xs">Account *</Label>
-              <AccountSelect value={account} onChange={setAccount} />
+              <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
             </div>
 
             {/* Debt Repayment Planning */}

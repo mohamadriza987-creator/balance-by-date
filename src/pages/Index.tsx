@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { IntroFlow } from "@/components/IntroFlow";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight, Landmark } from "lucide-react";
@@ -15,6 +14,8 @@ import { ForecastTab } from "@/components/ForecastTab";
 import { TransfersTab } from "@/components/TransfersTab";
 import { SettingsTab } from "@/components/SettingsTab";
 import { OtherAssetsTab } from "@/components/OtherAssetsTab";
+import { GuidedTour } from "@/components/GuidedTour";
+import { IntroFlow } from "@/components/IntroFlow";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
@@ -50,6 +51,7 @@ const Index = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [profileName, setProfileName] = useState<string>("");
+  const [showTour, setShowTour] = useState(false);
 
   // Check onboarding status from profile
   useEffect(() => {
@@ -87,6 +89,7 @@ const Index = () => {
       userProfile: profile,
     }));
     setOnboardingComplete(true);
+    setShowTour(true);
   };
 
   // Show loading while auth is resolving
@@ -134,6 +137,7 @@ const Index = () => {
               setOnboardingComplete(false);
             }}
             onUpdateSettings={updateSettings}
+            onUpdateAccountBalances={updateAccountBalances}
           />
         </main>
       </div>
@@ -142,6 +146,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      {showTour && <GuidedTour onComplete={() => setShowTour(false)} userName={data.userProfile?.name} />}
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">

@@ -1,18 +1,20 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, TrendingUp } from "lucide-react";
-import type { AppData, AppSettings } from "@/lib/finance-types";
+import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, TrendingUp, Wallet } from "lucide-react";
+import type { AppData, AppSettings, AccountType, AccountBalances } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
 import { getSettings } from "@/lib/account-forecast";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsTabProps {
   data: AppData;
@@ -20,9 +22,16 @@ interface SettingsTabProps {
   onUpdateForecastDate: (date: string) => void;
   onReplayIntro?: () => void;
   onUpdateSettings?: (updates: Partial<AppSettings>) => void;
+  onUpdateAccountBalances?: (balances: AccountBalances) => void;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings }: SettingsTabProps) {
+const ALL_ACCOUNTS: { key: AccountType; label: string }[] = [
+  { key: "cash", label: "Cash" },
+  { key: "bank", label: "Bank" },
+  { key: "creditCard", label: "Credit Card" },
+];
+
+export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -31,6 +40,9 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
   const today = data.positionDate || todayStr();
   const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
   const horizonMonths = Math.round(horizonDays / 30);
+
+  const enabledAccounts = data.userProfile?.enabledAccounts || [];
+  const [newAccountBalance, setNewAccountBalance] = useState("");
 
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -78,6 +90,43 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     toast({ title: "Signed out", description: "You've been logged out successfully." });
   };
 
+  const handleToggleAccount = async (acc: AccountType) => {
+    const current = [...enabledAccounts];
+    let updatedAccounts: AccountType[];
+    if (current.includes(acc)) {
+      // Don't allow removing if only 1 account left
+      if (current.length <= 1) {
+        toast({ title: "Cannot remove", description: "You need at least one account enabled.", variant: "destructive" });
+        return;
+      }
+      updatedAccounts = current.filter(a => a !== acc);
+    } else {
+      updatedAccounts = [...current, acc];
+      // Set initial balance if adding new
+      const bal = parseFloat(newAccountBalance) || 0;
+      if (onUpdateAccountBalances) {
+        const newBalances = { ...data.accountBalances, [acc]: bal };
+        onUpdateAccountBalances(newBalances);
+      }
+      setNewAccountBalance("");
+    }
+
+    const updatedProfile = { ...data.userProfile, enabledAccounts: updatedAccounts };
+    onReplace({
+      ...data,
+      userProfile: updatedProfile,
+    });
+
+    // Persist to profile
+    if (user) {
+      await supabase.from("profiles").update({
+        enabled_accounts: updatedAccounts,
+      }).eq("user_id", user.id);
+    }
+
+    toast({ title: current.includes(acc) ? "Account removed" : "Account added", description: `${acc === "creditCard" ? "Credit Card" : acc === "bank" ? "Bank" : "Cash"} ${current.includes(acc) ? "removed" : "added"}.` });
+  };
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Account / Profile */}
@@ -113,17 +162,61 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
                   <span className="text-sm text-foreground">{data.userProfile.currencySymbol} ({data.userProfile.currency})</span>
                 </div>
               )}
-              {data.userProfile?.enabledAccounts && (
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm text-muted-foreground">Accounts</Label>
-                  <span className="text-sm text-foreground">{data.userProfile.enabledAccounts.join(", ")}</span>
-                </div>
-              )}
             </div>
           )}
           <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleSignOut}>
             <LogOut className="h-4 w-4" /> Sign Out
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Manage Accounts / Wallets */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Wallet className="h-5 w-5" /> Manage Accounts
+          </CardTitle>
+          <CardDescription>Add or remove money sources</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {ALL_ACCOUNTS.map(({ key, label }) => {
+            const isEnabled = enabledAccounts.includes(key);
+            return (
+              <div key={key} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id={`settings-acc-${key}`}
+                      checked={isEnabled}
+                      onCheckedChange={() => {
+                        if (isEnabled) {
+                          handleToggleAccount(key);
+                        }
+                      }}
+                      disabled={isEnabled && enabledAccounts.length <= 1}
+                    />
+                    <Label htmlFor={`settings-acc-${key}`} className="text-sm cursor-pointer">{label}</Label>
+                  </div>
+                  {!isEnabled && (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        placeholder="Balance"
+                        value={newAccountBalance}
+                        onChange={(e) => setNewAccountBalance(e.target.value)}
+                        className="h-8 w-24 text-xs"
+                      />
+                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleToggleAccount(key)}>
+                        Add
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          <p className="text-[10px] text-muted-foreground">Only enabled accounts appear in dropdowns across the app.</p>
         </CardContent>
       </Card>
 
@@ -286,6 +379,7 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
           </div>
         </CardContent>
       </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Data Management</CardTitle>

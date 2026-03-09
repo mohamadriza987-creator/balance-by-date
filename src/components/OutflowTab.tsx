@@ -66,9 +66,9 @@ export function OutflowTab({
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {mode === "expense" && <ExpenseForm onAdd={onAddEntry} onAddDebtWithPlan={onAddDebtWithPlan} />}
-          {mode === "subscription" && <SubscriptionForm onAdd={onAddSubscription} />}
-          {mode === "investment" && <InvestmentForm onAdd={onAddInvestment} />}
+          {mode === "expense" && <ExpenseForm onAdd={onAddEntry} onAddDebtWithPlan={onAddDebtWithPlan} enabledAccounts={profile?.enabledAccounts} />}
+          {mode === "subscription" && <SubscriptionForm onAdd={onAddSubscription} enabledAccounts={profile?.enabledAccounts} />}
+          {mode === "investment" && <InvestmentForm onAdd={onAddInvestment} enabledAccounts={profile?.enabledAccounts} />}
         </CardContent>
       </Card>
 
@@ -80,9 +80,10 @@ export function OutflowTab({
 }
 
 // ============ EXPENSE FORM ============
-function ExpenseForm({ onAdd, onAddDebtWithPlan }: {
+function ExpenseForm({ onAdd, onAddDebtWithPlan, enabledAccounts }: {
   onAdd: (e: Omit<Entry, "id">) => string;
   onAddDebtWithPlan: (parentEntry: Omit<Entry, "id">, plan: { splits: number; frequency: Frequency; startDate: string; direction: "received" | "given" }) => void;
+  enabledAccounts?: AccountType[];
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -159,7 +160,7 @@ function ExpenseForm({ onAdd, onAddDebtWithPlan }: {
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
-        <AccountSelect value={account} onChange={setAccount} />
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={enabledAccounts} />
       </div>
 
       {/* Cheque toggle for bank payments */}
@@ -200,7 +201,7 @@ function ExpenseForm({ onAdd, onAddDebtWithPlan }: {
 }
 
 // ============ SUBSCRIPTION FORM ============
-function SubscriptionForm({ onAdd }: { onAdd: (s: Omit<Subscription, "id">) => void }) {
+function SubscriptionForm({ onAdd, enabledAccounts }: { onAdd: (s: Omit<Subscription, "id">) => void; enabledAccounts?: AccountType[] }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -237,7 +238,7 @@ function SubscriptionForm({ onAdd }: { onAdd: (s: Omit<Subscription, "id">) => v
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
-        <AccountSelect value={account} onChange={setAccount} />
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={enabledAccounts} />
       </div>
       <div className="flex items-center gap-3">
         <Switch checked={isTrial} onCheckedChange={setIsTrial} />
@@ -256,7 +257,7 @@ function SubscriptionForm({ onAdd }: { onAdd: (s: Omit<Subscription, "id">) => v
 }
 
 // ============ INVESTMENT FORM ============
-function InvestmentForm({ onAdd }: { onAdd: (i: Omit<Investment, "id">) => void }) {
+function InvestmentForm({ onAdd, enabledAccounts }: { onAdd: (i: Omit<Investment, "id">) => void; enabledAccounts?: AccountType[] }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -302,7 +303,7 @@ function InvestmentForm({ onAdd }: { onAdd: (i: Omit<Investment, "id">) => void 
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
-        <AccountSelect value={account} onChange={setAccount} />
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={enabledAccounts} />
       </div>
       <Button type="submit" variant="destructive" className="w-full" disabled={!isValid}>— Add Investment</Button>
     </form>
