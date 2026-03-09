@@ -95,15 +95,52 @@ export interface CreditCardBillItem {
   label: string;
 }
 
+export type OtherAssetType = "RD" | "FD" | "Goal Savings" | "Emergency Fund" | "Other";
+export type GoalType = "purchase" | "debt_payoff";
+export type GoalStatus = "active" | "completed" | "paused";
+
+export interface Goal {
+  id: string;
+  type: GoalType;
+  name: string;
+  targetAmount: number;
+  monthlyAmount: number;
+  startDate: string;
+  targetDate: string;
+  sourceAccount: AccountType;
+  annualReturn: number;
+  vehicle?: "RD" | "FD" | "Other";
+  debtType?: string;
+  interestRate?: number;
+  status: GoalStatus;
+  linkedAssetId?: string; // only for purchase goals
+}
+
+export interface OtherAsset {
+  id: string;
+  name: string;
+  type: OtherAssetType;
+  currentValue: number;
+  monthlyContribution: number;
+  expectedReturn: number;
+  targetAmount?: number;
+  maturityDate?: string;
+  startDate: string;
+  status: "Active" | "Matured" | "Completed";
+  linkedGoalId?: string;
+}
+
 export interface AppSettings {
-  creditCardBillDay: number; // 1-28, default 15
+  creditCardBillDay: number;
   transferSuggestionsEnabled: boolean;
-  transferLeadDays: number; // 0-3, default 1
+  transferLeadDays: number;
   includeCreditCardInBalance: boolean;
   preferredNisabBasis?: "gold" | "silver";
   defaultGoldPrice?: string;
   defaultSilverPrice?: string;
   defaultCompoundingFrequency?: "monthly" | "halfyearly" | "annually";
+  defaultGoalReturnRate?: number;
+  showOtherAssetsInNav?: boolean;
 }
 
 export interface UserProfile {
