@@ -614,7 +614,7 @@ function AllTransactionsSection({ data, fm }: { data: AppData; fm: (n: number) =
           source: ACCOUNT_LABELS[entry.account] || entry.account,
           type: entry.amount >= 0 ? "inflow" : 
                 entry.category === "Goal Contribution" ? "goal_contribution" :
-                entry.category === "Debt" ? "liability_payoff" : "outflow",
+                (entry.category === "Debt" || entry.category === "Debt Payoff") ? "liability_payoff" : "outflow",
         });
       }
     });
