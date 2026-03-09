@@ -201,7 +201,7 @@ function ExpenseForm({ onAdd, onAddDebtWithPlan, enabledAccounts }: {
 }
 
 // ============ SUBSCRIPTION FORM ============
-function SubscriptionForm({ onAdd }: { onAdd: (s: Omit<Subscription, "id">) => void }) {
+function SubscriptionForm({ onAdd, enabledAccounts }: { onAdd: (s: Omit<Subscription, "id">) => void; enabledAccounts?: AccountType[] }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
