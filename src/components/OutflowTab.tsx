@@ -66,9 +66,9 @@ export function OutflowTab({
           </div>
         </CardHeader>
         <CardContent className="px-4 pb-4">
-          {mode === "expense" && <ExpenseForm onAdd={onAddEntry} onAddDebtWithPlan={onAddDebtWithPlan} />}
-          {mode === "subscription" && <SubscriptionForm onAdd={onAddSubscription} />}
-          {mode === "investment" && <InvestmentForm onAdd={onAddInvestment} />}
+          {mode === "expense" && <ExpenseForm onAdd={onAddEntry} onAddDebtWithPlan={onAddDebtWithPlan} enabledAccounts={profile?.enabledAccounts} />}
+          {mode === "subscription" && <SubscriptionForm onAdd={onAddSubscription} enabledAccounts={profile?.enabledAccounts} />}
+          {mode === "investment" && <InvestmentForm onAdd={onAddInvestment} enabledAccounts={profile?.enabledAccounts} />}
         </CardContent>
       </Card>
 
