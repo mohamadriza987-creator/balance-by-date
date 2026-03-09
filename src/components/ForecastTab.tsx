@@ -26,9 +26,10 @@ interface ForecastTabProps {
   onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
   onAddEntry: (entry: Omit<import("@/lib/finance-types").Entry, "id">) => string;
   onAddLiabilityPayoff?: (payoff: Omit<import("@/lib/finance-types").LiabilityPayoff, "id">) => void;
+  onAddTransfer?: (transfer: Omit<import("@/lib/finance-types").Transfer, "id">) => void;
 }
 
-export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff }: ForecastTabProps) {
+export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
@@ -195,7 +196,7 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAd
       </Card>
 
       {/* Set a Goal */}
-      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} fm={fm} />
+      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} fm={fm} />
 
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />

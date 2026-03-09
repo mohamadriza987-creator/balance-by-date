@@ -29,6 +29,7 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
   const settings = getSettings(data);
   const [includeCCInBalance, setIncludeCCInBalance] = useState(settings.includeCreditCardInBalance);
   const profile = data.userProfile;
+  const enabledAccounts = profile?.enabledAccounts || ["cash", "bank", "creditCard"];
   const fm = (n: number) => formatMoney(n, profile);
 
   const startEdit = (key: string, val: number) => {
@@ -42,9 +43,14 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
     setEditingKey(null);
   };
 
-  const totalBalance = includeCCInBalance
-    ? data.accountBalances.cash + data.accountBalances.bank + data.accountBalances.creditCard
-    : data.accountBalances.cash + data.accountBalances.bank;
+  const hasCreditCard = enabledAccounts.includes("creditCard");
+  const totalBalance = useMemo(() => {
+    let total = 0;
+    if (enabledAccounts.includes("cash")) total += data.accountBalances.cash;
+    if (enabledAccounts.includes("bank")) total += data.accountBalances.bank;
+    if (hasCreditCard && includeCCInBalance) total += data.accountBalances.creditCard;
+    return total;
+  }, [data.accountBalances, enabledAccounts, includeCCInBalance, hasCreditCard]);
 
   // Account drill-down: 2-month movements
   const { accountItems } = useMemo(() => computeAccountForecasts(data), [data]);
@@ -63,20 +69,22 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Current Balance</p>
           </div>
           <p className="text-3xl font-bold text-foreground">{fm(totalBalance)}</p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Switch
-              checked={includeCCInBalance}
-              onCheckedChange={setIncludeCCInBalance}
-              className="scale-75"
-            />
-            <span className="text-[10px] text-muted-foreground">Include credit card</span>
-          </div>
+          {hasCreditCard && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <Switch
+                checked={includeCCInBalance}
+                onCheckedChange={setIncludeCCInBalance}
+                className="scale-75"
+              />
+              <span className="text-[10px] text-muted-foreground">Include credit card</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Account Cards with drill-down */}
       <div className="space-y-2">
-        {accounts.map(({ key, label, icon: Icon, color }) => {
+        {accounts.filter(({ key }) => enabledAccounts.includes(key)).map(({ key, label, icon: Icon, color }) => {
           const movements = getMovements(key);
           const isExpanded = expandedAccount === key;
 

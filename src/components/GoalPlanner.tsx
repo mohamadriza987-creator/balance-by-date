@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Target, ShoppingBag, CreditCard, ArrowLeft, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
-import type { AppData, AccountType, Frequency, Goal, OtherAsset, Entry, LiabilityPayoff } from "@/lib/finance-types";
+import type { AppData, AccountType, Frequency, Goal, OtherAsset, Entry, LiabilityPayoff, Transfer } from "@/lib/finance-types";
 import { todayStr, addDays, getNextOccurrence, computeForecast, formatMoney } from "@/lib/finance-utils";
 
 interface GoalPlannerProps {
@@ -14,6 +14,7 @@ interface GoalPlannerProps {
   onAddOtherAsset: (asset: Omit<OtherAsset, "id">) => void;
   onAddEntry: (entry: Omit<Entry, "id">) => string;
   onAddLiabilityPayoff?: (payoff: Omit<LiabilityPayoff, "id">) => void;
+  onAddTransfer?: (transfer: Omit<Transfer, "id">) => void;
   fm: (n: number) => string;
 }
 
@@ -82,7 +83,7 @@ function assessViability(monthlyPayment: number, freq: Frequency, avgMonthlyBala
   return { status: "comfortable", message: "This looks comfortable based on your projected balance. You should be able to manage this easily." };
 }
 
-export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, fm }: GoalPlannerProps) {
+export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer, fm }: GoalPlannerProps) {
   const [step, setStep] = useState<GoalFlowStep>("select_type");
   const handleBack = () => setStep("select_type");
 
@@ -102,7 +103,7 @@ export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAd
           <BuySomethingForm data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
         )}
         {step === "pay_off_debt" && (
-          <PayOffDebtForm data={data} onAddGoal={onAddGoal} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
+          <PayOffDebtForm data={data} onAddGoal={onAddGoal} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
         )}
       </CardContent>
     </Card>
@@ -448,12 +449,13 @@ function BuySomethingForm({
 
 // ============ PAY OFF DEBT ============
 function PayOffDebtForm({
-  data, onAddGoal, onAddEntry, onAddLiabilityPayoff, onBack, fm, avgBalance,
+  data, onAddGoal, onAddEntry, onAddLiabilityPayoff, onAddTransfer, onBack, fm, avgBalance,
 }: {
   data: AppData;
   onAddGoal: (goal: Omit<Goal, "id">) => void;
   onAddEntry: (entry: Omit<Entry, "id">) => string;
   onAddLiabilityPayoff?: (payoff: Omit<LiabilityPayoff, "id">) => void;
+  onAddTransfer?: (transfer: Omit<Transfer, "id">) => void;
   onBack: () => void;
   fm: (n: number) => string;
   avgBalance: number;
@@ -526,6 +528,19 @@ function PayOffDebtForm({
         isOptional: false,
       });
       linkedEntryIds.push(entryId);
+
+      // For credit card payoff, also create a transfer (bank/cash → creditCard)
+      if (debtType === "Credit Card" && onAddTransfer) {
+        onAddTransfer({
+          fromAccount: sourceAccount,
+          toAccount: "creditCard",
+          amount: result.requiredPayment,
+          date: currentDate,
+          reason: `CC Payoff: ${name}`,
+          isApplied: true,
+        });
+      }
+
       currentDate = getNextOccurrence(currentDate, paymentFreq);
     }
 

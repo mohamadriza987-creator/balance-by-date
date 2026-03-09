@@ -8,7 +8,10 @@ import { ForecastChart } from "@/components/ForecastChart";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { InsightsCard } from "@/components/InsightsCard";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, X, CalendarClock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AppData, ForecastItem, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeInvestmentValue, computeBalanceAtPosition,
@@ -23,6 +26,8 @@ type AccountFilter = "all" | AccountType;
 
 interface TransactionsTabProps {
   data: AppData;
+  onUpdateEntry?: (id: string, updates: Partial<Omit<import("@/lib/finance-types").Entry, "id">>) => void;
+  onRemoveEntry?: (id: string) => void;
 }
 
 const COLORS = [
@@ -35,7 +40,7 @@ const FILTER_LABELS: Record<AccountFilter, string> = {
   all: "All", cash: "Cash", bank: "Bank", creditCard: "Credit Card Due"
 };
 
-export function TransactionsTab({ data }: TransactionsTabProps) {
+export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: TransactionsTabProps) {
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
@@ -71,6 +76,17 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [expandedType, setExpandedType] = useState<"income" | "expense" | null>(null);
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+
+  // Overdue entries: past date, once-off or next occurrence is past
+  const overdueEntries = useMemo(() => {
+    return data.entries.filter(e => {
+      if (!e.includeInForecast) return false;
+      if (e.frequency === "once" && e.date < today) return true;
+      return false;
+    }).sort((a, b) => a.date.localeCompare(b.date));
+  }, [data.entries, today]);
 
   const incomeExpenseBarData = useMemo(() => {
     const months: { month: string; monthKey: string; income: number; expense: number;
@@ -173,9 +189,9 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Account Filter */}
+      {/* Account Filter - only show enabled accounts */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {(["all", "cash", "bank", "creditCard"] as AccountFilter[]).map((filter) => (
+        {(["all", ...(data.userProfile?.enabledAccounts || ["cash", "bank", "creditCard"])] as AccountFilter[]).map((filter) => (
           <button
             key={filter}
             onClick={() => setAccountFilter(filter)}
@@ -393,7 +409,84 @@ export function TransactionsTab({ data }: TransactionsTabProps) {
                   <p className="text-base font-bold text-primary">{fm(investmentDetails.nextMaturity.value)}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(investmentDetails.nextMaturity.date)}</p>
                 </div>
-              </div>
+
+      {/* Overdue Transactions */}
+      {overdueEntries.length > 0 && onUpdateEntry && onRemoveEntry && (
+        <Card className="border-destructive/30">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-destructive" />
+              Overdue Transactions ({overdueEntries.length})
+            </CardTitle>
+            <p className="text-[10px] text-muted-foreground">These transactions are past their scheduled date. Cancel if they didn't happen, or reschedule.</p>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="space-y-2">
+              {overdueEntries.map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium truncate">{entry.label}</p>
+                    <p className="text-[10px] text-muted-foreground">{formatDate(entry.date)} · {entry.account}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <p className={`text-xs font-bold mr-1 ${entry.amount >= 0 ? "text-success" : "text-destructive"}`}>
+                      {entry.amount >= 0 ? "+" : ""}{fm(entry.amount)}
+                    </p>
+                    {rescheduleId === entry.id ? (
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="date"
+                          value={rescheduleDate}
+                          onChange={(e) => setRescheduleDate(e.target.value)}
+                          className="h-7 w-32 text-[10px]"
+                          min={today}
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] px-2"
+                          onClick={() => {
+                            if (rescheduleDate >= today) {
+                              onUpdateEntry(entry.id, { date: rescheduleDate });
+                              setRescheduleId(null);
+                              setRescheduleDate("");
+                            }
+                          }}
+                        >
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-1" onClick={() => setRescheduleId(null)}>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] px-2"
+                          onClick={() => { setRescheduleId(entry.id); setRescheduleDate(today); }}
+                        >
+                          <CalendarClock className="h-3 w-3 mr-1" /> Reschedule
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-[10px] px-2 text-destructive hover:text-destructive"
+                          onClick={() => onRemoveEntry(entry.id)}
+                        >
+                          <X className="h-3 w-3 mr-1" /> Cancel
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
             )}
           </CardContent>
         </Card>
