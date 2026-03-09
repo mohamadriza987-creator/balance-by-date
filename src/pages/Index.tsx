@@ -43,6 +43,7 @@ const Index = () => {
     updateUserProfile, addDebtWithPlan,
     addTransfer, removeTransfer, updateSettings,
     addGoal, removeGoal, addOtherAsset, removeOtherAsset,
+    addLiabilityPayoff, removeLiabilityPayoff,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
