@@ -14,6 +14,7 @@ interface GoalPlannerProps {
   onAddOtherAsset: (asset: Omit<OtherAsset, "id">) => void;
   onAddEntry: (entry: Omit<Entry, "id">) => string;
   onAddLiabilityPayoff?: (payoff: Omit<LiabilityPayoff, "id">) => void;
+  onAddTransfer?: (transfer: Omit<Transfer, "id">) => void;
   fm: (n: number) => string;
 }
 
