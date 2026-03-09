@@ -79,10 +79,11 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState("");
 
-  // Overdue entries: past date, once-off or next occurrence is past
+  // Overdue entries: past date, once-off or next occurrence is past (exclude debt payoff entries shown in Others)
   const overdueEntries = useMemo(() => {
     return data.entries.filter(e => {
       if (!e.includeInForecast) return false;
+      if (e.category === "Debt Payoff") return false;
       if (e.frequency === "once" && e.date < today) return true;
       return false;
     }).sort((a, b) => a.date.localeCompare(b.date));
@@ -104,6 +105,7 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
 
       for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
+        if (entry.category === "Debt Payoff") continue;
         let dd = entry.date;
         while (dd <= me) {
           if (dd >= ms) {
