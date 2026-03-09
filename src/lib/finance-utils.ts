@@ -329,17 +329,17 @@ export function computeForecast(data: AppData): ForecastItem[] {
       if (d >= refDate) {
         if (goal.type === "purchase") {
           items.push({
-            date: d, label: `Goal: ${goal.name}`, amount: -goal.monthlyAmount, balance: 0,
+            date: d, label: `Goal: ${goal.name}`, amount: -goal.contributionAmount, balance: 0,
             type: "goal_contribution", account: goal.sourceAccount,
           });
         } else {
           items.push({
-            date: d, label: `Debt Payoff: ${goal.name}`, amount: -goal.monthlyAmount, balance: 0,
+            date: d, label: `Debt Payoff: ${goal.name}`, amount: -goal.contributionAmount, balance: 0,
             type: "debt_payoff", account: goal.sourceAccount,
           });
         }
       }
-      d = getNextOccurrence(d, "monthly");
+      d = getNextOccurrence(d, goal.contributionFrequency);
     }
   }
 
