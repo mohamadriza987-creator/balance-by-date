@@ -119,9 +119,19 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
               {data.userProfile?.enabledAccounts && (
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-muted-foreground">Accounts</Label>
-                  <span className="text-sm text-foreground">{data.userProfile.enabledAccounts.join(", ")}</span>
+                  <span className="text-sm text-foreground">{data.userProfile.enabledAccounts.map(a => a === "creditCard" ? "Credit Card" : a === "bank" ? "Bank" : "Cash").join(", ")}</span>
                 </div>
               )}
+            </div>
+          )}
+          <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleSignOut}>
+            <LogOut className="h-4 w-4" /> Sign Out
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Account Management */}
+      <AccountManagement data={data} onReplace={onReplace} onUpdateAccountBalances={onUpdateAccountBalances} />
             </div>
           )}
           <Button variant="destructive" className="w-full justify-start gap-2" onClick={handleSignOut}>
