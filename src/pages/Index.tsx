@@ -28,7 +28,7 @@ const tabs = [
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
   { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
-  { value: "otherAssets", label: "Other Assets", icon: Landmark },
+  { value: "others", label: "Others", icon: Landmark },
 ] as const;
 
 const Index = () => {
