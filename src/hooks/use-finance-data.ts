@@ -264,6 +264,28 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, settings: { ...prev.settings, ...updates } }));
   }, [setData]);
 
+  const addGoal = useCallback((goal: Omit<Goal, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      goals: [...(prev.goals || []), { ...goal, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeGoal = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, goals: (prev.goals || []).filter((g) => g.id !== id) }));
+  }, [setData]);
+
+  const addOtherAsset = useCallback((asset: Omit<OtherAsset, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      otherAssets: [...(prev.otherAssets || []), { ...asset, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeOtherAsset = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, otherAssets: (prev.otherAssets || []).filter((a) => a.id !== id) }));
+  }, [setData]);
+
   return {
     data,
     loaded,
@@ -275,6 +297,7 @@ export function useFinanceData() {
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
     updateUserProfile, addDebtWithPlan,
     addTransfer, removeTransfer, updateSettings,
+    addGoal, removeGoal, addOtherAsset, removeOtherAsset,
   };
 }
 
