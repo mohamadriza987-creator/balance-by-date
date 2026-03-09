@@ -122,7 +122,10 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
             </div>
             <div>
               <Label className="text-xs">Account *</Label>
-              <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} t Planning */}
+              <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
+            </div>
+
+            {/* Debt Repayment Planning */}
             {isDebt && (
               <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 space-y-3">
                 <p className="text-xs font-semibold text-orange-400">📋 Repayment Plan</p>
