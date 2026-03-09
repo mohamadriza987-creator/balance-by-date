@@ -160,7 +160,7 @@ function ExpenseForm({ onAdd, onAddDebtWithPlan, enabledAccounts }: {
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
-        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={enabledAccounts} />
       </div>
 
       {/* Cheque toggle for bank payments */}
