@@ -21,6 +21,8 @@ export function OtherAssetsTab({ data, onAddOtherAsset, onRemoveOtherAsset }: Ot
   const fm = (n: number) => formatMoney(n, profile);
 
   const totalValue = data.otherAssets.reduce((sum, a) => sum + a.currentValue, 0);
+  const goalLinkedAssets = data.otherAssets.filter(a => a.linkedGoalId);
+  const manualAssets = data.otherAssets.filter(a => !a.linkedGoalId);
 
   return (
     <div className="space-y-4">
@@ -36,6 +38,24 @@ export function OtherAssetsTab({ data, onAddOtherAsset, onRemoveOtherAsset }: Ot
           </div>
         </CardContent>
       </Card>
+
+      {goalLinkedAssets.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground px-1">GOAL-LINKED ASSETS ({goalLinkedAssets.length})</p>
+          {goalLinkedAssets.map(asset => (
+            <OtherAssetCard key={asset.id} asset={asset} fm={fm} onRemove={onRemoveOtherAsset} />
+          ))}
+        </div>
+      )}
+
+      {manualAssets.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground px-1">MANUAL ASSETS ({manualAssets.length})</p>
+          {manualAssets.map(asset => (
+            <OtherAssetCard key={asset.id} asset={asset} fm={fm} onRemove={onRemoveOtherAsset} />
+          ))}
+        </div>
+      )}
 
       {!showForm && (
         <Button className="w-full" variant="outline" onClick={() => setShowForm(true)}>
@@ -54,21 +74,12 @@ export function OtherAssetsTab({ data, onAddOtherAsset, onRemoveOtherAsset }: Ot
         />
       )}
 
-      {data.otherAssets.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground px-1">OTHER ASSETS ({data.otherAssets.length})</p>
-          {data.otherAssets.map(asset => (
-            <OtherAssetCard key={asset.id} asset={asset} fm={fm} onRemove={onRemoveOtherAsset} />
-          ))}
-        </div>
-      )}
-
       {data.otherAssets.length === 0 && !showForm && (
         <Card>
           <CardContent className="p-8 text-center">
             <Target className="h-12 w-12 mx-auto text-muted-foreground mb-3 opacity-50" />
             <p className="text-sm text-muted-foreground">No other assets yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Assets like RD, FD, and goal savings will appear here</p>
+            <p className="text-xs text-muted-foreground mt-1">Start a goal in the Forecast tab to create goal-linked assets</p>
           </CardContent>
         </Card>
       )}
@@ -81,6 +92,16 @@ function OtherAssetCard({ asset, fm, onRemove }: { asset: OtherAsset; fm: (n: nu
   const remaining = asset.targetAmount ? asset.targetAmount - asset.currentValue : 0;
   const progress = asset.targetAmount ? Math.min(100, Math.round((asset.currentValue / asset.targetAmount) * 100)) : 0;
   const monthsLeft = asset.maturityDate ? Math.max(0, Math.round(daysBetween(todayStr(), asset.maturityDate) / 30)) : null;
+
+  const getFrequencyLabel = (freq: string) => {
+    switch (freq) {
+      case "monthly": return "Monthly";
+      case "quarterly": return "Quarterly";
+      case "halfyearly": return "Half-Yearly";
+      case "yearly": return "Yearly";
+      default: return "Monthly";
+    }
+  };
 
   return (
     <Card className="border-purple-500/20">
@@ -109,8 +130,8 @@ function OtherAssetCard({ asset, fm, onRemove }: { asset: OtherAsset; fm: (n: nu
             <p className="font-bold text-base">{fm(asset.currentValue)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-0.5">Monthly Contribution</p>
-            <p className="font-bold text-success">{fm(asset.monthlyContribution)}</p>
+            <p className="text-muted-foreground mb-0.5">{getFrequencyLabel(asset.contributionFrequency)} Contribution</p>
+            <p className="font-bold text-success">{fm(asset.contributionAmount)}</p>
           </div>
           {asset.expectedReturn > 0 && (
             <div>
@@ -157,7 +178,8 @@ function AddOtherAssetForm({ onAdd, onCancel, fm }: {
   const [name, setName] = useState("");
   const [type, setType] = useState<OtherAssetType>("Other");
   const [currentValue, setCurrentValue] = useState("");
-  const [monthlyContribution, setMonthlyContribution] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
+  const [contributionFreq, setContributionFreq] = useState<import("@/lib/finance-types").Frequency>("monthly");
   const [expectedReturn, setExpectedReturn] = useState("0");
   const [targetAmount, setTargetAmount] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
@@ -170,7 +192,8 @@ function AddOtherAssetForm({ onAdd, onCancel, fm }: {
       name: name.trim(),
       type,
       currentValue: parseFloat(currentValue) || 0,
-      monthlyContribution: parseFloat(monthlyContribution) || 0,
+      contributionAmount: parseFloat(contributionAmount) || 0,
+      contributionFrequency: contributionFreq,
       expectedReturn: parseFloat(expectedReturn) || 0,
       targetAmount: targetAmount ? parseFloat(targetAmount) : undefined,
       maturityDate: maturityDate || undefined,
@@ -207,15 +230,25 @@ function AddOtherAssetForm({ onAdd, onCancel, fm }: {
             <Label className="text-xs">Current Value *</Label>
             <Input type="number" inputMode="decimal" step="0.01" value={currentValue} onChange={e => setCurrentValue(e.target.value)} placeholder="0.00" className="h-9" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Monthly Contribution</Label>
-              <Input type="number" inputMode="decimal" step="0.01" value={monthlyContribution} onChange={e => setMonthlyContribution(e.target.value)} placeholder="0.00" className="h-9" />
-            </div>
-            <div>
-              <Label className="text-xs">Expected Return (%)</Label>
-              <Input type="number" inputMode="decimal" step="0.1" value={expectedReturn} onChange={e => setExpectedReturn(e.target.value)} placeholder="0" className="h-9" />
-            </div>
+          <div>
+            <Label className="text-xs">Contribution Amount</Label>
+            <Input type="number" inputMode="decimal" step="0.01" value={contributionAmount} onChange={e => setContributionAmount(e.target.value)} placeholder="0.00" className="h-9" />
+          </div>
+          <div>
+            <Label className="text-xs">Contribution Frequency</Label>
+            <Select value={contributionFreq} onValueChange={(v) => setContributionFreq(v as import("@/lib/finance-types").Frequency)}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="halfyearly">Half-Yearly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Expected Return (%)</Label>
+            <Input type="number" inputMode="decimal" step="0.1" value={expectedReturn} onChange={e => setExpectedReturn(e.target.value)} placeholder="0" className="h-9" />
           </div>
           <div>
             <Label className="text-xs">Target Amount (optional)</Label>
