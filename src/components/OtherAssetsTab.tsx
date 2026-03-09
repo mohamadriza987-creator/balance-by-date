@@ -442,8 +442,13 @@ function LiabilityPayoffSection({ data, positionDate, fm }: { data: AppData; pos
       });
     });
 
-    // Add liability payoffs
+    // Add liability payoffs that DON'T already have a matching goal
+    const goalLinkedEntryIds = new Set(debtPayoffGoals.flatMap(g => g.linkedEntryIds || []));
     liabilityPayoffs.forEach(payoff => {
+      // Skip if this payoff shares linkedEntryIds with a goal (same debt)
+      const isAlreadyCoveredByGoal = (payoff.linkedEntryIds || []).some(id => goalLinkedEntryIds.has(id));
+      if (isAlreadyCoveredByGoal) return;
+
       const paidAmount = calculateLiabilityPaidAmount(payoff, positionDate, data);
       items.push({
         id: payoff.id,
