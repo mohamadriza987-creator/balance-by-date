@@ -21,9 +21,11 @@ import { TYPE_COLORS } from "@/lib/constants";
 
 interface ForecastTabProps {
   data: AppData;
+  onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
+  onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
 }
 
-export function ForecastTab({ data }: ForecastTabProps) {
+export function ForecastTab({ data, onAddGoal, onAddOtherAsset }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
