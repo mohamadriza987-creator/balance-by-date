@@ -25,9 +25,10 @@ interface ForecastTabProps {
   onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
   onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
   onAddEntry: (entry: Omit<import("@/lib/finance-types").Entry, "id">) => string;
+  onAddLiabilityPayoff?: (payoff: Omit<import("@/lib/finance-types").LiabilityPayoff, "id">) => void;
 }
 
-export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry }: ForecastTabProps) {
+export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
@@ -194,7 +195,7 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry }: Fo
       </Card>
 
       {/* Set a Goal */}
-      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} fm={fm} />
+      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} fm={fm} />
 
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />
