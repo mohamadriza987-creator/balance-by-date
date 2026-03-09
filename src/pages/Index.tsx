@@ -89,6 +89,7 @@ const Index = () => {
       userProfile: profile,
     }));
     setOnboardingComplete(true);
+    setShowTour(true);
   };
 
   // Show loading while auth is resolving
