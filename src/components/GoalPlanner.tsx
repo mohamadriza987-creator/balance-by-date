@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Target, ShoppingBag, CreditCard, ArrowLeft, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
-import type { AppData, AccountType, Frequency, Goal, OtherAsset, Entry, LiabilityPayoff } from "@/lib/finance-types";
+import type { AppData, AccountType, Frequency, Goal, OtherAsset, Entry, LiabilityPayoff, Transfer } from "@/lib/finance-types";
 import { todayStr, addDays, getNextOccurrence, computeForecast, formatMoney } from "@/lib/finance-utils";
 
 interface GoalPlannerProps {
