@@ -86,6 +86,29 @@ export function InsightsCard({ data, forecast }: InsightsCardProps) {
       items.push(...accountInsights.slice(0, 3));
     } catch {}
 
+    // Goal-related insights
+    const activeGoals = (data.goals || []).filter(g => g.status === "active");
+    if (activeGoals.length > 0) {
+      const totalGoalContributions = activeGoals.reduce((sum, g) => sum + g.monthlyAmount, 0);
+      if (totalGoalContributions > 0) {
+        items.push(`Your active goals require ${fm(totalGoalContributions)} monthly.`);
+      }
+      const purchaseGoals = activeGoals.filter(g => g.type === "purchase");
+      if (purchaseGoals.length > 0) {
+        const closest = purchaseGoals.sort((a, b) => a.targetDate.localeCompare(b.targetDate))[0];
+        const monthsLeft = Math.max(0, Math.round(daysBetween(today, closest.targetDate) / 30));
+        if (monthsLeft <= 12) {
+          items.push(`Your ${closest.name} goal matures in ${monthsLeft} month${monthsLeft !== 1 ? "s" : ""}.`);
+        }
+      }
+    }
+
+    // Other Assets note
+    const otherAssetsValue = (data.otherAssets || []).reduce((sum, a) => sum + a.currentValue, 0);
+    if (otherAssetsValue > 0) {
+      items.push(`Other Assets (${fm(otherAssetsValue)}) are excluded from available balance.`);
+    }
+
     // Optional subscriptions savings
     const optionalCats = ["Entertainment", "Shopping"];
     const optionalTotal = data.subscriptions

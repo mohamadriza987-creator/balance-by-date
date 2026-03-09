@@ -148,6 +148,8 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset }: ForecastTabPro
                 <SelectItem value="subscription">Subscription</SelectItem>
                 <SelectItem value="cc_bill">CC Bills</SelectItem>
                 <SelectItem value="transfer">Transfers</SelectItem>
+                <SelectItem value="goal_contribution">Goal Contrib</SelectItem>
+                <SelectItem value="debt_payoff">Debt Payoff</SelectItem>
               </SelectContent>
             </Select>
           </div>
