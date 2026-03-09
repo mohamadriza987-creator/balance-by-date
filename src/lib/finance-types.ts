@@ -136,6 +136,7 @@ export interface OtherAsset {
   id: string;
   name: string;
   type: OtherAssetType;
+  typeName?: string; // for "Other" type
   currentValue: number;
   contributionAmount: number;
   contributionFrequency: Frequency;
@@ -145,6 +146,7 @@ export interface OtherAsset {
   startDate: string;
   status: "Active" | "Matured" | "Completed";
   linkedGoalId?: string;
+  sourceAccount?: AccountType;
 }
 
 export interface AppSettings {
