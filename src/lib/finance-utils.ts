@@ -53,6 +53,7 @@ export function seedData(): AppData {
     transfers: [],
     goals: [],
     otherAssets: [],
+    liabilityPayoffs: [],
     settings: {
       creditCardBillDay: 15,
       transferSuggestionsEnabled: true,
