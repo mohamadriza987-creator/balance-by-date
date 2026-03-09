@@ -69,14 +69,16 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Current Balance</p>
           </div>
           <p className="text-3xl font-bold text-foreground">{fm(totalBalance)}</p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <Switch
-              checked={includeCCInBalance}
-              onCheckedChange={setIncludeCCInBalance}
-              className="scale-75"
-            />
-            <span className="text-[10px] text-muted-foreground">Include credit card</span>
-          </div>
+          {hasCreditCard && (
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <Switch
+                checked={includeCCInBalance}
+                onCheckedChange={setIncludeCCInBalance}
+                className="scale-75"
+              />
+              <span className="text-[10px] text-muted-foreground">Include credit card</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
