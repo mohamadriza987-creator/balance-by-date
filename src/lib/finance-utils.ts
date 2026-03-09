@@ -51,11 +51,15 @@ export function seedData(): AppData {
     investments: [],
     debtPlans: [],
     transfers: [],
+    goals: [],
+    otherAssets: [],
     settings: {
       creditCardBillDay: 15,
       transferSuggestionsEnabled: true,
       transferLeadDays: 1,
       includeCreditCardInBalance: false,
+      defaultGoalReturnRate: 7,
+      showOtherAssetsInNav: true,
     },
   };
 }
