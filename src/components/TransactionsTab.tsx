@@ -175,9 +175,9 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
 
   return (
     <div className="space-y-4">
-      {/* Account Filter */}
+      {/* Account Filter - only show enabled accounts */}
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {(["all", "cash", "bank", "creditCard"] as AccountFilter[]).map((filter) => (
+        {(["all", ...(data.userProfile?.enabledAccounts || ["cash", "bank", "creditCard"])] as AccountFilter[]).map((filter) => (
           <button
             key={filter}
             onClick={() => setAccountFilter(filter)}
