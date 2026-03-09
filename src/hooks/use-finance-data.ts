@@ -36,7 +36,9 @@ export function useFinanceData() {
         if (!fd.accountBalances) fd.accountBalances = { cash: 0, bank: 0, creditCard: 0 };
         if (!fd.positionDate) fd.positionDate = new Date().toISOString().slice(0, 10);
         if (!fd.transfers) fd.transfers = [];
-        if (!fd.settings) fd.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false };
+        if (!fd.goals) fd.goals = [];
+        if (!fd.otherAssets) fd.otherAssets = [];
+        if (!fd.settings) fd.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false, defaultGoalReturnRate: 7, showOtherAssetsInNav: true };
         setDataState(fd);
       } else {
         setDataState(emptyData());
