@@ -230,15 +230,25 @@ function AddOtherAssetForm({ onAdd, onCancel, fm }: {
             <Label className="text-xs">Current Value *</Label>
             <Input type="number" inputMode="decimal" step="0.01" value={currentValue} onChange={e => setCurrentValue(e.target.value)} placeholder="0.00" className="h-9" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Monthly Contribution</Label>
-              <Input type="number" inputMode="decimal" step="0.01" value={monthlyContribution} onChange={e => setMonthlyContribution(e.target.value)} placeholder="0.00" className="h-9" />
-            </div>
-            <div>
-              <Label className="text-xs">Expected Return (%)</Label>
-              <Input type="number" inputMode="decimal" step="0.1" value={expectedReturn} onChange={e => setExpectedReturn(e.target.value)} placeholder="0" className="h-9" />
-            </div>
+          <div>
+            <Label className="text-xs">Contribution Amount</Label>
+            <Input type="number" inputMode="decimal" step="0.01" value={contributionAmount} onChange={e => setContributionAmount(e.target.value)} placeholder="0.00" className="h-9" />
+          </div>
+          <div>
+            <Label className="text-xs">Contribution Frequency</Label>
+            <Select value={contributionFreq} onValueChange={(v) => setContributionFreq(v as import("@/lib/finance-types").Frequency)}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly">Monthly</SelectItem>
+                <SelectItem value="quarterly">Quarterly</SelectItem>
+                <SelectItem value="halfyearly">Half-Yearly</SelectItem>
+                <SelectItem value="yearly">Yearly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Expected Return (%)</Label>
+            <Input type="number" inputMode="decimal" step="0.1" value={expectedReturn} onChange={e => setExpectedReturn(e.target.value)} placeholder="0" className="h-9" />
           </div>
           <div>
             <Label className="text-xs">Target Amount (optional)</Label>

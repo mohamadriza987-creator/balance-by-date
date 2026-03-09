@@ -122,7 +122,8 @@ export interface OtherAsset {
   name: string;
   type: OtherAssetType;
   currentValue: number;
-  monthlyContribution: number;
+  contributionAmount: number;
+  contributionFrequency: Frequency;
   expectedReturn: number;
   targetAmount?: number;
   maturityDate?: string;
