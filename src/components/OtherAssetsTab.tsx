@@ -93,6 +93,16 @@ function OtherAssetCard({ asset, fm, onRemove }: { asset: OtherAsset; fm: (n: nu
   const progress = asset.targetAmount ? Math.min(100, Math.round((asset.currentValue / asset.targetAmount) * 100)) : 0;
   const monthsLeft = asset.maturityDate ? Math.max(0, Math.round(daysBetween(todayStr(), asset.maturityDate) / 30)) : null;
 
+  const getFrequencyLabel = (freq: string) => {
+    switch (freq) {
+      case "monthly": return "Monthly";
+      case "quarterly": return "Quarterly";
+      case "halfyearly": return "Half-Yearly";
+      case "yearly": return "Yearly";
+      default: return "Monthly";
+    }
+  };
+
   return (
     <Card className="border-purple-500/20">
       <CardContent className="px-4 py-3 space-y-3">
@@ -120,8 +130,8 @@ function OtherAssetCard({ asset, fm, onRemove }: { asset: OtherAsset; fm: (n: nu
             <p className="font-bold text-base">{fm(asset.currentValue)}</p>
           </div>
           <div>
-            <p className="text-muted-foreground mb-0.5">Monthly Contribution</p>
-            <p className="font-bold text-success">{fm(asset.monthlyContribution)}</p>
+            <p className="text-muted-foreground mb-0.5">{getFrequencyLabel(asset.contributionFrequency)} Contribution</p>
+            <p className="font-bold text-success">{fm(asset.contributionAmount)}</p>
           </div>
           {asset.expectedReturn > 0 && (
             <div>
