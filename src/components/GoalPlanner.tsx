@@ -5,13 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Target, TrendingUp, Calculator } from "lucide-react";
-import type { AppData, AccountType, Frequency } from "@/lib/finance-types";
-import { todayStr, addDays, daysBetween } from "@/lib/finance-utils";
+import type { AppData, AccountType, Frequency, Goal, OtherAsset, Entry } from "@/lib/finance-types";
+import { todayStr, addDays, getNextOccurrence } from "@/lib/finance-utils";
 
 interface GoalPlannerProps {
   data: AppData;
-  onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
-  onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
+  onAddGoal: (goal: Omit<Goal, "id">) => void;
+  onAddOtherAsset: (asset: Omit<OtherAsset, "id">) => void;
+  onAddEntry: (entry: Omit<Entry, "id">) => string;
   fm: (n: number) => string;
 }
 
@@ -32,6 +33,15 @@ const INVESTMENT_TYPES = [
   { value: "Other Investment", label: "Other Investment" },
 ];
 
+const INVESTMENT_NAME_SUGGESTIONS = [
+  "SIP",
+  "Mutual Fund",
+  "ETF",
+  "Gold Savings",
+  "Private Savings Plan",
+  "Other",
+];
+
 const CONTRIBUTION_FREQUENCIES: Array<{ value: Frequency; label: string; periodsPerYear: number }> = [
   { value: "monthly", label: "Monthly", periodsPerYear: 12 },
   { value: "quarterly", label: "Quarterly", periodsPerYear: 4 },
@@ -39,7 +49,7 @@ const CONTRIBUTION_FREQUENCIES: Array<{ value: Frequency; label: string; periods
   { value: "yearly", label: "Yearly", periodsPerYear: 1 },
 ];
 
-export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, fm }: GoalPlannerProps) {
+export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, fm }: GoalPlannerProps) {
   const [showForm, setShowForm] = useState(false);
 
   return (
@@ -64,6 +74,7 @@ export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, fm }: GoalPlanne
             data={data}
             onAddGoal={onAddGoal}
             onAddOtherAsset={onAddOtherAsset}
+            onAddEntry={onAddEntry}
             onCancel={() => setShowForm(false)}
             fm={fm}
           />
@@ -85,18 +96,21 @@ function GoalCalculatorForm({
   data,
   onAddGoal,
   onAddOtherAsset,
+  onAddEntry,
   onCancel,
   fm,
 }: {
   data: AppData;
-  onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
-  onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
+  onAddGoal: (goal: Omit<Goal, "id">) => void;
+  onAddOtherAsset: (asset: Omit<OtherAsset, "id">) => void;
+  onAddEntry: (entry: Omit<Entry, "id">) => string;
   onCancel: () => void;
   fm: (n: number) => string;
 }) {
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [investmentType, setInvestmentType] = useState<string>("RD");
+  const [investmentName, setInvestmentName] = useState("");
   const [annualReturn, setAnnualReturn] = useState("6");
   const [years, setYears] = useState("");
   const [months, setMonths] = useState("");
@@ -155,8 +169,31 @@ function GoalCalculatorForm({
     const totalYears = parseFloat(years || "0") + parseFloat(months || "0") / 12;
     const targetDate = addDays(startDate, Math.round(totalYears * 365));
 
+    // Generate recurring entry IDs for contributions
+    const linkedEntryIds: string[] = [];
+    let currentDate = startDate;
+    
+    // Create recurring contribution entries
+    for (let i = 0; i < result.numberOfPeriods; i++) {
+      const entryId = onAddEntry({
+        label: `Goal: ${goalName.trim()}`,
+        amount: -result.requiredContribution,
+        date: currentDate,
+        frequency: "once",
+        category: "Goal Contribution",
+        account: sourceAccount,
+        includeInForecast: true,
+        isOptional: false,
+      });
+      linkedEntryIds.push(entryId);
+      currentDate = getNextOccurrence(currentDate, contributionFreq);
+    }
+
+    const goalId = Math.random().toString(36).slice(2, 10);
+    const assetId = Math.random().toString(36).slice(2, 10);
+
     // Create the goal
-    const goal: Omit<import("@/lib/finance-types").Goal, "id"> = {
+    const goal: Omit<Goal, "id"> = {
       type: "purchase",
       name: goalName.trim(),
       targetAmount: parseFloat(targetAmount),
@@ -167,15 +204,19 @@ function GoalCalculatorForm({
       sourceAccount,
       annualReturn: parseFloat(annualReturn),
       vehicle: investmentType as "RD" | "FD" | "Mutual Funds" | "Other Investment",
+      vehicleName: investmentType === "Other Investment" ? investmentName : undefined,
       status: "active",
+      linkedAssetId: assetId,
+      linkedEntryIds,
     };
 
     onAddGoal(goal);
 
     // Create linked Other Asset
-    const asset: Omit<import("@/lib/finance-types").OtherAsset, "id"> = {
+    const asset: Omit<OtherAsset, "id"> = {
       name: goalName.trim(),
       type: investmentType === "FD" ? "FD" : investmentType === "RD" ? "RD" : "Goal Savings",
+      typeName: investmentType === "Other Investment" ? investmentName : undefined,
       currentValue: 0,
       contributionAmount: result.requiredContribution,
       contributionFrequency: contributionFreq,
@@ -184,13 +225,16 @@ function GoalCalculatorForm({
       maturityDate: targetDate,
       startDate,
       status: "Active",
+      linkedGoalId: goalId,
+      sourceAccount,
     };
 
     onAddOtherAsset(asset);
     onCancel();
   };
 
-  const canCalculate = goalName.trim() && targetAmount && annualReturn && (years || months);
+  const canCalculate = goalName.trim() && targetAmount && annualReturn && (years || months) && 
+    (investmentType !== "Other Investment" || investmentName.trim());
 
   return (
     <div className="space-y-4">
@@ -245,6 +289,29 @@ function GoalCalculatorForm({
               </SelectContent>
             </Select>
           </div>
+
+          {investmentType === "Other Investment" && (
+            <div>
+              <Label className="text-xs">Investment Name *</Label>
+              <Input
+                value={investmentName}
+                onChange={(e) => setInvestmentName(e.target.value)}
+                placeholder="e.g., SIP, ETF, Gold Savings"
+                className="h-9 mb-2"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {INVESTMENT_NAME_SUGGESTIONS.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setInvestmentName(suggestion)}
+                    className="text-[10px] px-2 py-1 rounded-full bg-muted hover:bg-muted/70 text-muted-foreground"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <Label className="text-xs">Expected Annual Rate of Return (%) *</Label>
@@ -362,6 +429,14 @@ function GoalCalculatorForm({
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-muted-foreground mb-0.5">Investment Type</p>
+                <p className="font-bold">{investmentType === "Other Investment" ? investmentName : investmentType}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground mb-0.5">Source Account</p>
+                <p className="font-bold">{sourceAccount === "cash" ? "Cash" : "Bank"}</p>
+              </div>
               <div>
                 <p className="text-muted-foreground mb-0.5">Total Contributions</p>
                 <p className="font-bold">{fm(result.totalContributions)}</p>
