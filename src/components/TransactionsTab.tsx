@@ -37,7 +37,7 @@ const FILTER_LABELS: Record<AccountFilter, string> = {
   all: "All", cash: "Cash", bank: "Bank", creditCard: "Credit Card Due"
 };
 
-export function TransactionsTab({ data }: TransactionsTabProps) {
+export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: TransactionsTabProps) {
   const [accountFilter, setAccountFilter] = useState<AccountFilter>("all");
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
