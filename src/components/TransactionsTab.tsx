@@ -76,6 +76,17 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
 
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
   const [expandedType, setExpandedType] = useState<"income" | "expense" | null>(null);
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+
+  // Overdue entries: past date, once-off or next occurrence is past
+  const overdueEntries = useMemo(() => {
+    return data.entries.filter(e => {
+      if (!e.includeInForecast) return false;
+      if (e.frequency === "once" && e.date < today) return true;
+      return false;
+    }).sort((a, b) => a.date.localeCompare(b.date));
+  }, [data.entries, today]);
 
   const incomeExpenseBarData = useMemo(() => {
     const months: { month: string; monthKey: string; income: number; expense: number;
