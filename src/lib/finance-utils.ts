@@ -321,6 +321,28 @@ export function computeForecast(data: AppData): ForecastItem[] {
     }
   }
 
+  // Active goal contributions
+  for (const goal of (data.goals || [])) {
+    if (goal.status !== "active") continue;
+    let d = goal.startDate;
+    while (d <= horizon && d <= goal.targetDate) {
+      if (d >= refDate) {
+        if (goal.type === "purchase") {
+          items.push({
+            date: d, label: `Goal: ${goal.name}`, amount: -goal.monthlyAmount, balance: 0,
+            type: "goal_contribution", account: goal.sourceAccount,
+          });
+        } else {
+          items.push({
+            date: d, label: `Debt Payoff: ${goal.name}`, amount: -goal.monthlyAmount, balance: 0,
+            type: "debt_payoff", account: goal.sourceAccount,
+          });
+        }
+      }
+      d = getNextOccurrence(d, "monthly");
+    }
+  }
+
   items.sort((a, b) => a.date.localeCompare(b.date));
 
   let balance = effectiveBalance;

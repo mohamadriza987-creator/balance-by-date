@@ -48,6 +48,8 @@ export const TYPE_COLORS: Record<string, string> = {
   cheque: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   cc_bill: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   transfer: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  goal_contribution: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  debt_payoff: "bg-orange-500/10 text-orange-400 border-orange-500/20",
 };
 
 export const COUNTRIES_CURRENCIES: { country: string; currency: string; symbol: string }[] = [

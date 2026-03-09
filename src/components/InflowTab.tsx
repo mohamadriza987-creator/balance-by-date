@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,11 +42,17 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
   const [debtStartDate, setDebtStartDate] = useState(todayStr());
   const isDebt = category === "Debt";
 
+  // Refs for Enter key navigation
+  const nameRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+
   const isValid = useMemo(() => !!(name.trim() && amount && date && category.trim()), [name, amount, date, category]);
 
   const reset = () => {
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank");
     setDebtSplits("1"); setDebtFrequency("monthly"); setDebtStartDate(todayStr());
+    nameRef.current?.focus();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -71,6 +77,17 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
     reset();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef?: React.RefObject<HTMLInputElement | null>, fieldType?: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (nextRef?.current) {
+        nextRef.current.focus();
+      } else if (fieldType === "last" && isValid) {
+        handleSubmit(e as any);
+      }
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Card className="border-success/30">
@@ -81,12 +98,12 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
               <Label className="text-xs">Description *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Salary" className="h-9" />
+              <Input ref={nameRef} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Salary" className="h-9" onKeyDown={(e) => handleKeyDown(e, amountRef)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Amount *</Label>
-                <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" />
+                <Input ref={amountRef} type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" onKeyDown={(e) => handleKeyDown(e, dateRef)} />
               </div>
               <div>
                 <Label className="text-xs">Frequency *</Label>
@@ -96,7 +113,7 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Date *</Label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
+                <Input ref={dateRef} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" onKeyDown={(e) => handleKeyDown(e, undefined, "last")} />
               </div>
               <div>
                 <Label className="text-xs">Category *</Label>
