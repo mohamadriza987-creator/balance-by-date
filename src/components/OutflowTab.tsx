@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Pencil, Check, X } from "lucide-react";
 import { CategorySelect } from "@/components/CategorySelect";
+import { FrequencySelect } from "@/components/FrequencySelect";
+import { AccountSelect } from "@/components/AccountSelect";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { AccountSelect } from "@/components/AccountSelect";
 import { ACCOUNT_LABELS } from "@/lib/constants";
