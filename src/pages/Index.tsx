@@ -51,6 +51,7 @@ const Index = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [profileName, setProfileName] = useState<string>("");
+  const [showTour, setShowTour] = useState(false);
 
   // Check onboarding status from profile
   useEffect(() => {
