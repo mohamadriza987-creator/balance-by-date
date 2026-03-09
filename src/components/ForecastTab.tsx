@@ -24,9 +24,10 @@ interface ForecastTabProps {
   data: AppData;
   onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
   onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
+  onAddEntry: (entry: Omit<import("@/lib/finance-types").Entry, "id">) => string;
 }
 
-export function ForecastTab({ data, onAddGoal, onAddOtherAsset }: ForecastTabProps) {
+export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
@@ -193,7 +194,7 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset }: ForecastTabPro
       </Card>
 
       {/* Set a Goal */}
-      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} fm={fm} />
+      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} fm={fm} />
 
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />

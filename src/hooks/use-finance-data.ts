@@ -38,6 +38,7 @@ export function useFinanceData() {
         if (!fd.transfers) fd.transfers = [];
         if (!fd.goals) fd.goals = [];
         if (!fd.otherAssets) fd.otherAssets = [];
+        if (!fd.liabilityPayoffs) fd.liabilityPayoffs = [];
         if (!fd.settings) fd.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false, defaultGoalReturnRate: 7, showOtherAssetsInNav: true };
         setDataState(fd);
       } else {

@@ -111,16 +111,32 @@ export interface Goal {
   sourceAccount: AccountType;
   annualReturn: number;
   vehicle?: "RD" | "FD" | "Mutual Funds" | "Other Investment";
+  vehicleName?: string; // for "Other Investment" type
   debtType?: string;
   interestRate?: number;
   status: GoalStatus;
   linkedAssetId?: string; // only for purchase goals
+  linkedEntryIds?: string[]; // recurring contribution entry IDs
+}
+
+export interface LiabilityPayoff {
+  id: string;
+  name: string;
+  originalAmount: number;
+  payoffAmount: number;
+  payoffFrequency: Frequency;
+  startDate: string;
+  targetDate: string;
+  sourceAccount: AccountType;
+  status: GoalStatus;
+  linkedEntryIds?: string[];
 }
 
 export interface OtherAsset {
   id: string;
   name: string;
   type: OtherAssetType;
+  typeName?: string; // for "Other" type
   currentValue: number;
   contributionAmount: number;
   contributionFrequency: Frequency;
@@ -130,6 +146,7 @@ export interface OtherAsset {
   startDate: string;
   status: "Active" | "Matured" | "Completed";
   linkedGoalId?: string;
+  sourceAccount?: AccountType;
 }
 
 export interface AppSettings {
@@ -165,6 +182,7 @@ export interface AppData {
   transfers: Transfer[];
   goals: Goal[];
   otherAssets: OtherAsset[];
+  liabilityPayoffs: LiabilityPayoff[];
   settings: AppSettings;
   userProfile?: UserProfile;
 }

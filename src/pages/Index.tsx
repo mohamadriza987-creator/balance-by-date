@@ -28,7 +28,7 @@ const tabs = [
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
   { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
-  { value: "otherAssets", label: "Other Assets", icon: Landmark },
+  { value: "others", label: "Others", icon: Landmark },
 ] as const;
 
 const Index = () => {
@@ -238,9 +238,9 @@ const Index = () => {
           <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
         )}
         {activeTab === "forecast" && (
-          <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} />
+          <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} />
         )}
-        {activeTab === "otherAssets" && (
+        {activeTab === "others" && (
           <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
         )}
       </main>
