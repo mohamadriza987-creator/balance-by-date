@@ -8,7 +8,10 @@ import { ForecastChart } from "@/components/ForecastChart";
 import { SpendingBreakdown } from "@/components/SpendingBreakdown";
 import { InsightsCard } from "@/components/InsightsCard";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { ChevronUp } from "lucide-react";
+import { ChevronUp, X, CalendarClock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AppData, ForecastItem, AccountType } from "@/lib/finance-types";
 import {
   computeForecast, computeInvestmentValue, computeBalanceAtPosition,
