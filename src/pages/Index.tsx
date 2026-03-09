@@ -239,7 +239,7 @@ const Index = () => {
           <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
         )}
         {activeTab === "forecast" && (
-          <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} />
+          <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} />
         )}
         {activeTab === "others" && (
           <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
