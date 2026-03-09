@@ -257,7 +257,7 @@ function SubscriptionForm({ onAdd, enabledAccounts }: { onAdd: (s: Omit<Subscrip
 }
 
 // ============ INVESTMENT FORM ============
-function InvestmentForm({ onAdd }: { onAdd: (i: Omit<Investment, "id">) => void }) {
+function InvestmentForm({ onAdd, enabledAccounts }: { onAdd: (i: Omit<Investment, "id">) => void; enabledAccounts?: AccountType[] }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
