@@ -194,7 +194,7 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry }: Fo
       </Card>
 
       {/* Set a Goal */}
-      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} fm={fm} />
+      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} fm={fm} />
 
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />
