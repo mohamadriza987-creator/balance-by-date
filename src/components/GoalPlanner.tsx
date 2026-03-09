@@ -83,7 +83,7 @@ function assessViability(monthlyPayment: number, freq: Frequency, avgMonthlyBala
   return { status: "comfortable", message: "This looks comfortable based on your projected balance. You should be able to manage this easily." };
 }
 
-export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, fm }: GoalPlannerProps) {
+export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer, fm }: GoalPlannerProps) {
   const [step, setStep] = useState<GoalFlowStep>("select_type");
   const handleBack = () => setStep("select_type");
 
