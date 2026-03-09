@@ -146,6 +146,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      {showTour && <GuidedTour onComplete={() => setShowTour(false)} userName={data.userProfile?.name} />}
       <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
