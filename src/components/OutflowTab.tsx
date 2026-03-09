@@ -80,9 +80,10 @@ export function OutflowTab({
 }
 
 // ============ EXPENSE FORM ============
-function ExpenseForm({ onAdd, onAddDebtWithPlan }: {
+function ExpenseForm({ onAdd, onAddDebtWithPlan, enabledAccounts }: {
   onAdd: (e: Omit<Entry, "id">) => string;
   onAddDebtWithPlan: (parentEntry: Omit<Entry, "id">, plan: { splits: number; frequency: Frequency; startDate: string; direction: "received" | "given" }) => void;
+  enabledAccounts?: AccountType[];
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
