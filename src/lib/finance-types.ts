@@ -161,6 +161,8 @@ export interface AppData {
   investments: Investment[];
   debtPlans: DebtPlan[];
   transfers: Transfer[];
+  goals: Goal[];
+  otherAssets: OtherAsset[];
   settings: AppSettings;
   userProfile?: UserProfile;
 }
