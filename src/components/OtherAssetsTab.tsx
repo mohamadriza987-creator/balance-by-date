@@ -21,6 +21,8 @@ export function OtherAssetsTab({ data, onAddOtherAsset, onRemoveOtherAsset }: Ot
   const fm = (n: number) => formatMoney(n, profile);
 
   const totalValue = data.otherAssets.reduce((sum, a) => sum + a.currentValue, 0);
+  const goalLinkedAssets = data.otherAssets.filter(a => a.linkedGoalId);
+  const manualAssets = data.otherAssets.filter(a => !a.linkedGoalId);
 
   return (
     <div className="space-y-4">
@@ -36,6 +38,24 @@ export function OtherAssetsTab({ data, onAddOtherAsset, onRemoveOtherAsset }: Ot
           </div>
         </CardContent>
       </Card>
+
+      {goalLinkedAssets.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground px-1">GOAL-LINKED ASSETS ({goalLinkedAssets.length})</p>
+          {goalLinkedAssets.map(asset => (
+            <OtherAssetCard key={asset.id} asset={asset} fm={fm} onRemove={onRemoveOtherAsset} />
+          ))}
+        </div>
+      )}
+
+      {manualAssets.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground px-1">MANUAL ASSETS ({manualAssets.length})</p>
+          {manualAssets.map(asset => (
+            <OtherAssetCard key={asset.id} asset={asset} fm={fm} onRemove={onRemoveOtherAsset} />
+          ))}
+        </div>
+      )}
 
       {!showForm && (
         <Button className="w-full" variant="outline" onClick={() => setShowForm(true)}>
@@ -54,21 +74,12 @@ export function OtherAssetsTab({ data, onAddOtherAsset, onRemoveOtherAsset }: Ot
         />
       )}
 
-      {data.otherAssets.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground px-1">OTHER ASSETS ({data.otherAssets.length})</p>
-          {data.otherAssets.map(asset => (
-            <OtherAssetCard key={asset.id} asset={asset} fm={fm} onRemove={onRemoveOtherAsset} />
-          ))}
-        </div>
-      )}
-
       {data.otherAssets.length === 0 && !showForm && (
         <Card>
           <CardContent className="p-8 text-center">
             <Target className="h-12 w-12 mx-auto text-muted-foreground mb-3 opacity-50" />
             <p className="text-sm text-muted-foreground">No other assets yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Assets like RD, FD, and goal savings will appear here</p>
+            <p className="text-xs text-muted-foreground mt-1">Start a goal in the Forecast tab to create goal-linked assets</p>
           </CardContent>
         </Card>
       )}
