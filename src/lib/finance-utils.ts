@@ -51,11 +51,15 @@ export function seedData(): AppData {
     investments: [],
     debtPlans: [],
     transfers: [],
+    goals: [],
+    otherAssets: [],
     settings: {
       creditCardBillDay: 15,
       transferSuggestionsEnabled: true,
       transferLeadDays: 1,
       includeCreditCardInBalance: false,
+      defaultGoalReturnRate: 7,
+      showOtherAssetsInNav: true,
     },
   };
 }
@@ -314,6 +318,28 @@ export function computeForecast(data: AppData): ForecastItem[] {
     if (tr.date >= refDate && tr.date <= horizon) {
       items.push({ date: tr.date, label: `Transfer: ${tr.reason}`, amount: -tr.amount, balance: 0, type: "transfer", account: tr.fromAccount });
       items.push({ date: tr.date, label: `Transfer: ${tr.reason}`, amount: tr.amount, balance: 0, type: "transfer", account: tr.toAccount });
+    }
+  }
+
+  // Active goal contributions
+  for (const goal of (data.goals || [])) {
+    if (goal.status !== "active") continue;
+    let d = goal.startDate;
+    while (d <= horizon && d <= goal.targetDate) {
+      if (d >= refDate) {
+        if (goal.type === "purchase") {
+          items.push({
+            date: d, label: `Goal: ${goal.name}`, amount: -goal.monthlyAmount, balance: 0,
+            type: "goal_contribution", account: goal.sourceAccount,
+          });
+        } else {
+          items.push({
+            date: d, label: `Debt Payoff: ${goal.name}`, amount: -goal.monthlyAmount, balance: 0,
+            type: "debt_payoff", account: goal.sourceAccount,
+          });
+        }
+      }
+      d = getNextOccurrence(d, "monthly");
     }
   }
 

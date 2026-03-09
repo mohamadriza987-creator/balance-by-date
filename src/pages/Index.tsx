@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { IntroFlow } from "@/components/IntroFlow";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight } from "lucide-react";
+import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight, Landmark } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -14,6 +14,7 @@ import { OutflowTab } from "@/components/OutflowTab";
 import { ForecastTab } from "@/components/ForecastTab";
 import { TransfersTab } from "@/components/TransfersTab";
 import { SettingsTab } from "@/components/SettingsTab";
+import { OtherAssetsTab } from "@/components/OtherAssetsTab";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
@@ -27,6 +28,7 @@ const tabs = [
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
   { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
+  { value: "otherAssets", label: "Other Assets", icon: Landmark },
 ] as const;
 
 const Index = () => {
@@ -40,6 +42,7 @@ const Index = () => {
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
     updateUserProfile, addDebtWithPlan,
     addTransfer, removeTransfer, updateSettings,
+    addGoal, removeGoal, addOtherAsset, removeOtherAsset,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -235,23 +238,25 @@ const Index = () => {
           <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
         )}
         {activeTab === "forecast" && (
-          <ForecastTab data={data} />
+          <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} />
+        )}
+        {activeTab === "otherAssets" && (
+          <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
         )}
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
-        <div className="grid grid-cols-5 h-16">
-          {tabs.map(({ value, label, icon: Icon }) => (
+        <div className="grid grid-cols-6 h-16">{tabs.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
               onClick={() => setActiveTab(value)}
-              className={`flex flex-col items-center justify-center gap-0.5 text-xs transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors ${
                 activeTab === value
                   ? "text-primary font-semibold"
                   : "text-muted-foreground"
               }`}
             >
-              <Icon className={`h-5 w-5 ${activeTab === value ? "text-primary" : ""}`} />
+              <Icon className={`h-4 w-4 ${activeTab === value ? "text-primary" : ""}`} />
               <span>{label}</span>
             </button>
           ))}

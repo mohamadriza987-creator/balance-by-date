@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +98,11 @@ function ExpenseForm({ onAdd, onAddDebtWithPlan }: {
   const [debtStartDate, setDebtStartDate] = useState(todayStr());
   const isDebt = category === "Debt";
 
+  // Refs for Enter key navigation
+  const nameRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+
   const isValid = !!(name.trim() && amount && date && category.trim());
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -120,23 +125,35 @@ function ExpenseForm({ onAdd, onAddDebtWithPlan }: {
     }
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank"); setIsCheque(false);
     setDebtSplits("1"); setDebtFrequency("monthly"); setDebtStartDate(todayStr());
+    nameRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, nextRef?: React.RefObject<HTMLInputElement | null>, fieldType?: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (nextRef?.current) {
+        nextRef.current.focus();
+      } else if (fieldType === "last" && isValid) {
+        handleSubmit(e as any);
+      }
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <Label className="text-xs">Description *</Label>
-        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" className="h-9" />
+        <Input ref={nameRef} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" className="h-9" onKeyDown={(e) => handleKeyDown(e, amountRef)} />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount *</Label>
-          <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" /></div>
+          <Input ref={amountRef} type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" className="h-9" onKeyDown={(e) => handleKeyDown(e, dateRef)} /></div>
         <div><Label className="text-xs">Frequency *</Label>
           <FrequencySelect value={frequency} onChange={setFrequency} /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Date *</Label>
-          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" /></div>
+          <Input ref={dateRef} type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" onKeyDown={(e) => handleKeyDown(e, undefined, "last")} /></div>
         <div><Label className="text-xs">Category *</Label>
           <CategorySelect value={category} onChange={setCategory} type="expense" /></div>
       </div>

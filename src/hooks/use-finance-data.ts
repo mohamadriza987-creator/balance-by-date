@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings } from "@/lib/finance-types";
+import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings, Goal, OtherAsset } from "@/lib/finance-types";
 import { seedData } from "@/lib/finance-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -36,7 +36,9 @@ export function useFinanceData() {
         if (!fd.accountBalances) fd.accountBalances = { cash: 0, bank: 0, creditCard: 0 };
         if (!fd.positionDate) fd.positionDate = new Date().toISOString().slice(0, 10);
         if (!fd.transfers) fd.transfers = [];
-        if (!fd.settings) fd.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false };
+        if (!fd.goals) fd.goals = [];
+        if (!fd.otherAssets) fd.otherAssets = [];
+        if (!fd.settings) fd.settings = { creditCardBillDay: 15, transferSuggestionsEnabled: true, transferLeadDays: 1, includeCreditCardInBalance: false, defaultGoalReturnRate: 7, showOtherAssetsInNav: true };
         setDataState(fd);
       } else {
         setDataState(emptyData());
@@ -262,6 +264,28 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, settings: { ...prev.settings, ...updates } }));
   }, [setData]);
 
+  const addGoal = useCallback((goal: Omit<Goal, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      goals: [...(prev.goals || []), { ...goal, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeGoal = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, goals: (prev.goals || []).filter((g) => g.id !== id) }));
+  }, [setData]);
+
+  const addOtherAsset = useCallback((asset: Omit<OtherAsset, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      otherAssets: [...(prev.otherAssets || []), { ...asset, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeOtherAsset = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, otherAssets: (prev.otherAssets || []).filter((a) => a.id !== id) }));
+  }, [setData]);
+
   return {
     data,
     loaded,
@@ -273,6 +297,7 @@ export function useFinanceData() {
     updateBalance, updateAccountBalances, updateForecastDate, updatePositionDate,
     updateUserProfile, addDebtWithPlan,
     addTransfer, removeTransfer, updateSettings,
+    addGoal, removeGoal, addOtherAsset, removeOtherAsset,
   };
 }
 

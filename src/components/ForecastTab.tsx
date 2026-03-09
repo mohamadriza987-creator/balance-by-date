@@ -17,13 +17,16 @@ import { ForecastChart } from "@/components/ForecastChart";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { InvestmentCalculator } from "@/components/InvestmentCalculator";
 import { ZakatCalculator } from "@/components/ZakatCalculator";
+import { GoalPlanner } from "@/components/GoalPlanner";
 import { TYPE_COLORS } from "@/lib/constants";
 
 interface ForecastTabProps {
   data: AppData;
+  onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
+  onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
 }
 
-export function ForecastTab({ data }: ForecastTabProps) {
+export function ForecastTab({ data, onAddGoal, onAddOtherAsset }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
@@ -145,6 +148,8 @@ export function ForecastTab({ data }: ForecastTabProps) {
                 <SelectItem value="subscription">Subscription</SelectItem>
                 <SelectItem value="cc_bill">CC Bills</SelectItem>
                 <SelectItem value="transfer">Transfers</SelectItem>
+                <SelectItem value="goal_contribution">Goal Contrib</SelectItem>
+                <SelectItem value="debt_payoff">Debt Payoff</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -186,6 +191,9 @@ export function ForecastTab({ data }: ForecastTabProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* Set a Goal */}
+      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} fm={fm} />
 
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />
