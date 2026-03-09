@@ -104,12 +104,13 @@ export interface Goal {
   type: GoalType;
   name: string;
   targetAmount: number;
-  monthlyAmount: number;
+  contributionAmount: number;
+  contributionFrequency: Frequency;
   startDate: string;
   targetDate: string;
   sourceAccount: AccountType;
   annualReturn: number;
-  vehicle?: "RD" | "FD" | "Other";
+  vehicle?: "RD" | "FD" | "Mutual Funds" | "Other Investment";
   debtType?: string;
   interestRate?: number;
   status: GoalStatus;
