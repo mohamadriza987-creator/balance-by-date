@@ -528,6 +528,19 @@ function PayOffDebtForm({
         isOptional: false,
       });
       linkedEntryIds.push(entryId);
+
+      // For credit card payoff, also create a transfer (bank/cash → creditCard)
+      if (debtType === "Credit Card" && onAddTransfer) {
+        onAddTransfer({
+          fromAccount: sourceAccount,
+          toAccount: "creditCard",
+          amount: result.requiredPayment,
+          date: currentDate,
+          reason: `CC Payoff: ${name}`,
+          isApplied: true,
+        });
+      }
+
       currentDate = getNextOccurrence(currentDate, paymentFreq);
     }
 
