@@ -222,6 +222,8 @@ export function computeForecast(data: AppData): ForecastItem[] {
 
   for (const entry of data.entries) {
     if (!entry.includeInForecast) continue;
+    // Skip Debt Payoff entries — goals section already generates these as "debt_payoff" type
+    if (entry.category === "Debt Payoff") continue;
     let d = entry.date;
     while (d <= horizon) {
       if (d >= refDate) {
