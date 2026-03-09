@@ -106,6 +106,7 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
       for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
         if (entry.category === "Debt Payoff") continue;
+        let dd = entry.date;
         while (dd <= me) {
           if (dd >= ms) {
             if (entry.amount >= 0) { income += entry.amount; incomeItems.push({ label: entry.label, amount: entry.amount, date: dd }); }
