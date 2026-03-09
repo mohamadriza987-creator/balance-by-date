@@ -89,7 +89,7 @@ export function InsightsCard({ data, forecast }: InsightsCardProps) {
     // Goal-related insights
     const activeGoals = (data.goals || []).filter(g => g.status === "active");
     if (activeGoals.length > 0) {
-      const totalGoalContributions = activeGoals.reduce((sum, g) => sum + g.monthlyAmount, 0);
+      const totalGoalContributions = activeGoals.reduce((sum, g) => sum + g.contributionAmount, 0);
       if (totalGoalContributions > 0) {
         items.push(`Your active goals require ${fm(totalGoalContributions)} monthly.`);
       }
