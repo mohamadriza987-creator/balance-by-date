@@ -76,7 +76,7 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
 
       {/* Account Cards with drill-down */}
       <div className="space-y-2">
-        {accounts.map(({ key, label, icon: Icon, color }) => {
+        {accounts.filter(({ key }) => enabledAccounts.includes(key)).map(({ key, label, icon: Icon, color }) => {
           const movements = getMovements(key);
           const isExpanded = expandedAccount === key;
 
