@@ -43,9 +43,14 @@ export function AccountsTab({ data, onUpdateAccountBalances }: AccountsTabProps)
     setEditingKey(null);
   };
 
-  const totalBalance = includeCCInBalance
-    ? data.accountBalances.cash + data.accountBalances.bank + data.accountBalances.creditCard
-    : data.accountBalances.cash + data.accountBalances.bank;
+  const hasCreditCard = enabledAccounts.includes("creditCard");
+  const totalBalance = useMemo(() => {
+    let total = 0;
+    if (enabledAccounts.includes("cash")) total += data.accountBalances.cash;
+    if (enabledAccounts.includes("bank")) total += data.accountBalances.bank;
+    if (hasCreditCard && includeCCInBalance) total += data.accountBalances.creditCard;
+    return total;
+  }, [data.accountBalances, enabledAccounts, includeCCInBalance, hasCreditCard]);
 
   // Account drill-down: 2-month movements
   const { accountItems } = useMemo(() => computeAccountForecasts(data), [data]);
