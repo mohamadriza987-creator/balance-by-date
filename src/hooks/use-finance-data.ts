@@ -287,6 +287,17 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, otherAssets: (prev.otherAssets || []).filter((a) => a.id !== id) }));
   }, [setData]);
 
+  const addLiabilityPayoff = useCallback((payoff: Omit<LiabilityPayoff, "id">) => {
+    setData((prev) => ({
+      ...prev,
+      liabilityPayoffs: [...(prev.liabilityPayoffs || []), { ...payoff, id: Math.random().toString(36).slice(2, 10) }],
+    }));
+  }, [setData]);
+
+  const removeLiabilityPayoff = useCallback((id: string) => {
+    setData((prev) => ({ ...prev, liabilityPayoffs: (prev.liabilityPayoffs || []).filter((p) => p.id !== id) }));
+  }, [setData]);
+
   return {
     data,
     loaded,
@@ -299,6 +310,7 @@ export function useFinanceData() {
     updateUserProfile, addDebtWithPlan,
     addTransfer, removeTransfer, updateSettings,
     addGoal, removeGoal, addOtherAsset, removeOtherAsset,
+    addLiabilityPayoff, removeLiabilityPayoff,
   };
 }
 
