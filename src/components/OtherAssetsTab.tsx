@@ -602,19 +602,20 @@ function AllTransactionsSection({ data, fm }: { data: AppData; fm: (n: number) =
       type: "inflow" | "outflow" | "transfer" | "goal_contribution" | "liability_payoff" | "cc_settlement";
     }> = [];
 
-    // Process entries
+    // Process entries (skip Debt Payoff — already shown in Liability Payoff section)
     data.entries.forEach(entry => {
+      if (entry.category === "Debt Payoff") return;
       if (entry.date >= fromDate && entry.date <= toDate) {
         items.push({
           id: entry.id,
           date: entry.date,
           name: entry.label,
           amount: entry.amount,
-          balance: 0, // Will calculate running balance
+          balance: 0,
           source: ACCOUNT_LABELS[entry.account] || entry.account,
           type: entry.amount >= 0 ? "inflow" : 
                 entry.category === "Goal Contribution" ? "goal_contribution" :
-                (entry.category === "Debt" || entry.category === "Debt Payoff") ? "liability_payoff" : "outflow",
+                entry.category === "Debt" ? "liability_payoff" : "outflow",
         });
       }
     });
