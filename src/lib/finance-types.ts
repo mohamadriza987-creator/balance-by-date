@@ -172,7 +172,7 @@ export interface ForecastItem {
   label: string;
   amount: number;
   balance: number;
-  type: "subscription" | "income" | "expense" | "cc_bill" | "transfer";
+  type: "subscription" | "income" | "expense" | "cc_bill" | "transfer" | "goal_contribution" | "debt_payoff";
   account?: AccountType;
   isCheque?: boolean;
   isDebtLinked?: boolean;
