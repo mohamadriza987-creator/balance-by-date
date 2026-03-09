@@ -303,7 +303,7 @@ function InvestmentForm({ onAdd, enabledAccounts }: { onAdd: (i: Omit<Investment
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
-        <AcenabledAccounts={enabledAccounts} countSelect value={account} onChange={setAccount} />
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={enabledAccounts} />
       </div>
       <Button type="submit" variant="destructive" className="w-full" disabled={!isValid}>— Add Investment</Button>
     </form>
