@@ -137,6 +137,7 @@ const Index = () => {
               setOnboardingComplete(false);
             }}
             onUpdateSettings={updateSettings}
+            onUpdateAccountBalances={updateAccountBalances}
           />
         </main>
       </div>
