@@ -23,6 +23,8 @@ type AccountFilter = "all" | AccountType;
 
 interface TransactionsTabProps {
   data: AppData;
+  onUpdateEntry?: (id: string, updates: Partial<Omit<import("@/lib/finance-types").Entry, "id">>) => void;
+  onRemoveEntry?: (id: string) => void;
 }
 
 const COLORS = [
