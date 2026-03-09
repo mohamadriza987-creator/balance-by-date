@@ -26,9 +26,10 @@ interface ForecastTabProps {
   onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
   onAddEntry: (entry: Omit<import("@/lib/finance-types").Entry, "id">) => string;
   onAddLiabilityPayoff?: (payoff: Omit<import("@/lib/finance-types").LiabilityPayoff, "id">) => void;
+  onAddTransfer?: (transfer: Omit<import("@/lib/finance-types").Transfer, "id">) => void;
 }
 
-export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff }: ForecastTabProps) {
+export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
