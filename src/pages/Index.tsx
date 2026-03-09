@@ -14,6 +14,7 @@ import { OutflowTab } from "@/components/OutflowTab";
 import { ForecastTab } from "@/components/ForecastTab";
 import { TransfersTab } from "@/components/TransfersTab";
 import { SettingsTab } from "@/components/SettingsTab";
+import { OtherAssetsTab } from "@/components/OtherAssetsTab";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
@@ -27,6 +28,7 @@ const tabs = [
   { value: "outflow", label: "Outflow", icon: ArrowUpRight },
   { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
+  { value: "otherAssets", label: "Other Assets", icon: Landmark },
 ] as const;
 
 const Index = () => {
