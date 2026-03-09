@@ -122,10 +122,7 @@ export function InflowTab({ entries, data, onAddEntry, onToggle, onRemove, onUpd
             </div>
             <div>
               <Label className="text-xs">Account *</Label>
-              <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
-            </div>
-
-            {/* Debt Repayment Planning */}
+              <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} t Planning */}
             {isDebt && (
               <div className="rounded-lg border border-orange-500/30 bg-orange-500/5 p-3 space-y-3">
                 <p className="text-xs font-semibold text-orange-400">📋 Repayment Plan</p>
@@ -215,7 +212,7 @@ function EditableRow({ entry, onSave, onCancel }: { entry: Entry; onSave: (updat
           <CategorySelect value={category} onChange={setCategory} type="income" className="h-8" />
           <FrequencySelect value={frequency} onChange={setFrequency} className="h-8" />
           <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-8" />
-          <AccountSelect vaenabledAccounts={data.userProfile?.enabledAccounts} lue={account} onChange={setAccount} className="h-8" />
+          <AccountSelect vaenabledAccounts={data.userProfile?.enabledAccounts} />
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel}><X className="h-4 w-4 mr-1" /> Cancel</Button>

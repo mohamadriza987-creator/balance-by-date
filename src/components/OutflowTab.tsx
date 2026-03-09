@@ -238,7 +238,7 @@ function SubscriptionForm({ onAdd, enabledAccounts }: { onAdd: (s: Omit<Subscrip
       </div>
       <div>
         <Label className="text-xs">Account *</Label>
-        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={enabledAccounts} />
       </div>
       <div className="flex items-center gap-3">
         <Switch checked={isTrial} onCheckedChange={setIsTrial} />
