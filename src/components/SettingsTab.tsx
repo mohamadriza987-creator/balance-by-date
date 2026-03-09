@@ -25,7 +25,7 @@ interface SettingsTabProps {
   onUpdateAccountBalances?: (balances: AccountBalances) => void;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings }: SettingsTabProps) {
+export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
