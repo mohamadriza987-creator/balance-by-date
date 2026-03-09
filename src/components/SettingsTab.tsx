@@ -1,18 +1,20 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, TrendingUp } from "lucide-react";
-import type { AppData, AppSettings } from "@/lib/finance-types";
+import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, TrendingUp, Plus, Wallet } from "lucide-react";
+import type { AppData, AppSettings, AccountType, AccountBalances } from "@/lib/finance-types";
 import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
 import { getSettings } from "@/lib/account-forecast";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsTabProps {
   data: AppData;
@@ -20,6 +22,7 @@ interface SettingsTabProps {
   onUpdateForecastDate: (date: string) => void;
   onReplayIntro?: () => void;
   onUpdateSettings?: (updates: Partial<AppSettings>) => void;
+  onUpdateAccountBalances?: (balances: AccountBalances) => void;
 }
 
 export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings }: SettingsTabProps) {
