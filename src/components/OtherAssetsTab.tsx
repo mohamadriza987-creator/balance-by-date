@@ -178,7 +178,8 @@ function AddOtherAssetForm({ onAdd, onCancel, fm }: {
   const [name, setName] = useState("");
   const [type, setType] = useState<OtherAssetType>("Other");
   const [currentValue, setCurrentValue] = useState("");
-  const [monthlyContribution, setMonthlyContribution] = useState("");
+  const [contributionAmount, setContributionAmount] = useState("");
+  const [contributionFreq, setContributionFreq] = useState<import("@/lib/finance-types").Frequency>("monthly");
   const [expectedReturn, setExpectedReturn] = useState("0");
   const [targetAmount, setTargetAmount] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
@@ -191,7 +192,8 @@ function AddOtherAssetForm({ onAdd, onCancel, fm }: {
       name: name.trim(),
       type,
       currentValue: parseFloat(currentValue) || 0,
-      monthlyContribution: parseFloat(monthlyContribution) || 0,
+      contributionAmount: parseFloat(contributionAmount) || 0,
+      contributionFrequency: contributionFreq,
       expectedReturn: parseFloat(expectedReturn) || 0,
       targetAmount: targetAmount ? parseFloat(targetAmount) : undefined,
       maturityDate: maturityDate || undefined,
