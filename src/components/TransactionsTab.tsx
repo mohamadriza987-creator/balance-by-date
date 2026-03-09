@@ -83,6 +83,7 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
   const overdueEntries = useMemo(() => {
     return data.entries.filter(e => {
       if (!e.includeInForecast) return false;
+      if (e.category === "Debt Payoff") return false; // shown via liability payoff
       if (e.frequency === "once" && e.date < today) return true;
       return false;
     }).sort((a, b) => a.date.localeCompare(b.date));
@@ -104,6 +105,7 @@ export function TransactionsTab({ data, onUpdateEntry, onRemoveEntry }: Transact
 
       for (const entry of filteredData.entries) {
         if (!entry.includeInForecast) continue;
+        if (entry.category === "Debt Payoff") continue; // handled by goals
         let dd = entry.date;
         while (dd <= me) {
           if (dd >= ms) {
