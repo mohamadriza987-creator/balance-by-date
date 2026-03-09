@@ -200,11 +200,11 @@ export function TransfersTab({ data, onAddTransfer, onRemoveTransfer }: Transfer
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">From</Label>
-              <AccountSelect value={fromAccount} onChange={setFromAccount} />
+              <AccountSelect value={fromAccount} onChange={setFromAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
             </div>
             <div>
               <Label className="text-xs">To</Label>
-              <AccountSelect value={toAccount} onChange={setToAccount} />
+              <AccountSelect value={toAccount} onChange={setToAccount} enabledAccounts={data.userProfile?.enabledAccounts} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
