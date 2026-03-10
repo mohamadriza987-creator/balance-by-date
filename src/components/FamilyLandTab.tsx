@@ -48,7 +48,7 @@ export function FamilyLandTab({
 }: FamilyLandTabProps) {
   const family = data.familyData || { members: [], requests: [], piggyBanks: [], sharedGoals: [] };
   const cs = data.userProfile?.currencySymbol || "$";
-  const fmt = (n: number) => formatMoney(n, cs);
+  const fmt = (n: number) => formatMoney(n, data.userProfile);
 
   const pendingRequests = family.requests.filter(r => r.status === "pending");
 
