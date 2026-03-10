@@ -1,8 +1,8 @@
 import type { Frequency, AccountType } from "./finance-types";
 
-export const APP_NAME = "Finance Buddy";
-export const APP_SUBTITLE = "Know your balance before the date arrives";
-export const APP_TAGLINE = "See how much money you'll have on any future date";
+export const APP_NAME = "FinnyLand-View";
+export const APP_SUBTITLE = "Where Goals Grow Together";
+export const APP_TAGLINE = "Manage your finances, reach your goals, grow together";
 
 export const EXPENSE_CATEGORIES = [
   "Housing", "Food", "Utilities", "Transport", "Health",
