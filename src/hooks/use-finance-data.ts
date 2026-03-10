@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings, Goal, OtherAsset, LiabilityPayoff } from "@/lib/finance-types";
+import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings, Goal, OtherAsset, LiabilityPayoff, FamilyMember, FamilyRequest, PiggyBank, PiggyBankContribution, SharedGoal, SharedGoalContribution, FamilyData } from "@/lib/finance-types";
 import { seedData } from "@/lib/finance-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -298,6 +298,98 @@ export function useFinanceData() {
     setData((prev) => ({ ...prev, liabilityPayoffs: (prev.liabilityPayoffs || []).filter((p) => p.id !== id) }));
   }, [setData]);
 
+  // ---- Family Data CRUD ----
+  const ensureFamily = (prev: AppData): FamilyData => prev.familyData || { members: [], requests: [], piggyBanks: [], sharedGoals: [] };
+
+  const addFamilyMember = useCallback((member: Omit<FamilyMember, "id">) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, members: [...fd.members, { ...member, id: Math.random().toString(36).slice(2, 10) }] } };
+    });
+  }, [setData]);
+
+  const removeFamilyMember = useCallback((id: string) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, members: fd.members.filter(m => m.id !== id) } };
+    });
+  }, [setData]);
+
+  const addFamilyRequest = useCallback((req: Omit<FamilyRequest, "id">) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, requests: [...fd.requests, { ...req, id: Math.random().toString(36).slice(2, 10) }] } };
+    });
+  }, [setData]);
+
+  const updateFamilyRequest = useCallback((id: string, updates: Partial<FamilyRequest>) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, requests: fd.requests.map(r => r.id === id ? { ...r, ...updates } : r) } };
+    });
+  }, [setData]);
+
+  const addPiggyBank = useCallback((pb: Omit<PiggyBank, "id" | "contributions">) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, piggyBanks: [...fd.piggyBanks, { ...pb, id: Math.random().toString(36).slice(2, 10), contributions: [] }] } };
+    });
+  }, [setData]);
+
+  const addPiggyBankContribution = useCallback((piggyBankId: string, contrib: Omit<PiggyBankContribution, "id">) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return {
+        ...prev,
+        familyData: {
+          ...fd,
+          piggyBanks: fd.piggyBanks.map(pb => pb.id === piggyBankId ? {
+            ...pb,
+            currentAmount: pb.currentAmount + contrib.amount,
+            contributions: [...pb.contributions, { ...contrib, id: Math.random().toString(36).slice(2, 10) }],
+          } : pb),
+        },
+      };
+    });
+  }, [setData]);
+
+  const addSharedGoal = useCallback((goal: Omit<SharedGoal, "id" | "contributions">) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, sharedGoals: [...fd.sharedGoals, { ...goal, id: Math.random().toString(36).slice(2, 10), contributions: [] }] } };
+    });
+  }, [setData]);
+
+  const addSharedGoalContribution = useCallback((goalId: string, contrib: Omit<SharedGoalContribution, "id">) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return {
+        ...prev,
+        familyData: {
+          ...fd,
+          sharedGoals: fd.sharedGoals.map(g => g.id === goalId ? {
+            ...g,
+            contributions: [...g.contributions, { ...contrib, id: Math.random().toString(36).slice(2, 10) }],
+          } : g),
+        },
+      };
+    });
+  }, [setData]);
+
+  const removeSharedGoal = useCallback((id: string) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, sharedGoals: fd.sharedGoals.filter(g => g.id !== id) } };
+    });
+  }, [setData]);
+
+  const removePiggyBank = useCallback((id: string) => {
+    setData((prev) => {
+      const fd = ensureFamily(prev);
+      return { ...prev, familyData: { ...fd, piggyBanks: fd.piggyBanks.filter(pb => pb.id !== id) } };
+    });
+  }, [setData]);
+
   return {
     data,
     loaded,
@@ -311,6 +403,10 @@ export function useFinanceData() {
     addTransfer, removeTransfer, updateSettings,
     addGoal, removeGoal, addOtherAsset, removeOtherAsset,
     addLiabilityPayoff, removeLiabilityPayoff,
+    addFamilyMember, removeFamilyMember,
+    addFamilyRequest, updateFamilyRequest,
+    addPiggyBank, addPiggyBankContribution, removePiggyBank,
+    addSharedGoal, addSharedGoalContribution, removeSharedGoal,
   };
 }
 

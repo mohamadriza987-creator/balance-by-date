@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, Receipt, Landmark } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, Receipt, Heart } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -23,7 +23,7 @@ import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
 // TransfersTab removed — replaced by TransactionsListTab
 const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
-const OtherAssetsTab = lazy(() => import("@/components/OtherAssetsTab").then(m => ({ default: m.OtherAssetsTab })));
+const FamilyLandTab = lazy(() => import("@/components/FamilyLandTab").then(m => ({ default: m.FamilyLandTab })));
 
 const TabLoading = () => (
   <div className="flex items-center justify-center py-12">
@@ -35,7 +35,7 @@ const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "transactions", label: "Transactions", icon: Receipt },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
-  { value: "others", label: "Others", icon: Landmark },
+  { value: "family", label: "Family", icon: Heart },
 ] as const;
 
 const Index = () => {
@@ -51,6 +51,10 @@ const Index = () => {
     addTransfer, removeTransfer, updateSettings,
     addGoal, removeGoal, addOtherAsset, removeOtherAsset,
     addLiabilityPayoff, removeLiabilityPayoff,
+    addFamilyMember, removeFamilyMember,
+    addFamilyRequest, updateFamilyRequest,
+    addPiggyBank, addPiggyBankContribution, removePiggyBank,
+    addSharedGoal, addSharedGoalContribution, removeSharedGoal,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
@@ -224,8 +228,20 @@ const Index = () => {
           {activeTab === "forecast" && (
             <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
           )}
-          {activeTab === "others" && (
-            <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
+          {activeTab === "family" && (
+            <FamilyLandTab
+              data={data}
+              onAddFamilyMember={addFamilyMember}
+              onRemoveFamilyMember={removeFamilyMember}
+              onAddFamilyRequest={addFamilyRequest}
+              onUpdateFamilyRequest={updateFamilyRequest}
+              onAddPiggyBank={addPiggyBank}
+              onAddPiggyBankContribution={addPiggyBankContribution}
+              onRemovePiggyBank={removePiggyBank}
+              onAddSharedGoal={addSharedGoal}
+              onAddSharedGoalContribution={addSharedGoalContribution}
+              onRemoveSharedGoal={removeSharedGoal}
+            />
           )}
         </Suspense>
       </main>

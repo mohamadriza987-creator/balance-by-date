@@ -180,6 +180,76 @@ export interface UserProfile {
   enabledAccounts: AccountType[];
 }
 
+export type FamilyRelationship = "spouse" | "child" | "parent" | "sibling";
+export type FamilyRequestStatus = "pending" | "approved" | "rejected";
+export type FamilyRequestType = "purchase" | "contribution" | "allowance" | "other";
+
+export interface FamilyMember {
+  id: string;
+  name: string;
+  relationship: FamilyRelationship;
+  emoji: string;
+  linkedUserId?: string;
+  linkedFinnyId?: string;
+  addedDate: string;
+}
+
+export interface FamilyRequest {
+  id: string;
+  fromMemberId: string;
+  toMemberId?: string;
+  type: FamilyRequestType;
+  description: string;
+  amount: number;
+  status: FamilyRequestStatus;
+  date: string;
+  category?: string;
+  account?: AccountType;
+}
+
+export interface PiggyBank {
+  id: string;
+  childMemberId: string;
+  childName: string;
+  targetAmount: number;
+  currentAmount: number;
+  emoji: string;
+  contributions: PiggyBankContribution[];
+}
+
+export interface PiggyBankContribution {
+  id: string;
+  amount: number;
+  date: string;
+  fromMemberName: string;
+  note?: string;
+}
+
+export interface SharedGoal {
+  id: string;
+  name: string;
+  targetAmount: number;
+  emoji: string;
+  contributions: SharedGoalContribution[];
+  createdDate: string;
+  targetDate?: string;
+}
+
+export interface SharedGoalContribution {
+  id: string;
+  memberId: string;
+  memberName: string;
+  amount: number;
+  date: string;
+}
+
+export interface FamilyData {
+  members: FamilyMember[];
+  requests: FamilyRequest[];
+  piggyBanks: PiggyBank[];
+  sharedGoals: SharedGoal[];
+}
+
 export interface AppData {
   currentBalance: number;
   accountBalances: AccountBalances;
@@ -195,6 +265,7 @@ export interface AppData {
   liabilityPayoffs: LiabilityPayoff[];
   settings: AppSettings;
   userProfile?: UserProfile;
+  familyData?: FamilyData;
 }
 
 export interface ForecastItem {
