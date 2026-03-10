@@ -208,10 +208,18 @@ const Index = () => {
             <TransactionsTab data={data} onUpdateEntry={updateEntry} onRemoveEntry={removeEntry} />
           </div>
         )}
+        {activeTab === "transactions" && (
+          <TransactionsListTab
+            data={data}
+            onUpdateEntry={updateEntry}
+            onRemoveEntry={removeEntry}
+            onUpdateSubscription={updateSubscription}
+            onRemoveSubscription={removeSubscription}
+            onRemoveTransfer={removeTransfer}
+            onRemoveInvestment={removeInvestment}
+          />
+        )}
         <Suspense fallback={<TabLoading />}>
-          {activeTab === "transfers" && (
-            <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
-          )}
           {activeTab === "forecast" && (
             <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
           )}
