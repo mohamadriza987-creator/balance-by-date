@@ -151,7 +151,7 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
 
       {/* Negative Balance Warning */}
       {riskDate && (
-        <Card className="border-destructive/30 bg-destructive/5">
+        <Card className="border-destructive/30 bg-destructive/5 animate-pop">
           <CardContent className="p-3 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
             <div>
