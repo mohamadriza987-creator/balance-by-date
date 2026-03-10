@@ -307,12 +307,15 @@ export function generateTransferSuggestions(data: AppData): TransferSuggestion[]
   return suggestions;
 }
 
-/** Get account-specific insights */
-export function getAccountInsights(data: AppData): string[] {
-  const settings = getSettings(data);
+/** Get account-specific insights (accepts pre-computed data to avoid redundant computation) */
+export function getAccountInsights(
+  data: AppData,
+  precomputed?: { shortfalls: AccountShortfall[]; suggestions: TransferSuggestion[]; ccBills: CreditCardBillItem[] }
+): string[] {
   const insights: string[] = [];
-  const { shortfalls } = computeAccountForecasts(data);
-  const suggestions = generateTransferSuggestions(data);
+  const { shortfalls } = precomputed || computeAccountForecasts(data);
+  const suggestions = precomputed?.suggestions || generateTransferSuggestions(data);
+  const ccBills = precomputed?.ccBills || computeCreditCardBills(data);
 
   const accountLabels: Record<AccountType, string> = { cash: "Cash", bank: "Bank", creditCard: "Credit Card" };
 
@@ -334,8 +337,6 @@ export function getAccountInsights(data: AppData): string[] {
     }
   }
 
-  // CC bill warnings
-  const ccBills = computeCreditCardBills(data);
   for (const bill of ccBills.slice(0, 2)) {
     if (bill.amount > data.accountBalances.bank * 0.8) {
       insights.push(

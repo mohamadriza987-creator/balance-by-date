@@ -203,7 +203,8 @@ export function computeBalanceAtPosition(data: AppData): number {
 
 export function computeForecast(data: AppData): ForecastItem[] {
   const refDate = data.positionDate || todayStr();
-  const effectiveBalance = computeBalanceAtPosition(data);
+  // Use currentBalance directly — callers should pass effective balance via data.currentBalance
+  const effectiveBalance = data.currentBalance;
   const horizon = data.forecastDate > addDays(refDate, 180) ? data.forecastDate : addDays(refDate, 180);
   const items: ForecastItem[] = [];
 

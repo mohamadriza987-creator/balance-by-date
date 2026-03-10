@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense, memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -8,12 +8,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
 import { TransactionsTab } from "@/components/TransactionsTab";
-import { InflowTab } from "@/components/InflowTab";
-import { OutflowTab } from "@/components/OutflowTab";
-import { ForecastTab } from "@/components/ForecastTab";
-import { TransfersTab } from "@/components/TransfersTab";
-import { SettingsTab } from "@/components/SettingsTab";
-import { OtherAssetsTab } from "@/components/OtherAssetsTab";
 import { GuidedTour } from "@/components/GuidedTour";
 import { IntroFlow } from "@/components/IntroFlow";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
@@ -22,6 +16,20 @@ import { format, parseISO } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { UserProfile, AccountBalances } from "@/lib/finance-types";
+
+// Lazy load heavy tab components
+const InflowTab = lazy(() => import("@/components/InflowTab").then(m => ({ default: m.InflowTab })));
+const OutflowTab = lazy(() => import("@/components/OutflowTab").then(m => ({ default: m.OutflowTab })));
+const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
+const TransfersTab = lazy(() => import("@/components/TransfersTab").then(m => ({ default: m.TransfersTab })));
+const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
+const OtherAssetsTab = lazy(() => import("@/components/OtherAssetsTab").then(m => ({ default: m.OtherAssetsTab })));
+
+const TabLoading = () => (
+  <div className="flex items-center justify-center py-12">
+    <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
+  </div>
+);
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
@@ -115,9 +123,6 @@ const Index = () => {
     );
   }
 
-  const profile = data.userProfile;
-  const fm = (n: number) => formatMoney(n, profile);
-
   if (showSettings) {
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -129,16 +134,18 @@ const Index = () => {
           </div>
         </header>
         <main className="px-3 py-4">
-          <SettingsTab
-            data={data}
-            onReplace={(d) => setData(d)}
-            onUpdateForecastDate={updateForecastDate}
-            onReplayIntro={() => {
-              setOnboardingComplete(false);
-            }}
-            onUpdateSettings={updateSettings}
-            onUpdateAccountBalances={updateAccountBalances}
-          />
+          <Suspense fallback={<TabLoading />}>
+            <SettingsTab
+              data={data}
+              onReplace={(d) => setData(d)}
+              onUpdateForecastDate={updateForecastDate}
+              onReplayIntro={() => {
+                setOnboardingComplete(false);
+              }}
+              onUpdateSettings={updateSettings}
+              onUpdateAccountBalances={updateAccountBalances}
+            />
+          </Suspense>
         </main>
       </div>
     );
@@ -209,46 +216,48 @@ const Index = () => {
             <TransactionsTab data={data} onUpdateEntry={updateEntry} onRemoveEntry={removeEntry} />
           </div>
         )}
-        {activeTab === "inflow" && (
-          <InflowTab
-            entries={data.entries}
-            data={data}
-            onAddEntry={addEntry}
-            onToggle={toggleEntryForecast}
-            onRemove={removeEntry}
-            onUpdate={updateEntry}
-            onAddDebtWithPlan={addDebtWithPlan}
-          />
-        )}
-        {activeTab === "outflow" && (
-          <OutflowTab
-            entries={data.entries}
-            subscriptions={data.subscriptions}
-            investments={data.investments || []}
-            data={data}
-            onAddEntry={addEntry}
-            onAddSubscription={addSubscription}
-            onAddInvestment={addInvestment}
-            onRemoveEntry={removeEntry}
-            onRemoveSubscription={removeSubscription}
-            onRemoveInvestment={removeInvestment}
-            onToggleEntry={toggleEntryForecast}
-            onToggleSubscription={toggleSubscriptionForecast}
-            onUpdateEntry={updateEntry}
-            onUpdateSubscription={updateSubscription}
-            onUpdateInvestment={updateInvestment}
-            onAddDebtWithPlan={addDebtWithPlan}
-          />
-        )}
-        {activeTab === "transfers" && (
-          <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
-        )}
-        {activeTab === "forecast" && (
-          <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
-        )}
-        {activeTab === "others" && (
-          <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
-        )}
+        <Suspense fallback={<TabLoading />}>
+          {activeTab === "inflow" && (
+            <InflowTab
+              entries={data.entries}
+              data={data}
+              onAddEntry={addEntry}
+              onToggle={toggleEntryForecast}
+              onRemove={removeEntry}
+              onUpdate={updateEntry}
+              onAddDebtWithPlan={addDebtWithPlan}
+            />
+          )}
+          {activeTab === "outflow" && (
+            <OutflowTab
+              entries={data.entries}
+              subscriptions={data.subscriptions}
+              investments={data.investments || []}
+              data={data}
+              onAddEntry={addEntry}
+              onAddSubscription={addSubscription}
+              onAddInvestment={addInvestment}
+              onRemoveEntry={removeEntry}
+              onRemoveSubscription={removeSubscription}
+              onRemoveInvestment={removeInvestment}
+              onToggleEntry={toggleEntryForecast}
+              onToggleSubscription={toggleSubscriptionForecast}
+              onUpdateEntry={updateEntry}
+              onUpdateSubscription={updateSubscription}
+              onUpdateInvestment={updateInvestment}
+              onAddDebtWithPlan={addDebtWithPlan}
+            />
+          )}
+          {activeTab === "transfers" && (
+            <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
+          )}
+          {activeTab === "forecast" && (
+            <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
+          )}
+          {activeTab === "others" && (
+            <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
+          )}
+        </Suspense>
       </main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
