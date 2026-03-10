@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
 import { TransactionsListTab } from "@/components/TransactionsListTab";
-import { TransactionsTab } from "@/components/TransactionsTab";
+import { OverviewInsights } from "@/components/OverviewInsights";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { GuidedTour } from "@/components/GuidedTour";
 import { IntroFlow } from "@/components/IntroFlow";
