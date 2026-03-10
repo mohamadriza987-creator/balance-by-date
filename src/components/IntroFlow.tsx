@@ -212,11 +212,16 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
 
   const sendSpouseInvite = async () => {
     if (!user || !spouseSearchResult?.finnyId) return;
-    await supabase.from("spouse_invitations").insert({
+    const { error } = await supabase.from("spouse_invitations").insert({
       from_user_id: user.id,
       to_finny_user_id: spouseSearchResult.finnyId,
       status: "pending",
     });
+    if (error) {
+      console.error("Spouse invite error:", error);
+      setSpouseSearchResult(prev => prev ? { ...prev, found: false } : null);
+      return;
+    }
     setSpouseInviteSent(true);
   };
 
