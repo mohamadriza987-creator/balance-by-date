@@ -16,6 +16,8 @@ interface GoalPlannerProps {
   onAddLiabilityPayoff?: (payoff: Omit<LiabilityPayoff, "id">) => void;
   onAddTransfer?: (transfer: Omit<Transfer, "id">) => void;
   fm: (n: number) => string;
+  initialStep?: GoalFlowStep;
+  onDone?: () => void;
 }
 
 type GoalFlowStep = "select_type" | "buy_something" | "pay_off_debt";
