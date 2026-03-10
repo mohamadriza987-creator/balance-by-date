@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, Receipt, Heart } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
+import { useFamilyNotifications } from "@/hooks/use-family-notifications";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
 import { TransactionsListTab } from "@/components/TransactionsListTab";
@@ -12,7 +13,6 @@ import { OverviewInsights } from "@/components/OverviewInsights";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { GuidedTour } from "@/components/GuidedTour";
 import { IntroFlow } from "@/components/IntroFlow";
-import { SpouseInviteBanner } from "@/components/SpouseInviteBanner";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
@@ -22,7 +22,6 @@ import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 
 // Lazy load heavy tab components
 const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
-// TransfersTab removed — replaced by TransactionsListTab
 const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
 const FamilyLandTab = lazy(() => import("@/components/FamilyLandTab").then(m => ({ default: m.FamilyLandTab })));
 
@@ -58,11 +57,20 @@ const Index = () => {
     addSharedGoal, addSharedGoalContribution, removeSharedGoal,
   } = useFinanceData();
 
+  const { pendingInvitations, hasPending, dismiss, refetch } = useFamilyNotifications();
+
   const [activeTab, setActiveTab] = useState("overview");
   const [showSettings, setShowSettings] = useState(false);
   const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [profileName, setProfileName] = useState<string>("");
   const [showTour, setShowTour] = useState(false);
+
+  // When user taps Family tab, dismiss the notification blink
+  useEffect(() => {
+    if (activeTab === "family") {
+      dismiss();
+    }
+  }, [activeTab, dismiss]);
 
   // Check onboarding status from profile
   useEffect(() => {
@@ -206,8 +214,6 @@ const Index = () => {
         </div>
       </header>
 
-      <SpouseInviteBanner />
-
       <main className="px-3 py-4">
         <div key={activeTab} className="tab-content-enter">
           {activeTab === "overview" && (
@@ -244,6 +250,8 @@ const Index = () => {
                 onAddSharedGoal={addSharedGoal}
                 onAddSharedGoalContribution={addSharedGoalContribution}
                 onRemoveSharedGoal={removeSharedGoal}
+                pendingInvitations={pendingInvitations}
+                onInvitationHandled={refetch}
               />
             )}
           </Suspense>
@@ -267,20 +275,26 @@ const Index = () => {
       {/* Bottom Navigation - 4 tabs */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
         <div className="grid grid-cols-4 h-16">
-          {tabs.map(({ value, label, icon: Icon }) => (
-            <button
-              key={value}
-              onClick={() => setActiveTab(value)}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all duration-200 ${
-                activeTab === value
-                  ? "text-primary font-semibold nav-tab-active"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className={`h-5 w-5 transition-transform duration-200 ${activeTab === value ? "text-primary scale-110" : ""}`} />
-              <span>{label}</span>
-            </button>
-          ))}
+          {tabs.map(({ value, label, icon: Icon }) => {
+            const isFamilyWithNotification = value === "family" && hasPending;
+            return (
+              <button
+                key={value}
+                onClick={() => setActiveTab(value)}
+                className={`relative flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all duration-200 ${
+                  activeTab === value
+                    ? "text-primary font-semibold nav-tab-active"
+                    : "text-muted-foreground hover:text-foreground"
+                } ${isFamilyWithNotification ? "family-notify-blink" : ""}`}
+              >
+                <div className="relative">
+                  <Icon className={`h-5 w-5 transition-transform duration-200 ${activeTab === value ? "text-primary scale-110" : ""} ${isFamilyWithNotification ? "text-[hsl(142,71%,45%)]" : ""}`} />
+                  {isFamilyWithNotification && <span className="family-notify-dot" />}
+                </div>
+                <span className={isFamilyWithNotification ? "text-[hsl(142,71%,45%)] font-semibold" : ""}>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </nav>
     </div>
