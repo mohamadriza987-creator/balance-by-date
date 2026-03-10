@@ -122,7 +122,7 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
             <p className="text-sm font-bold text-destructive">{fm(summaryStats.totalOutflow)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover-scale">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
               <Minus className="h-3.5 w-3.5 text-warning" />
@@ -131,7 +131,7 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
             <p className="text-sm font-bold">{fm(monthSubs)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover-scale">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
               {summaryStats.lowestBalance < 0
