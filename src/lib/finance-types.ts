@@ -160,10 +160,16 @@ export interface AppSettings {
   defaultCompoundingFrequency?: "monthly" | "halfyearly" | "annually";
   defaultGoalReturnRate?: number;
   showOtherAssetsInNav?: boolean;
+  customIncomeCategories?: string[];
+  customExpenseCategories?: string[];
 }
 
 export interface UserProfile {
   name: string;
+  firstName?: string;
+  lastName?: string;
+  birthday?: string;
+  finnyUserId?: string;
   country: string;
   currency: string;
   currencySymbol: string;
