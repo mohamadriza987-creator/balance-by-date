@@ -105,15 +105,15 @@ export function OverviewInsights({ data }: OverviewInsightsProps) {
         return (
           <div
             key={section.key}
-            className="space-y-2 animate-fade-in"
-            style={{ animationDelay: `${(si + 1) * 60}ms` }}
+            className="space-y-2 animate-slide-up-fade"
+            style={{ animationDelay: `${(si + 1) * 80}ms`, opacity: 0 }}
           >
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5 px-1">
               <span>{section.emoji}</span> {section.title}
             </h3>
             <div className="space-y-2">
               {remaining.map((insight, i) => (
-                <InsightCard key={`${section.key}-${i}`} insight={insight} />
+                <InsightCard key={`${section.key}-${i}`} insight={insight} index={i} />
               ))}
             </div>
           </div>
