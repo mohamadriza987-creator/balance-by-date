@@ -46,7 +46,7 @@ interface ProfileData {
   currency_symbol?: string;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
+export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
