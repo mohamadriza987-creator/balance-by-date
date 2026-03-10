@@ -16,36 +16,48 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          birthday: string | null
           country: string | null
           created_at: string
           currency: string | null
           currency_symbol: string | null
           enabled_accounts: string[] | null
+          finny_user_id: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           name: string | null
           onboarding_complete: boolean | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          birthday?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
           currency_symbol?: string | null
           enabled_accounts?: string[] | null
+          finny_user_id?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          birthday?: string | null
           country?: string | null
           created_at?: string
           currency?: string | null
           currency_symbol?: string | null
           enabled_accounts?: string[] | null
+          finny_user_id?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
           updated_at?: string

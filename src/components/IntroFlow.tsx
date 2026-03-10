@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -15,7 +15,7 @@ interface IntroFlowProps {
   initialName?: string;
 }
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 const ACCOUNT_OPTIONS: { key: AccountType; label: string; creditLabel?: string }[] = [
   { key: "cash", label: "Cash" },
@@ -26,8 +26,15 @@ const ACCOUNT_OPTIONS: { key: AccountType; label: string; creditLabel?: string }
 export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>(user ? 4 : 1);
-  const [name, setName] = useState(initialName || "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [transitioning, setTransitioning] = useState(false);
+
+  // Birthday & FinnyUserID
+  const [birthday, setBirthday] = useState("");
+  const [finnyUserId, setFinnyUserId] = useState("");
+  const [finnyAvailable, setFinnyAvailable] = useState<boolean | null>(null);
+  const [checkingFinny, setCheckingFinny] = useState(false);
 
   // Country/Currency
   const [country, setCountry] = useState("");
@@ -38,6 +45,62 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   const [enabledAccounts, setEnabledAccounts] = useState<AccountType[]>([]);
   const [balances, setBalances] = useState<Record<AccountType, string>>({ cash: "", bank: "", creditCard: "" });
 
+  // Pre-fill from Google user metadata
+  useEffect(() => {
+    if (user) {
+      const meta = user.user_metadata || {};
+      if (meta.full_name || meta.name) {
+        const fullName = (meta.full_name || meta.name || "").trim();
+        const parts = fullName.split(" ");
+        if (!firstName && parts[0]) setFirstName(parts[0]);
+        if (!lastName && parts.length > 1) setLastName(parts.slice(1).join(" "));
+      }
+      if (meta.first_name && !firstName) setFirstName(meta.first_name);
+      if (meta.last_name && !lastName) setLastName(meta.last_name);
+    }
+  }, [user]);
+
+  // Auto-suggest FinnyUserID when first/last name changes
+  useEffect(() => {
+    if (firstName.trim() && lastName.trim()) {
+      const suggested = (firstName.trim() + lastName.trim()).replace(/\s+/g, "").toLowerCase();
+      setFinnyUserId(suggested);
+      setFinnyAvailable(null);
+    }
+  }, [firstName, lastName]);
+
+  const checkFinnyAvailability = async (id: string) => {
+    if (!id.trim()) return;
+    setCheckingFinny(true);
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("finny_user_id", id.trim().toLowerCase())
+      .neq("user_id", user?.id || "")
+      .maybeSingle();
+    
+    if (existing) {
+      setFinnyAvailable(false);
+      // Suggest alternative with numbers
+      for (let i = 1; i <= 99; i++) {
+        const alt = `${id.trim().toLowerCase()}${i}`;
+        const { data: altExisting } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("finny_user_id", alt)
+          .maybeSingle();
+        if (!altExisting) {
+          setFinnyUserId(alt);
+          setFinnyAvailable(true);
+          break;
+        }
+      }
+    } else {
+      setFinnyAvailable(true);
+    }
+    setCheckingFinny(false);
+  };
+
   const goToStep = (next: Step) => {
     setTransitioning(true);
     setTimeout(() => {
@@ -47,17 +110,21 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   };
 
   const handleNameContinue = () => {
-    if (!name.trim()) return;
+    if (!firstName.trim() || !lastName.trim()) return;
     goToStep(2);
   };
 
   const handleWelcomeContinue = () => {
-    // If already authenticated, skip auth step
     if (user) {
       goToStep(4);
     } else {
       goToStep(3);
     }
+  };
+
+  const handleProfileContinue = () => {
+    if (!finnyUserId.trim() || finnyAvailable === false) return;
+    goToStep(5);
   };
 
   const handleCountrySelect = (c: string) => {
@@ -71,7 +138,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
 
   const handleCountryContinue = () => {
     if (!country || !currency) return;
-    goToStep(5);
+    goToStep(6);
   };
 
   const toggleAccount = (acc: AccountType) => {
@@ -86,8 +153,13 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   });
 
   const handleFinish = async () => {
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const profile: UserProfile = {
-      name: name.trim(),
+      name: fullName,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      birthday: birthday || undefined,
+      finnyUserId: finnyUserId.trim().toLowerCase() || undefined,
       country,
       currency,
       currencySymbol,
@@ -103,6 +175,10 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
     if (user) {
       await supabase.from("profiles").update({
         name: profile.name,
+        first_name: profile.firstName,
+        last_name: profile.lastName,
+        birthday: profile.birthday || null,
+        finny_user_id: profile.finnyUserId || null,
         country: profile.country,
         currency: profile.currency,
         currency_symbol: profile.currencySymbol,
@@ -125,17 +201,25 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
             <h1 className="text-3xl font-bold text-foreground">Heyloo buddy, welcome 💛</h1>
           </div>
           <div className="space-y-3">
-            <p className="text-muted-foreground text-sm">What should I call you?</p>
+            <p className="text-muted-foreground text-sm">Tell us your name</p>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First Name"
               className="text-center text-lg h-12"
-              onKeyDown={(e) => e.key === "Enter" && handleNameContinue()}
+              onKeyDown={(e) => e.key === "Enter" && document.getElementById("intro-last-name")?.focus()}
               autoFocus
             />
+            <Input
+              id="intro-last-name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Last Name"
+              className="text-center text-lg h-12"
+              onKeyDown={(e) => e.key === "Enter" && handleNameContinue()}
+            />
           </div>
-          <Button onClick={handleNameContinue} disabled={!name.trim()} className="w-full h-12 text-base">
+          <Button onClick={handleNameContinue} disabled={!firstName.trim() || !lastName.trim()} className="w-full h-12 text-base">
             Continue
           </Button>
         </div>
@@ -155,7 +239,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
           <div className="relative rounded-2xl border border-border bg-card/80 backdrop-blur p-6 space-y-4 shadow-lg animate-fade-in">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
             <p className="relative text-lg font-medium text-foreground">
-              Hii <span className="text-primary font-semibold italic">{name.trim()}</span> 👋
+              Hii <span className="text-primary font-semibold italic">{firstName.trim()}</span> 👋
             </p>
             <div className="relative h-px w-12 mx-auto bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <p className="relative text-sm leading-relaxed text-muted-foreground italic">
@@ -179,12 +263,81 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
       {/* Step 3: Auth */}
       {step === 3 && (
         <div className={`w-full transition-all duration-300 flex justify-center ${animClass}`}>
-          <AuthPage userName={name.trim()} onBack={() => goToStep(2)} />
+          <AuthPage userName={firstName.trim()} onBack={() => goToStep(2)} />
         </div>
       )}
 
-      {/* Step 4: Country/Currency */}
+      {/* Step 4: Birthday & FinnyUserID */}
       {step === 4 && (
+        <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
+          <div className="text-center space-y-1">
+            <h2 className="text-xl font-bold text-foreground">A bit more about you</h2>
+            <p className="text-sm text-muted-foreground">Let's personalize your experience</p>
+          </div>
+
+          {/* Email (read-only from auth) */}
+          {user?.email && (
+            <div>
+              <Label className="text-xs">Email</Label>
+              <Input value={user.email} disabled className="h-10 opacity-60" />
+            </div>
+          )}
+
+          {/* First & Last Name (editable, pre-filled) */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">First Name</Label>
+              <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+            </div>
+            <div>
+              <Label className="text-xs">Last Name</Label>
+              <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+            </div>
+          </div>
+
+          {/* Birthday */}
+          <div>
+            <Label className="text-xs">Birthday (optional)</Label>
+            <Input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className="h-10" />
+          </div>
+
+          {/* FinnyUserID */}
+          <div>
+            <Label className="text-xs">Your FinnyUserID</Label>
+            <div className="flex gap-2">
+              <Input
+                value={finnyUserId}
+                onChange={e => { setFinnyUserId(e.target.value.toLowerCase().replace(/\s/g, "")); setFinnyAvailable(null); }}
+                placeholder="e.g. mohamadriza"
+                className="h-10 flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-10 text-xs"
+                onClick={() => checkFinnyAvailability(finnyUserId)}
+                disabled={!finnyUserId.trim() || checkingFinny}
+              >
+                {checkingFinny ? "..." : "Check"}
+              </Button>
+            </div>
+            {finnyAvailable === true && (
+              <p className="text-xs text-success mt-1">✓ Available!</p>
+            )}
+            {finnyAvailable === false && (
+              <p className="text-xs text-destructive mt-1">✗ Already taken. We've suggested an alternative above.</p>
+            )}
+          </div>
+
+          <Button onClick={handleProfileContinue} disabled={!finnyUserId.trim() || finnyAvailable === false} className="w-full h-12 text-base">
+            Continue
+          </Button>
+        </div>
+      )}
+
+      {/* Step 5: Country/Currency */}
+      {step === 5 && (
         <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
             <h2 className="text-xl font-bold text-foreground">Select your country</h2>
@@ -221,8 +374,8 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
         </div>
       )}
 
-      {/* Step 5: Source selection */}
-      {step === 5 && (
+      {/* Step 6: Source selection */}
+      {step === 6 && (
         <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
             <h2 className="text-xl font-bold text-foreground">Which sources would you like to add?</h2>

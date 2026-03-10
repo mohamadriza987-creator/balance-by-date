@@ -232,6 +232,7 @@ const Index = () => {
         onAddOtherAsset={addOtherAsset}
         onAddLiabilityPayoff={addLiabilityPayoff}
         onAddDebtWithPlan={addDebtWithPlan}
+        onUpdateSettings={updateSettings}
       />
 
       {/* Bottom Navigation - 4 tabs */}

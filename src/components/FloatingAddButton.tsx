@@ -8,8 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CategorySelect } from "@/components/CategorySelect";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { AccountSelect } from "@/components/AccountSelect";
-import { ACCOUNT_LABELS } from "@/lib/constants";
-import type { AppData, Entry, Frequency, Investment, Subscription, Transfer, AccountType, Goal, OtherAsset, LiabilityPayoff } from "@/lib/finance-types";
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, ACCOUNT_LABELS } from "@/lib/constants";
+import type { AppData, Entry, Frequency, Investment, Subscription, Transfer, AccountType, Goal, OtherAsset, LiabilityPayoff, AppSettings } from "@/lib/finance-types";
 import { todayStr, formatMoney } from "@/lib/finance-utils";
 
 type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt";
@@ -24,6 +24,7 @@ interface FloatingAddButtonProps {
   onAddOtherAsset: (asset: Omit<OtherAsset, "id">) => void;
   onAddLiabilityPayoff?: (payoff: Omit<LiabilityPayoff, "id">) => void;
   onAddDebtWithPlan: (parentEntry: Omit<Entry, "id">, plan: { splits: number; frequency: Frequency; startDate: string; direction: "received" | "given" }) => void;
+  onUpdateSettings?: (updates: Partial<AppSettings>) => void;
 }
 
 const actions: { key: AddAction; label: string; icon: typeof ArrowDownLeft; color: string; desc: string }[] = [
@@ -33,6 +34,23 @@ const actions: { key: AddAction; label: string; icon: typeof ArrowDownLeft; colo
   { key: "transfer", label: "Inter Transfer (Own)", icon: ArrowLeftRight, color: "text-info", desc: "Move money between your accounts" },
   { key: "debt", label: "Debt / Liability", icon: Landmark, color: "text-orange-400", desc: "Loan payoff, debt given/received" },
 ];
+
+function saveCustomCategory(
+  category: string,
+  type: "income" | "expense",
+  data: AppData,
+  onUpdateSettings?: (updates: Partial<AppSettings>) => void
+) {
+  if (!onUpdateSettings || !category.trim()) return;
+  const defaults = type === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+  if (defaults.includes(category as any)) return;
+  
+  const key = type === "income" ? "customIncomeCategories" : "customExpenseCategories";
+  const existing = data.settings?.[key] || [];
+  if (existing.includes(category)) return;
+  
+  onUpdateSettings({ [key]: [...existing, category] });
+}
 
 export function FloatingAddButton(props: FloatingAddButtonProps) {
   const [open, setOpen] = useState(false);
@@ -125,16 +143,16 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
                 /* Form */
                 <div className="animate-fade-in">
                   {activeAction === "income" && (
-                    <IncomeForm data={props.data} onAdd={props.onAddEntry} onDone={handleDone} />
+                    <IncomeForm data={props.data} onAdd={props.onAddEntry} onDone={handleDone} onUpdateSettings={props.onUpdateSettings} />
                   )}
                   {activeAction === "expense" && (
-                    <ExpenseForm data={props.data} onAdd={props.onAddEntry} onDone={handleDone} />
+                    <ExpenseForm data={props.data} onAdd={props.onAddEntry} onDone={handleDone} onUpdateSettings={props.onUpdateSettings} />
                   )}
                   {activeAction === "transfer" && (
                     <TransferForm data={props.data} onAdd={props.onAddTransfer} onDone={handleDone} />
                   )}
                   {activeAction === "subscription" && (
-                    <SubscriptionForm data={props.data} onAdd={props.onAddSubscription} onDone={handleDone} />
+                    <SubscriptionForm data={props.data} onAdd={props.onAddSubscription} onDone={handleDone} onUpdateSettings={props.onUpdateSettings} />
                   )}
                   {activeAction === "debt" && (
                     <DebtForm data={props.data} onAdd={props.onAddEntry} onAddDebtWithPlan={props.onAddDebtWithPlan} onDone={handleDone} />
@@ -150,25 +168,28 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
 }
 
 // ============ INCOME FORM ============
-function IncomeForm({ data, onAdd, onDone }: {
+function IncomeForm({ data, onAdd, onDone, onUpdateSettings }: {
   data: AppData;
   onAdd: (e: Omit<Entry, "id">) => string;
   onDone: () => void;
+  onUpdateSettings?: (updates: Partial<AppSettings>) => void;
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("Other");
   const [account, setAccount] = useState<AccountType>("bank");
 
+  const customCategories = data.settings?.customIncomeCategories || [];
   const isValid = !!(name.trim() && amount && date && category.trim());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
+    saveCustomCategory(category, "income", data, onUpdateSettings);
     onAdd({ label: name, amount: Math.abs(parseFloat(amount)), date, frequency, category, account, includeInForecast: true });
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank");
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank");
     onDone();
   };
 
@@ -189,7 +210,7 @@ function IncomeForm({ data, onAdd, onDone }: {
         <div><Label className="text-xs">Date *</Label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <CategorySelect value={category} onChange={setCategory} type="income" className="h-10" /></div>
+          <CategorySelect value={category} onChange={setCategory} type="income" className="h-10" customCategories={customCategories} /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
         <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
@@ -201,29 +222,32 @@ function IncomeForm({ data, onAdd, onDone }: {
 }
 
 // ============ EXPENSE FORM ============
-function ExpenseForm({ data, onAdd, onDone }: {
+function ExpenseForm({ data, onAdd, onDone, onUpdateSettings }: {
   data: AppData;
   onAdd: (e: Omit<Entry, "id">) => string;
   onDone: () => void;
+  onUpdateSettings?: (updates: Partial<AppSettings>) => void;
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("Other");
   const [account, setAccount] = useState<AccountType>("bank");
   const [isCheque, setIsCheque] = useState(false);
 
+  const customCategories = data.settings?.customExpenseCategories || [];
   const isValid = !!(name.trim() && amount && date && category.trim());
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
+    saveCustomCategory(category, "expense", data, onUpdateSettings);
     onAdd({
       label: name, amount: -Math.abs(parseFloat(amount)), date, frequency, category, account,
       includeInForecast: true, isCheque: (account === "bank" && isCheque) || undefined,
     });
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank"); setIsCheque(false);
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank"); setIsCheque(false);
     onDone();
   };
 
@@ -244,7 +268,7 @@ function ExpenseForm({ data, onAdd, onDone }: {
         <div><Label className="text-xs">Date *</Label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-10" /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-10" customCategories={customCategories} /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
         <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
@@ -312,27 +336,30 @@ function TransferForm({ data, onAdd, onDone }: {
 }
 
 // ============ SUBSCRIPTION FORM ============
-function SubscriptionForm({ data, onAdd, onDone }: {
+function SubscriptionForm({ data, onAdd, onDone, onUpdateSettings }: {
   data: AppData;
   onAdd: (s: Omit<Subscription, "id">) => void;
   onDone: () => void;
+  onUpdateSettings?: (updates: Partial<AppSettings>) => void;
 }) {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<Frequency>("monthly");
   const [date, setDate] = useState(todayStr());
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("Other");
   const [account, setAccount] = useState<AccountType>("bank");
   const [isTrial, setIsTrial] = useState(false);
   const [trialEndDate, setTrialEndDate] = useState("");
 
+  const customCategories = data.settings?.customExpenseCategories || [];
   const isValid = !!(name.trim() && amount && date && category.trim() && (!isTrial || trialEndDate));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isValid) return;
+    saveCustomCategory(category, "expense", data, onUpdateSettings);
     onAdd({ name, amount: parseFloat(amount), frequency, nextDate: date, category, account, includeInForecast: true, isTrial, trialEndDate: isTrial ? trialEndDate : undefined });
-    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory(""); setAccount("bank"); setIsTrial(false); setTrialEndDate("");
+    setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank"); setIsTrial(false); setTrialEndDate("");
     onDone();
   };
 
@@ -351,7 +378,7 @@ function SubscriptionForm({ data, onAdd, onDone }: {
         <div><Label className="text-xs">Next Billing *</Label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-10" /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-10" customCategories={customCategories} /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
         <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
