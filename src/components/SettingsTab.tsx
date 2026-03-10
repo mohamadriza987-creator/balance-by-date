@@ -421,29 +421,6 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
         </CardContent>
       </Card>
 
-      {/* Forecast Horizon */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Forecast Horizon</CardTitle>
-          <CardDescription>How far ahead to project your balance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label>Months ahead</Label>
-            <span className="text-sm font-medium text-foreground">{horizonMonths} months</span>
-          </div>
-          <Slider
-            value={[horizonMonths]}
-            onValueChange={handleHorizonChange}
-            min={1}
-            max={24}
-            step={1}
-          />
-          <p className="text-xs text-muted-foreground">
-            Forecast through {data.forecastDate}
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Credit Card Settings */}
       <Card>

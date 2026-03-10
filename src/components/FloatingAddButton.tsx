@@ -160,6 +160,19 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
                   {activeAction === "debt" && (
                     <DebtForm data={props.data} onAdd={props.onAddEntry} onAddDebtWithPlan={props.onAddDebtWithPlan} onDone={handleDone} />
                   )}
+                  {(activeAction === "goal" || activeAction === "payoff") && (
+                    <GoalPlanner
+                      data={props.data}
+                      onAddGoal={props.onAddGoal}
+                      onAddOtherAsset={props.onAddOtherAsset}
+                      onAddEntry={props.onAddEntry}
+                      onAddLiabilityPayoff={props.onAddLiabilityPayoff}
+                      onAddTransfer={props.onAddTransfer}
+                      fm={(n: number) => formatMoney(n, props.data.userProfile)}
+                      initialStep={activeAction === "payoff" ? "pay_off_debt" : "buy_something"}
+                      onDone={handleDone}
+                    />
+                  )}
                 </div>
               )}
             </div>
