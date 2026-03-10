@@ -32,7 +32,7 @@ const TabLoading = () => (
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
-  { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
+  { value: "transactions", label: "Transactions", icon: Receipt },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
   { value: "others", label: "Others", icon: Landmark },
 ] as const;
