@@ -206,6 +206,8 @@ const Index = () => {
         </div>
       </header>
 
+      <SpouseInviteBanner />
+
       <main className="px-3 py-4">
         <div key={activeTab} className="tab-content-enter">
           {activeTab === "overview" && (
