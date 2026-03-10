@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { COUNTRIES_CURRENCIES } from "@/lib/constants";
 import { AuthPage } from "@/components/AuthPage";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { MapPin, Heart, Search, UserPlus, Check, X } from "lucide-react";
 import type { AccountType, UserProfile, AccountBalances } from "@/lib/finance-types";
 
 interface IntroFlowProps {
@@ -15,20 +15,28 @@ interface IntroFlowProps {
   initialName?: string;
 }
 
-type Step = 1 | 2 | 3 | 4 | 5 | 6;
+// Steps: 1=Name, 2=Auth, 3=Profile, 4=Country, 5=MaritalStatus, 6=SpouseInvite, 7=Sources
+type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
-const ACCOUNT_OPTIONS: { key: AccountType; label: string; creditLabel?: string }[] = [
-  { key: "cash", label: "Cash" },
-  { key: "bank", label: "Bank" },
-  { key: "creditCard", label: "Credit Card", creditLabel: "Credit Card Limit Available" },
+const ACCOUNT_OPTIONS: { key: AccountType; label: string; emoji: string; placeholder: string }[] = [
+  { key: "cash", label: "Cash", emoji: "💵", placeholder: "How much cash do you have?" },
+  { key: "bank", label: "Bank", emoji: "🏦", placeholder: "Current bank balance" },
+  { key: "creditCard", label: "Credit Card", emoji: "💳", placeholder: "Available credit limit" },
 ];
 
 const GENDER_OPTIONS = ["Male", "Female", "Other", "Prefer not to say"];
-const MARITAL_STATUS_OPTIONS = ["Single", "Married", "Divorced", "Widowed", "Prefer not to say"];
+
+const MARITAL_OPTIONS = [
+  { value: "Single", label: "Single", emoji: "🚴", desc: "Riding solo", gradient: "from-blue-400/20 to-cyan-400/20 border-blue-300/40" },
+  { value: "Committed", label: "Committed", emoji: "🌹", desc: "In a relationship", gradient: "from-rose-400/20 to-pink-400/20 border-rose-300/40" },
+  { value: "Married", label: "Married", emoji: "💍", desc: "Happily together", gradient: "from-amber-400/20 to-yellow-400/20 border-amber-300/40" },
+  { value: "Sweetie + kiddos", label: "Sweetie + kiddos", emoji: "👨‍👩‍👧‍👦", desc: "Family life", gradient: "from-green-400/20 to-emerald-400/20 border-green-300/40" },
+  { value: "Prefer not to say", label: "Prefer not to say", emoji: "🤫", desc: "That's cool too", gradient: "from-purple-400/20 to-violet-400/20 border-purple-300/40" },
+];
 
 export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   const { user } = useAuth();
-  const [step, setStep] = useState<Step>(user ? 4 : 1);
+  const [step, setStep] = useState<Step>(user ? 3 : 1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [transitioning, setTransitioning] = useState(false);
@@ -49,11 +57,16 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   const [currencySymbol, setCurrencySymbol] = useState("$");
   const [detectedCountry, setDetectedCountry] = useState("");
 
+  // Spouse invite
+  const [spouseSearch, setSpouseSearch] = useState("");
+  const [spouseSearchResult, setSpouseSearchResult] = useState<{ found: boolean; name?: string; finnyId?: string } | null>(null);
+  const [spouseInviteSent, setSpouseInviteSent] = useState(false);
+  const [searchingSpouse, setSearchingSpouse] = useState(false);
+
   // Sources
-  const [enabledAccounts, setEnabledAccounts] = useState<AccountType[]>([]);
   const [balances, setBalances] = useState<Record<AccountType, string>>({ cash: "", bank: "", creditCard: "" });
 
-  // Auto-detect location on mount
+  // Auto-detect location
   useEffect(() => {
     const detectLocation = async () => {
       try {
@@ -71,21 +84,19 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
             setPhoneCode(match.phoneCode);
           }
         }
-      } catch {
-        // Silently fail - user can select manually
-      }
+      } catch { /* silent */ }
     };
     detectLocation();
   }, []);
 
-  // When user logs in (e.g. from auth step 3), advance to profile step
+  // Auto-advance when user logs in during auth step
   useEffect(() => {
-    if (user && step === 3) {
-      goToStep(4);
+    if (user && step === 2) {
+      goToStep(3);
     }
   }, [user]);
 
-  // Pre-fill from Google user metadata
+  // Pre-fill from Google metadata
   useEffect(() => {
     if (user) {
       const meta = user.user_metadata || {};
@@ -100,7 +111,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
     }
   }, [user]);
 
-  // Auto-suggest FinnyUserID when first/last name changes
+  // Auto-suggest FinnyUserID
   useEffect(() => {
     if (firstName.trim() && lastName.trim()) {
       const suggested = (firstName.trim() + lastName.trim()).replace(/\s+/g, "").toLowerCase();
@@ -118,16 +129,13 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
       .eq("finny_user_id", id.trim().toLowerCase())
       .neq("user_id", user?.id || "")
       .maybeSingle();
-    
+
     if (existing) {
       setFinnyAvailable(false);
       for (let i = 1; i <= 99; i++) {
         const alt = `${id.trim().toLowerCase()}${i}`;
         const { data: altExisting } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("finny_user_id", alt)
-          .maybeSingle();
+          .from("profiles").select("id").eq("finny_user_id", alt).maybeSingle();
         if (!altExisting) {
           setFinnyUserId(alt);
           setFinnyAvailable(true);
@@ -142,28 +150,18 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
 
   const goToStep = (next: Step) => {
     setTransitioning(true);
-    setTimeout(() => {
-      setStep(next);
-      setTransitioning(false);
-    }, 300);
+    setTimeout(() => { setStep(next); setTransitioning(false); }, 250);
   };
 
   const handleNameContinue = () => {
     if (!firstName.trim() || !lastName.trim()) return;
-    goToStep(2);
-  };
-
-  const handleWelcomeContinue = () => {
-    if (user) {
-      goToStep(4);
-    } else {
-      goToStep(3);
-    }
+    if (user) goToStep(3);
+    else goToStep(2);
   };
 
   const handleProfileContinue = () => {
     if (!finnyUserId.trim() || finnyAvailable === false) return;
-    goToStep(5);
+    goToStep(4);
   };
 
   const handleCountrySelect = (c: string) => {
@@ -178,19 +176,56 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
 
   const handleCountryContinue = () => {
     if (!country || !currency) return;
-    goToStep(6);
+    goToStep(5);
   };
 
-  const toggleAccount = (acc: AccountType) => {
-    setEnabledAccounts(prev =>
-      prev.includes(acc) ? prev.filter(a => a !== acc) : [...prev, acc]
-    );
+  const handleMaritalContinue = () => {
+    if (!maritalStatus) return;
+    if (maritalStatus === "Married") goToStep(6);
+    else goToStep(7);
   };
 
-  const allBalancesFilled = enabledAccounts.length > 0 && enabledAccounts.every(acc => {
-    const val = balances[acc];
-    return val !== "" && !isNaN(parseFloat(val));
-  });
+  const handleSpouseContinue = () => goToStep(7);
+
+  const searchSpouse = async () => {
+    if (!spouseSearch.trim()) return;
+    setSearchingSpouse(true);
+    setSpouseSearchResult(null);
+    const { data: found } = await supabase
+      .from("profiles")
+      .select("finny_user_id, first_name, last_name")
+      .eq("finny_user_id", spouseSearch.trim().toLowerCase())
+      .neq("user_id", user?.id || "")
+      .maybeSingle();
+
+    if (found) {
+      setSpouseSearchResult({
+        found: true,
+        name: `${found.first_name || ""} ${found.last_name || ""}`.trim(),
+        finnyId: found.finny_user_id || "",
+      });
+    } else {
+      setSpouseSearchResult({ found: false });
+    }
+    setSearchingSpouse(false);
+  };
+
+  const sendSpouseInvite = async () => {
+    if (!user || !spouseSearchResult?.finnyId) return;
+    await supabase.from("spouse_invitations").insert({
+      from_user_id: user.id,
+      to_finny_user_id: spouseSearchResult.finnyId,
+      status: "pending",
+    });
+    setSpouseInviteSent(true);
+  };
+
+  // Sources: active = has a typed balance
+  const enabledAccounts = ACCOUNT_OPTIONS
+    .filter(({ key }) => balances[key] !== "" && !isNaN(parseFloat(balances[key])))
+    .map(({ key }) => key);
+
+  const canFinish = enabledAccounts.length > 0;
 
   const handleFinish = async () => {
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
@@ -204,10 +239,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
       maritalStatus: maritalStatus || undefined,
       phoneCode: phoneCode || undefined,
       phoneNumber: phoneNumber || undefined,
-      country,
-      currency,
-      currencySymbol,
-      enabledAccounts,
+      country, currency, currencySymbol, enabledAccounts,
     };
     const accountBalances: AccountBalances = {
       cash: enabledAccounts.includes("cash") ? parseFloat(balances.cash) || 0 : 0,
@@ -238,22 +270,42 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   };
 
   const animClass = transitioning ? "opacity-0 translate-y-4" : "animate-fade-in";
+  const totalSteps = maritalStatus === "Married" ? 7 : 6;
+  const currentVisualStep = step <= 2 ? step : (maritalStatus === "Married" ? step : (step > 5 ? step - 1 : step));
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      {/* Step 1: Name */}
+    <div className="min-h-screen bg-background finnyland-gradient flex flex-col items-center justify-center px-6 py-8">
+      {/* Progress indicator */}
+      {step > 1 && (
+        <div className="flex gap-1.5 mb-6">
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-500 ${
+                i < currentVisualStep ? "w-6 bg-primary" : i === currentVisualStep ? "w-6 bg-primary/60" : "w-1.5 bg-muted-foreground/20"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── Step 1: Name ── */}
       {step === 1 && (
         <div className={`w-full max-w-sm space-y-8 text-center transition-all duration-300 ${animClass}`}>
+          <div className="animate-float">
+            <span className="text-5xl">🌿</span>
+          </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">Welcome to FinnyLand 🌿</h1>
+            <h1 className="text-3xl font-bold text-foreground font-display">Welcome to FinnyLand</h1>
+            <p className="text-muted-foreground text-sm">Where Goals Grow Together</p>
           </div>
           <div className="space-y-3">
-            <p className="text-muted-foreground text-sm">Tell us your name</p>
+            <p className="text-muted-foreground text-sm">What should we call you?</p>
             <Input
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
               placeholder="First Name"
-              className="text-center text-lg h-12"
+              className="text-center text-lg h-12 rounded-xl border-primary/20 focus:border-primary"
               onKeyDown={(e) => e.key === "Enter" && document.getElementById("intro-last-name")?.focus()}
               autoFocus
             />
@@ -262,257 +314,307 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               placeholder="Last Name"
-              className="text-center text-lg h-12"
+              className="text-center text-lg h-12 rounded-xl border-primary/20 focus:border-primary"
               onKeyDown={(e) => e.key === "Enter" && handleNameContinue()}
             />
           </div>
-          <Button onClick={handleNameContinue} disabled={!firstName.trim() || !lastName.trim()} className="w-full h-12 text-base">
-            Continue
+          <Button onClick={handleNameContinue} disabled={!firstName.trim() || !lastName.trim()} className="w-full h-12 text-base rounded-xl">
+            Let's Go 🌱
           </Button>
         </div>
       )}
 
-      {/* Step 2: Welcome message */}
+      {/* ── Step 2: Auth ── */}
       {step === 2 && (
-        <div className={`w-full max-w-sm space-y-8 text-center transition-all duration-300 ${animClass}`}>
-          <div className="flex justify-center">
-            <div className="relative">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center animate-scale-in">
-                <span className="text-3xl">✨</span>
-              </div>
-              <div className="absolute -inset-2 rounded-full border border-primary/20 animate-[pulse_3s_ease-in-out_infinite]" />
-            </div>
-          </div>
-          <div className="relative rounded-2xl border border-border bg-card/80 backdrop-blur p-6 space-y-4 shadow-lg animate-fade-in">
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-            <p className="relative text-lg font-medium text-foreground">
-              Hii <span className="text-primary font-semibold italic">{firstName.trim()}</span> 👋
-            </p>
-            <div className="relative h-px w-12 mx-auto bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-            <p className="relative text-sm leading-relaxed text-muted-foreground italic">
-              Welcome to FinnyLand — where your financial goals grow together. Let's set up your personal space!
-            </p>
-            <div className="relative pt-2">
-              <p className="text-xs text-muted-foreground/70 tracking-wide uppercase">
-                Crafted with 💛 by
-              </p>
-              <p className="text-sm font-semibold text-foreground mt-0.5">
-                Mohamad Riza
-              </p>
-            </div>
-          </div>
-          <Button onClick={handleWelcomeContinue} className="w-full h-12 text-base font-medium animate-fade-in">
-            Continue
-          </Button>
-        </div>
-      )}
-
-      {/* Step 3: Auth */}
-      {step === 3 && (
         <div className={`w-full transition-all duration-300 flex justify-center ${animClass}`}>
-          <AuthPage userName={firstName.trim()} onBack={() => goToStep(2)} />
+          <AuthPage userName={firstName.trim()} onBack={() => goToStep(1)} />
         </div>
       )}
 
-      {/* Step 4: Profile Details - logically organized */}
-      {step === 4 && (
+      {/* ── Step 3: Profile Details ── */}
+      {step === 3 && (
         <div className={`w-full max-w-sm space-y-5 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold text-foreground">Tell us about yourself</h2>
-            <p className="text-sm text-muted-foreground">Let's personalize your experience</p>
+            <span className="text-3xl">👤</span>
+            <h2 className="text-xl font-bold text-foreground font-display">Tell us about yourself</h2>
+            <p className="text-sm text-muted-foreground">Let's personalize your FinnyLand</p>
           </div>
 
-          {/* Email (read-only from auth) */}
           {user?.email && (
             <div>
-              <Label className="text-xs">Email</Label>
-              <Input value={user.email} disabled className="h-10 opacity-60" />
+              <Label className="text-xs text-muted-foreground">Email</Label>
+              <Input value={user.email} disabled className="h-10 rounded-xl opacity-60" />
             </div>
           )}
 
-          {/* First & Last Name */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs">First Name</Label>
-              <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10" />
+              <Label className="text-xs text-muted-foreground">First Name</Label>
+              <Input value={firstName} onChange={e => setFirstName(e.target.value)} className="h-10 rounded-xl" />
             </div>
             <div>
-              <Label className="text-xs">Last Name</Label>
-              <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
+              <Label className="text-xs text-muted-foreground">Last Name</Label>
+              <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10 rounded-xl" />
             </div>
           </div>
 
-          {/* FinnyUserID */}
           <div>
-            <Label className="text-xs">Your FinnyUserID</Label>
+            <Label className="text-xs text-muted-foreground">Your FinnyUserID</Label>
             <div className="flex gap-2">
               <Input
                 value={finnyUserId}
                 onChange={e => { setFinnyUserId(e.target.value.toLowerCase().replace(/\s/g, "")); setFinnyAvailable(null); }}
                 placeholder="e.g. mohamadriza"
-                className="h-10 flex-1"
+                className="h-10 flex-1 rounded-xl"
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="h-10 text-xs"
-                onClick={() => checkFinnyAvailability(finnyUserId)}
-                disabled={!finnyUserId.trim() || checkingFinny}
-              >
+              <Button variant="outline" size="sm" className="h-10 text-xs rounded-xl"
+                onClick={() => checkFinnyAvailability(finnyUserId)} disabled={!finnyUserId.trim() || checkingFinny}>
                 {checkingFinny ? "..." : "Check"}
               </Button>
             </div>
-            {finnyAvailable === true && (
-              <p className="text-xs text-success mt-1">✓ Available!</p>
-            )}
-            {finnyAvailable === false && (
-              <p className="text-xs text-destructive mt-1">✗ Already taken. We've suggested an alternative above.</p>
-            )}
+            {finnyAvailable === true && <p className="text-xs text-success mt-1">✓ Available!</p>}
+            {finnyAvailable === false && <p className="text-xs text-destructive mt-1">✗ Taken — we suggested an alternative.</p>}
           </div>
 
-          {/* Birthday */}
           <div>
-            <Label className="text-xs">Birthday</Label>
-            <Input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className="h-10" />
+            <Label className="text-xs text-muted-foreground">Birthday</Label>
+            <Input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className="h-10 rounded-xl" />
           </div>
 
-          {/* Gender & Marital Status */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs">Gender</Label>
-              <Select value={gender} onValueChange={setGender}>
-                <SelectTrigger className="h-10"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {GENDER_OPTIONS.map(g => (
-                    <SelectItem key={g} value={g}>{g}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Marital Status</Label>
-              <Select value={maritalStatus} onValueChange={setMaritalStatus}>
-                <SelectTrigger className="h-10"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {MARITAL_STATUS_OPTIONS.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Gender</Label>
+            <Select value={gender} onValueChange={setGender}>
+              <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                {GENDER_OPTIONS.map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
 
-          <Button onClick={handleProfileContinue} disabled={!finnyUserId.trim() || finnyAvailable === false} className="w-full h-12 text-base">
+          <Button onClick={handleProfileContinue} disabled={!finnyUserId.trim() || finnyAvailable === false} className="w-full h-12 text-base rounded-xl">
             Continue
           </Button>
         </div>
       )}
 
-      {/* Step 5: Country/Currency/Phone */}
-      {step === 5 && (
+      {/* ── Step 4: Country — "You are here" ── */}
+      {step === 4 && (
         <div className={`w-full max-w-sm space-y-5 transition-all duration-300 ${animClass}`}>
-          <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold text-foreground">Location & Contact</h2>
+          <div className="text-center space-y-2">
+            <div className="relative inline-block">
+              <div className="h-20 w-20 mx-auto rounded-full bg-primary/10 flex items-center justify-center animate-float">
+                <MapPin className="h-10 w-10 text-primary" />
+              </div>
+              {country && (
+                <div className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-0.5 rounded-full animate-scale-in">
+                  📍
+                </div>
+              )}
+            </div>
+            <h2 className="text-xl font-bold text-foreground font-display">You are here 📍</h2>
             <p className="text-sm text-muted-foreground">
-              {detectedCountry ? `We detected you're in ${detectedCountry}` : "Select your country"}
+              {detectedCountry ? `We think you're in ${detectedCountry}` : "Where in the world are you?"}
             </p>
           </div>
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Country</Label>
-              <Select value={country} onValueChange={handleCountrySelect}>
-                <SelectTrigger className="h-10"><SelectValue placeholder="Choose country" /></SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {COUNTRIES_CURRENCIES.map(cc => (
-                    <SelectItem key={cc.country} value={cc.country}>{cc.country}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {country && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Currency</Label>
-                  <Input value={currency} onChange={(e) => setCurrency(e.target.value)} className="h-10" />
-                </div>
-                <div>
-                  <Label className="text-xs">Symbol</Label>
-                  <Input value={currencySymbol} onChange={(e) => setCurrencySymbol(e.target.value)} className="h-10" />
-                </div>
-              </div>
-            )}
 
-            {/* Mobile Number */}
-            <div>
-              <Label className="text-xs">Mobile Number (optional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={phoneCode}
-                  onChange={e => setPhoneCode(e.target.value)}
-                  placeholder="+91"
-                  className="h-10 w-20 text-center"
-                />
-                <Input
-                  type="tel"
-                  inputMode="tel"
-                  value={phoneNumber}
-                  onChange={e => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ""))}
-                  placeholder="Mobile number"
-                  className="h-10 flex-1"
-                />
+          {/* Country card */}
+          {country && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-center space-y-1 animate-scale-in">
+              <p className="text-2xl">🌍</p>
+              <p className="text-lg font-bold text-foreground">{country}</p>
+              <p className="text-sm text-muted-foreground">{currency} ({currencySymbol})</p>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Country</Label>
+            <Select value={country} onValueChange={handleCountrySelect}>
+              <SelectTrigger className="h-10 rounded-xl"><SelectValue placeholder="Choose country" /></SelectTrigger>
+              <SelectContent className="max-h-[300px]">
+                {COUNTRIES_CURRENCIES.map(cc => (
+                  <SelectItem key={cc.country} value={cc.country}>{cc.country}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {country && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Currency</Label>
+                <Input value={currency} onChange={(e) => setCurrency(e.target.value)} className="h-10 rounded-xl" />
               </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Symbol</Label>
+                <Input value={currencySymbol} onChange={(e) => setCurrencySymbol(e.target.value)} className="h-10 rounded-xl" />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <Label className="text-xs text-muted-foreground">Mobile Number (optional)</Label>
+            <div className="flex gap-2">
+              <Input value={phoneCode} onChange={e => setPhoneCode(e.target.value)} placeholder="+91" className="h-10 w-20 text-center rounded-xl" />
+              <Input type="tel" inputMode="tel" value={phoneNumber}
+                onChange={e => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="Mobile number" className="h-10 flex-1 rounded-xl" />
             </div>
           </div>
-          <Button onClick={handleCountryContinue} disabled={!country || !currency} className="w-full h-12 text-base">
+
+          <Button onClick={handleCountryContinue} disabled={!country || !currency} className="w-full h-12 text-base rounded-xl">
             Continue
           </Button>
         </div>
       )}
 
-      {/* Step 6: Source selection */}
-      {step === 6 && (
+      {/* ── Step 5: Marital Status ── */}
+      {step === 5 && (
         <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold text-foreground">Which sources would you like to add?</h2>
-            <p className="text-sm text-muted-foreground">Select your accounts and enter current balances</p>
+            <h2 className="text-xl font-bold text-foreground font-display">Which one feels most like you?</h2>
+            <p className="text-sm text-muted-foreground">This helps us personalize your experience</p>
           </div>
-          <div className="space-y-4">
-            {ACCOUNT_OPTIONS.map(({ key, label, creditLabel }) => (
-              <div key={key} className="space-y-2">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    id={`acc-${key}`}
-                    checked={enabledAccounts.includes(key)}
-                    onCheckedChange={() => toggleAccount(key)}
-                  />
-                  <Label htmlFor={`acc-${key}`} className="text-sm font-medium cursor-pointer">
-                    {key === "creditCard" ? "Credit Card" : label}
-                  </Label>
+
+          <div className="space-y-3">
+            {MARITAL_OPTIONS.map((opt, i) => (
+              <button
+                key={opt.value}
+                onClick={() => setMaritalStatus(opt.value)}
+                className={`w-full rounded-2xl border-2 p-4 flex items-center gap-4 transition-all duration-300 text-left
+                  ${maritalStatus === opt.value
+                    ? `bg-gradient-to-r ${opt.gradient} border-primary shadow-md scale-[1.02]`
+                    : "border-border bg-card hover:border-primary/30 hover:bg-card/80"
+                  }`}
+                style={{ animationDelay: `${i * 80}ms` }}
+              >
+                <span className="text-3xl animate-float" style={{ animationDelay: `${i * 200}ms` }}>
+                  {opt.emoji}
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">{opt.label}</p>
+                  <p className="text-xs text-muted-foreground">{opt.desc}</p>
                 </div>
-                {enabledAccounts.includes(key) && (
-                  <div className="ml-7">
-                    <Label className="text-xs text-muted-foreground">
-                      {key === "creditCard" ? (creditLabel || "Credit Card Limit Available") : `Current ${label} Balance`}
-                    </Label>
-                    <Input
-                      type="number"
-                      inputMode="decimal"
-                      step="0.01"
-                      min="0"
-                      value={balances[key]}
-                      onChange={(e) => setBalances(prev => ({ ...prev, [key]: e.target.value }))}
-                      placeholder={`${currencySymbol} 0.00`}
-                      className="h-9 mt-1"
-                      autoFocus
-                    />
-                  </div>
+                {maritalStatus === opt.value && (
+                  <Check className="h-5 w-5 text-primary ml-auto shrink-0 animate-scale-in" />
                 )}
-              </div>
+              </button>
             ))}
           </div>
-          <Button onClick={handleFinish} disabled={!allBalancesFilled} className="w-full h-12 text-base">
-            Let's Begin
+
+          <Button onClick={handleMaritalContinue} disabled={!maritalStatus} className="w-full h-12 text-base rounded-xl">
+            Continue
+          </Button>
+        </div>
+      )}
+
+      {/* ── Step 6: Spouse Invite (only if Married) ── */}
+      {step === 6 && (
+        <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
+          <div className="text-center space-y-2">
+            <span className="text-4xl animate-float">💍</span>
+            <h2 className="text-xl font-bold text-foreground font-display">
+              Add your {gender === "Female" ? "husband" : gender === "Male" ? "wife" : "partner"} into FinnyLand
+            </h2>
+            <p className="text-sm text-muted-foreground italic">Grow together • Laugh together 💛</p>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+            <p className="text-sm text-foreground font-medium">Find them by their FinnyUserID</p>
+            <div className="flex gap-2">
+              <Input
+                value={spouseSearch}
+                onChange={e => setSpouseSearch(e.target.value.toLowerCase().replace(/\s/g, ""))}
+                placeholder="Enter their FinnyUserID"
+                className="h-10 flex-1 rounded-xl"
+                onKeyDown={e => e.key === "Enter" && searchSpouse()}
+              />
+              <Button variant="outline" size="sm" className="h-10 rounded-xl" onClick={searchSpouse}
+                disabled={!spouseSearch.trim() || searchingSpouse}>
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {spouseSearchResult && spouseSearchResult.found && !spouseInviteSent && (
+              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 flex items-center gap-3 animate-scale-in">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Heart className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{spouseSearchResult.name}</p>
+                  <p className="text-xs text-muted-foreground">@{spouseSearchResult.finnyId}</p>
+                </div>
+                <Button size="sm" className="rounded-xl text-xs" onClick={sendSpouseInvite}>
+                  <UserPlus className="h-3.5 w-3.5 mr-1" /> Connect
+                </Button>
+              </div>
+            )}
+
+            {spouseSearchResult && !spouseSearchResult.found && (
+              <div className="rounded-xl border border-warning/20 bg-warning/5 p-3 text-center animate-scale-in">
+                <p className="text-sm text-foreground">No user found with that ID</p>
+                <p className="text-xs text-muted-foreground mt-1">You can invite them later from Settings</p>
+              </div>
+            )}
+
+            {spouseInviteSent && (
+              <div className="rounded-xl border border-success/20 bg-success/5 p-3 text-center animate-scale-in">
+                <p className="text-sm text-success font-medium">✓ Invitation sent!</p>
+                <p className="text-xs text-muted-foreground mt-1">They'll see it when they log in</p>
+              </div>
+            )}
+          </div>
+
+          <Button onClick={handleSpouseContinue} variant={spouseInviteSent ? "default" : "outline"} className="w-full h-12 text-base rounded-xl">
+            {spouseInviteSent ? "Continue" : "Skip for now"}
+          </Button>
+        </div>
+      )}
+
+      {/* ── Step 7: Sources ── */}
+      {step === 7 && (
+        <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
+          <div className="text-center space-y-1">
+            <span className="text-3xl">💰</span>
+            <h2 className="text-xl font-bold text-foreground font-display">Which sources would you like to add?</h2>
+            <p className="text-sm text-muted-foreground">Type a balance to activate a source</p>
+          </div>
+
+          <div className="space-y-3">
+            {ACCOUNT_OPTIONS.map(({ key, label, emoji, placeholder }) => {
+              const isActive = balances[key] !== "" && !isNaN(parseFloat(balances[key]));
+              return (
+                <div
+                  key={key}
+                  className={`rounded-2xl border-2 p-4 transition-all duration-300 ${
+                    isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border bg-card"
+                  }`}
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{emoji}</span>
+                    <span className="font-semibold text-foreground">{label}</span>
+                    {isActive && <Check className="h-4 w-4 text-primary ml-auto animate-scale-in" />}
+                  </div>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    min="0"
+                    value={balances[key]}
+                    onChange={(e) => setBalances(prev => ({ ...prev, [key]: e.target.value }))}
+                    placeholder={`${currencySymbol} 0.00 — ${placeholder}`}
+                    className="h-10 rounded-xl"
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center">
+            Only sources with a balance will be activated
+          </p>
+
+          <Button onClick={handleFinish} disabled={!canFinish} className="w-full h-12 text-base rounded-xl">
+            Let's Begin 🚀
           </Button>
         </div>
       )}
