@@ -470,7 +470,7 @@ function BuySomethingForm({
 
 // ============ PAY OFF DEBT ============
 function PayOffDebtForm({
-  data, onAddGoal, onAddEntry, onAddLiabilityPayoff, onAddTransfer, onBack, fm, avgBalance,
+  data, onAddGoal, onAddEntry, onAddLiabilityPayoff, onAddTransfer, onBack, fm, avgBalance, onDone,
 }: {
   data: AppData;
   onAddGoal: (goal: Omit<Goal, "id">) => void;
@@ -480,6 +480,7 @@ function PayOffDebtForm({
   onBack: () => void;
   fm: (n: number) => string;
   avgBalance: number;
+  onDone?: () => void;
 }) {
   const [debtType, setDebtType] = useState("Credit Card");
   const [debtName, setDebtName] = useState("");
