@@ -34,6 +34,8 @@ const actions: { key: AddAction; label: string; icon: typeof ArrowDownLeft; colo
   { key: "subscription", label: "Subscription", icon: CreditCard, color: "text-warning", desc: "Netflix, gym, recurring services" },
   { key: "transfer", label: "Inter Transfer (Own)", icon: ArrowLeftRight, color: "text-info", desc: "Move money between your accounts" },
   { key: "debt", label: "Debt / Liability", icon: Landmark, color: "text-orange-400", desc: "Loan payoff, debt given/received" },
+  { key: "goal", label: "Achieve a Goal", icon: Target, color: "text-primary", desc: "Save for a purchase or dream" },
+  { key: "payoff", label: "Pay off a Debt", icon: ShieldCheck, color: "text-emerald-500", desc: "Plan to clear a loan or credit card" },
 ];
 
 function saveCustomCategory(
