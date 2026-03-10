@@ -226,7 +226,7 @@ const Index = () => {
         )}
         <Suspense fallback={<TabLoading />}>
           {activeTab === "forecast" && (
-            <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
+            <ForecastTab data={data} onUpdateForecastDate={updateForecastDate} />
           )}
           {activeTab === "family" && (
             <FamilyLandTab

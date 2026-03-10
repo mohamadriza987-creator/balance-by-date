@@ -17,22 +17,30 @@ import { ForecastChart } from "@/components/ForecastChart";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { InvestmentCalculator } from "@/components/InvestmentCalculator";
 import { ZakatCalculator } from "@/components/ZakatCalculator";
-import { GoalPlanner } from "@/components/GoalPlanner";
 import { TYPE_COLORS } from "@/lib/constants";
+import { addDays } from "@/lib/finance-utils";
+import { format, parseISO } from "date-fns";
 
 interface ForecastTabProps {
   data: AppData;
-  onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
-  onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
-  onAddEntry: (entry: Omit<import("@/lib/finance-types").Entry, "id">) => string;
-  onAddLiabilityPayoff?: (payoff: Omit<import("@/lib/finance-types").LiabilityPayoff, "id">) => void;
-  onAddTransfer?: (transfer: Omit<import("@/lib/finance-types").Transfer, "id">) => void;
+  onUpdateForecastDate: (date: string) => void;
 }
 
-export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer }: ForecastTabProps) {
+export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
+
+  // Slider state: months from 1..12
+  const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
+  const [sliderMonths, setSliderMonths] = useState(Math.min(Math.round(horizonDays / 30), 12));
+
+  const handleSliderChange = (months: number[]) => {
+    const m = months[0];
+    setSliderMonths(m);
+    onUpdateForecastDate(addDays(today, m * 30));
+  };
+
   const effectiveBalance = useMemo(() => computeBalanceAtPosition(data), [data]);
   const effectiveData = useMemo(() => ({ ...data, currentBalance: effectiveBalance }), [data, effectiveBalance]);
   const forecast = useMemo(() => computeForecast(effectiveData), [effectiveData]);
@@ -63,13 +71,33 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAd
 
   return (
     <div className="space-y-4">
-      {/* Selected Date Summary */}
+      {/* Forecast Date Slider */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="py-4 px-4">
-          <p className="text-xs text-muted-foreground mb-1">Projected Balance on {formatDate(data.forecastDate)}</p>
-          <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-            {fm(forecastBalance)}
-          </p>
+        <CardContent className="py-4 px-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Forecasting up to</p>
+            <p className="text-sm font-semibold text-primary">
+              {format(parseISO(data.forecastDate), "MMM d, yyyy")}
+            </p>
+          </div>
+          <Slider
+            value={[sliderMonths]}
+            onValueChange={handleSliderChange}
+            min={1}
+            max={12}
+            step={1}
+          />
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>1 month</span>
+            <span className="font-medium text-foreground">{sliderMonths} {sliderMonths === 1 ? "month" : "months"} ahead</span>
+            <span>12 months</span>
+          </div>
+          <div className="pt-1 border-t border-border/50">
+            <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
+              {fm(forecastBalance)}
+            </p>
+            <p className="text-[10px] text-muted-foreground">Projected balance</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -194,9 +222,6 @@ export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAd
           )}
         </CardContent>
       </Card>
-
-      {/* Set a Goal */}
-      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} fm={fm} />
 
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />

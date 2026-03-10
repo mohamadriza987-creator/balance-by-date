@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Landmark } from "lucide-react";
+import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Landmark, Target, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,9 @@ import { AccountSelect } from "@/components/AccountSelect";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, ACCOUNT_LABELS } from "@/lib/constants";
 import type { AppData, Entry, Frequency, Investment, Subscription, Transfer, AccountType, Goal, OtherAsset, LiabilityPayoff, AppSettings } from "@/lib/finance-types";
 import { todayStr, formatMoney } from "@/lib/finance-utils";
+import { GoalPlanner } from "@/components/GoalPlanner";
 
-type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt";
+type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt" | "goal" | "payoff";
 
 interface FloatingAddButtonProps {
   data: AppData;
@@ -33,6 +34,8 @@ const actions: { key: AddAction; label: string; icon: typeof ArrowDownLeft; colo
   { key: "subscription", label: "Subscription", icon: CreditCard, color: "text-warning", desc: "Netflix, gym, recurring services" },
   { key: "transfer", label: "Inter Transfer (Own)", icon: ArrowLeftRight, color: "text-info", desc: "Move money between your accounts" },
   { key: "debt", label: "Debt / Liability", icon: Landmark, color: "text-orange-400", desc: "Loan payoff, debt given/received" },
+  { key: "goal", label: "Achieve a Goal", icon: Target, color: "text-primary", desc: "Save for a purchase or dream" },
+  { key: "payoff", label: "Pay off a Debt", icon: ShieldCheck, color: "text-emerald-500", desc: "Plan to clear a loan or credit card" },
 ];
 
 function saveCustomCategory(
@@ -156,6 +159,19 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
                   )}
                   {activeAction === "debt" && (
                     <DebtForm data={props.data} onAdd={props.onAddEntry} onAddDebtWithPlan={props.onAddDebtWithPlan} onDone={handleDone} />
+                  )}
+                  {(activeAction === "goal" || activeAction === "payoff") && (
+                    <GoalPlanner
+                      data={props.data}
+                      onAddGoal={props.onAddGoal}
+                      onAddOtherAsset={props.onAddOtherAsset}
+                      onAddEntry={props.onAddEntry}
+                      onAddLiabilityPayoff={props.onAddLiabilityPayoff}
+                      onAddTransfer={props.onAddTransfer}
+                      fm={(n: number) => formatMoney(n, props.data.userProfile)}
+                      initialStep={activeAction === "payoff" ? "pay_off_debt" : "buy_something"}
+                      onDone={handleDone}
+                    />
                   )}
                 </div>
               )}
