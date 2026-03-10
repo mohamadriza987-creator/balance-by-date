@@ -23,7 +23,7 @@ import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
 // TransfersTab removed — replaced by TransactionsListTab
 const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
-const OtherAssetsTab = lazy(() => import("@/components/OtherAssetsTab").then(m => ({ default: m.OtherAssetsTab })));
+const FamilyLandTab = lazy(() => import("@/components/FamilyLandTab").then(m => ({ default: m.FamilyLandTab })));
 
 const TabLoading = () => (
   <div className="flex items-center justify-center py-12">
