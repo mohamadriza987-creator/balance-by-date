@@ -132,6 +132,7 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
   }>({});
 
   // Load extended profile data from DB
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useState(() => {
     if (user) {
       supabase.from("profiles").select("first_name, last_name, birthday, finny_user_id")
