@@ -52,8 +52,8 @@ export const TYPE_COLORS: Record<string, string> = {
   debt_payoff: "bg-orange-500/10 text-orange-400 border-orange-500/20",
 };
 
-export const COUNTRIES_CURRENCIES: { country: string; currency: string; symbol: string }[] = [
-  { country: "Afghanistan", currency: "AFN", symbol: "؋" },
+export const COUNTRIES_CURRENCIES: { country: string; currency: string; symbol: string; phoneCode: string }[] = [
+  { country: "Afghanistan", currency: "AFN", symbol: "؋", phoneCode: "+93" },
   { country: "Albania", currency: "ALL", symbol: "L" },
   { country: "Algeria", currency: "DZD", symbol: "د.ج" },
   { country: "Argentina", currency: "ARS", symbol: "$" },
