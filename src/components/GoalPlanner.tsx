@@ -186,7 +186,7 @@ function ViabilityBadge({ status, message }: { status: Viability; message: strin
 
 // ============ BUY SOMETHING ============
 function BuySomethingForm({
-  data, onAddGoal, onAddOtherAsset, onAddEntry, onBack, fm, avgBalance,
+  data, onAddGoal, onAddOtherAsset, onAddEntry, onBack, fm, avgBalance, onDone,
 }: {
   data: AppData;
   onAddGoal: (goal: Omit<Goal, "id">) => void;
@@ -195,6 +195,7 @@ function BuySomethingForm({
   onBack: () => void;
   fm: (n: number) => string;
   avgBalance: number;
+  onDone?: () => void;
 }) {
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
