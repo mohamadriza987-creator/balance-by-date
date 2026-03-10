@@ -1,12 +1,10 @@
-import { useState, lazy, Suspense, useRef, useMemo } from "react";
-import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Target, Landmark } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CategorySelect } from "@/components/CategorySelect";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { AccountSelect } from "@/components/AccountSelect";
@@ -14,7 +12,7 @@ import { ACCOUNT_LABELS } from "@/lib/constants";
 import type { AppData, Entry, Frequency, Investment, Subscription, Transfer, AccountType, Goal, OtherAsset, LiabilityPayoff } from "@/lib/finance-types";
 import { todayStr, formatMoney } from "@/lib/finance-utils";
 
-type AddAction = "income" | "expense" | "transfer" | "subscription" | "goal" | "debt";
+type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt";
 
 interface FloatingAddButtonProps {
   data: AppData;
@@ -29,12 +27,11 @@ interface FloatingAddButtonProps {
 }
 
 const actions: { key: AddAction; label: string; icon: typeof ArrowDownLeft; color: string; desc: string }[] = [
-  { key: "income", label: "Add Income", icon: ArrowDownLeft, color: "text-success", desc: "Salary, freelance, debt received" },
-  { key: "expense", label: "Add Expense", icon: ArrowUpRight, color: "text-destructive", desc: "Bills, groceries, one-time costs" },
-  { key: "transfer", label: "Add Transfer", icon: ArrowLeftRight, color: "text-info", desc: "Move money between accounts" },
-  { key: "subscription", label: "Add Subscription", icon: CreditCard, color: "text-warning", desc: "Netflix, gym, recurring services" },
-  { key: "goal", label: "Add Goal", icon: Target, color: "text-purple-400", desc: "Save for a purchase or investment" },
-  { key: "debt", label: "Add Debt / Liability", icon: Landmark, color: "text-orange-400", desc: "Loan payoff, debt given/received" },
+  { key: "income", label: "Income", icon: ArrowDownLeft, color: "text-success", desc: "Salary, freelance, debt received" },
+  { key: "expense", label: "Expense", icon: ArrowUpRight, color: "text-destructive", desc: "Bills, groceries, one-time costs" },
+  { key: "subscription", label: "Subscription", icon: CreditCard, color: "text-warning", desc: "Netflix, gym, recurring services" },
+  { key: "transfer", label: "Inter Transfer (Own)", icon: ArrowLeftRight, color: "text-info", desc: "Move money between your accounts" },
+  { key: "debt", label: "Debt / Liability", icon: Landmark, color: "text-orange-400", desc: "Loan payoff, debt given/received" },
 ];
 
 export function FloatingAddButton(props: FloatingAddButtonProps) {
@@ -67,7 +64,7 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
 
       {/* Backdrop + Bottom Sheet */}
       {open && (
-        <div className="fixed inset-0 z-[60]" onClick={handleClose}>
+        <div className="fixed inset-0 z-[100]" onClick={handleClose}>
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" />
 
@@ -128,19 +125,16 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
                 /* Form */
                 <div className="animate-fade-in">
                   {activeAction === "income" && (
-                    <IncomeForm data={props.data} onAdd={props.onAddEntry} onAddDebtWithPlan={props.onAddDebtWithPlan} onDone={handleDone} />
+                    <IncomeForm data={props.data} onAdd={props.onAddEntry} onDone={handleDone} />
                   )}
                   {activeAction === "expense" && (
-                    <ExpenseForm data={props.data} onAdd={props.onAddEntry} onAddDebtWithPlan={props.onAddDebtWithPlan} onDone={handleDone} />
+                    <ExpenseForm data={props.data} onAdd={props.onAddEntry} onDone={handleDone} />
                   )}
                   {activeAction === "transfer" && (
                     <TransferForm data={props.data} onAdd={props.onAddTransfer} onDone={handleDone} />
                   )}
                   {activeAction === "subscription" && (
                     <SubscriptionForm data={props.data} onAdd={props.onAddSubscription} onDone={handleDone} />
-                  )}
-                  {activeAction === "goal" && (
-                    <GoalRedirect onDone={handleClose} />
                   )}
                   {activeAction === "debt" && (
                     <DebtForm data={props.data} onAdd={props.onAddEntry} onAddDebtWithPlan={props.onAddDebtWithPlan} onDone={handleDone} />
@@ -156,10 +150,9 @@ export function FloatingAddButton(props: FloatingAddButtonProps) {
 }
 
 // ============ INCOME FORM ============
-function IncomeForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
+function IncomeForm({ data, onAdd, onDone }: {
   data: AppData;
   onAdd: (e: Omit<Entry, "id">) => string;
-  onAddDebtWithPlan: FloatingAddButtonProps["onAddDebtWithPlan"];
   onDone: () => void;
 }) {
   const [name, setName] = useState("");
@@ -168,8 +161,6 @@ function IncomeForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
   const [date, setDate] = useState(todayStr());
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState<AccountType>("bank");
-  const nameRef = useRef<HTMLInputElement>(null);
-  const amountRef = useRef<HTMLInputElement>(null);
 
   const isValid = !!(name.trim() && amount && date && category.trim());
 
@@ -183,25 +174,25 @@ function IncomeForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <p className="text-xs font-semibold text-success uppercase tracking-wider mb-2">Add Income</p>
+      <p className="text-xs font-semibold text-success uppercase tracking-wider mb-2">Income</p>
       <div>
         <Label className="text-xs">Description *</Label>
-        <Input ref={nameRef} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Salary" className="h-10" autoFocus />
+        <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Salary" className="h-10" autoFocus />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount *</Label>
-          <Input ref={amountRef} type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="h-10" /></div>
+          <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="h-10" /></div>
         <div><Label className="text-xs">Frequency</Label>
-          <FrequencySelect value={frequency} onChange={setFrequency} /></div>
+          <FrequencySelect value={frequency} onChange={setFrequency} className="h-10 z-[110]" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Date *</Label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <CategorySelect value={category} onChange={setCategory} type="income" /></div>
+          <CategorySelect value={category} onChange={setCategory} type="income" className="h-10" /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
-        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} /></div>
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
       <Button type="submit" className="w-full h-11 bg-success hover:bg-success/90 text-success-foreground font-semibold" disabled={!isValid}>
         Add Income
       </Button>
@@ -210,10 +201,9 @@ function IncomeForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
 }
 
 // ============ EXPENSE FORM ============
-function ExpenseForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
+function ExpenseForm({ data, onAdd, onDone }: {
   data: AppData;
   onAdd: (e: Omit<Entry, "id">) => string;
-  onAddDebtWithPlan: FloatingAddButtonProps["onAddDebtWithPlan"];
   onDone: () => void;
 }) {
   const [name, setName] = useState("");
@@ -239,7 +229,7 @@ function ExpenseForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <p className="text-xs font-semibold text-destructive uppercase tracking-wider mb-2">Add Expense</p>
+      <p className="text-xs font-semibold text-destructive uppercase tracking-wider mb-2">Expense</p>
       <div>
         <Label className="text-xs">Description *</Label>
         <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Groceries" className="h-10" autoFocus />
@@ -248,16 +238,16 @@ function ExpenseForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
         <div><Label className="text-xs">Amount *</Label>
           <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="h-10" /></div>
         <div><Label className="text-xs">Frequency</Label>
-          <FrequencySelect value={frequency} onChange={setFrequency} /></div>
+          <FrequencySelect value={frequency} onChange={setFrequency} className="h-10" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Date *</Label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <CategorySelect value={category} onChange={setCategory} type="expense" /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-10" /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
-        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} /></div>
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
       {account === "bank" && (
         <div className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
           <Checkbox id="cheque-fab" checked={isCheque} onCheckedChange={(v) => setIsCheque(!!v)} />
@@ -282,7 +272,6 @@ function TransferForm({ data, onAdd, onDone }: {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(todayStr());
   const [reason, setReason] = useState("");
-  const fm = (n: number) => formatMoney(n, data.userProfile);
 
   const isValid = !!(amount && parseFloat(amount) > 0 && fromAccount !== toAccount);
 
@@ -300,12 +289,12 @@ function TransferForm({ data, onAdd, onDone }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <p className="text-xs font-semibold text-info uppercase tracking-wider mb-2">Add Transfer</p>
+      <p className="text-xs font-semibold text-info uppercase tracking-wider mb-2">Inter Transfer (Own)</p>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">From Account</Label>
-          <AccountSelect value={fromAccount} onChange={setFromAccount} enabledAccounts={data.userProfile?.enabledAccounts} /></div>
+          <AccountSelect value={fromAccount} onChange={setFromAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
         <div><Label className="text-xs">To Account</Label>
-          <AccountSelect value={toAccount} onChange={setToAccount} enabledAccounts={data.userProfile?.enabledAccounts} /></div>
+          <AccountSelect value={toAccount} onChange={setToAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount *</Label>
@@ -349,23 +338,23 @@ function SubscriptionForm({ data, onAdd, onDone }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <p className="text-xs font-semibold text-warning uppercase tracking-wider mb-2">Add Subscription</p>
+      <p className="text-xs font-semibold text-warning uppercase tracking-wider mb-2">Subscription</p>
       <div><Label className="text-xs">Service Name *</Label>
         <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Netflix" className="h-10" autoFocus /></div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Amount *</Label>
           <Input type="number" inputMode="decimal" step="0.01" min="0" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="h-10" /></div>
         <div><Label className="text-xs">Frequency</Label>
-          <FrequencySelect value={frequency} onChange={setFrequency} /></div>
+          <FrequencySelect value={frequency} onChange={setFrequency} className="h-10" /></div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div><Label className="text-xs">Next Billing *</Label>
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
         <div><Label className="text-xs">Category *</Label>
-          <CategorySelect value={category} onChange={setCategory} type="expense" /></div>
+          <CategorySelect value={category} onChange={setCategory} type="expense" className="h-10" /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
-        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} /></div>
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
       <div className="flex items-center gap-3 rounded-xl border border-warning/20 bg-warning/5 px-3 py-2.5">
         <Switch checked={isTrial} onCheckedChange={setIsTrial} />
         <Label className="text-xs">Free Trial</Label>
@@ -427,7 +416,7 @@ function DebtForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-2">Add Debt / Liability</p>
+      <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-2">Debt / Liability</p>
       <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={() => setDirection("received")}
           className={`rounded-xl py-2.5 text-xs font-semibold transition-all ${direction === "received" ? "bg-success/20 text-success border border-success/40" : "bg-muted/30 text-muted-foreground border border-border/50"}`}>
@@ -447,7 +436,7 @@ function DebtForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
           <Input type="date" value={date} onChange={e => setDate(e.target.value)} className="h-10" /></div>
       </div>
       <div><Label className="text-xs">Account</Label>
-        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} /></div>
+        <AccountSelect value={account} onChange={setAccount} enabledAccounts={data.userProfile?.enabledAccounts} className="h-10" /></div>
       
       <div className="rounded-xl border border-orange-500/30 bg-orange-500/5 p-3 space-y-3">
         <p className="text-xs font-semibold text-orange-400">📋 {direction === "received" ? "Repayment" : "Recovery"} Plan</p>
@@ -455,7 +444,7 @@ function DebtForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
           <div><Label className="text-xs">Number of Splits</Label>
             <Input type="number" min="1" max="120" value={splits} onChange={e => setSplits(e.target.value)} className="h-10" /></div>
           <div><Label className="text-xs">Frequency</Label>
-            <FrequencySelect value={repayFrequency} onChange={setRepayFrequency} /></div>
+            <FrequencySelect value={repayFrequency} onChange={setRepayFrequency} className="h-10" /></div>
         </div>
         <div><Label className="text-xs">{direction === "received" ? "Repayment" : "Recovery"} Start Date</Label>
           <Input type="date" value={repayStartDate} onChange={e => setRepayStartDate(e.target.value)} className="h-10" /></div>
@@ -465,23 +454,5 @@ function DebtForm({ data, onAdd, onAddDebtWithPlan, onDone }: {
         {direction === "received" ? "Add Debt Received" : "Add Debt Given"}
       </Button>
     </form>
-  );
-}
-
-// ============ GOAL REDIRECT ============
-function GoalRedirect({ onDone }: { onDone: () => void }) {
-  return (
-    <div className="text-center py-8 space-y-4">
-      <Target className="h-12 w-12 mx-auto text-purple-400" />
-      <div>
-        <p className="text-sm font-semibold text-foreground">Goal Planner</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Use the Forecast tab to create detailed goal plans with investment calculations and viability checks.
-        </p>
-      </div>
-      <Button onClick={onDone} variant="outline" className="mt-4">
-        Got it
-      </Button>
-    </div>
   );
 }
