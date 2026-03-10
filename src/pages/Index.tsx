@@ -51,6 +51,10 @@ const Index = () => {
     addTransfer, removeTransfer, updateSettings,
     addGoal, removeGoal, addOtherAsset, removeOtherAsset,
     addLiabilityPayoff, removeLiabilityPayoff,
+    addFamilyMember, removeFamilyMember,
+    addFamilyRequest, updateFamilyRequest,
+    addPiggyBank, addPiggyBankContribution, removePiggyBank,
+    addSharedGoal, addSharedGoalContribution, removeSharedGoal,
   } = useFinanceData();
 
   const [activeTab, setActiveTab] = useState("overview");
