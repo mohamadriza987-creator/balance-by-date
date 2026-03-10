@@ -71,13 +71,33 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Selected Date Summary */}
+      {/* Forecast Date Slider */}
       <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-        <CardContent className="py-4 px-4">
-          <p className="text-xs text-muted-foreground mb-1">Projected Balance on {formatDate(data.forecastDate)}</p>
-          <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
-            {fm(forecastBalance)}
-          </p>
+        <CardContent className="py-4 px-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Forecasting up to</p>
+            <p className="text-sm font-semibold text-primary">
+              {format(parseISO(data.forecastDate), "MMM d, yyyy")}
+            </p>
+          </div>
+          <Slider
+            value={[sliderMonths]}
+            onValueChange={handleSliderChange}
+            min={1}
+            max={12}
+            step={1}
+          />
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>1 month</span>
+            <span className="font-medium text-foreground">{sliderMonths} {sliderMonths === 1 ? "month" : "months"} ahead</span>
+            <span>12 months</span>
+          </div>
+          <div className="pt-1 border-t border-border/50">
+            <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
+              {fm(forecastBalance)}
+            </p>
+            <p className="text-[10px] text-muted-foreground">Projected balance</p>
+          </div>
         </CardContent>
       </Card>
 
