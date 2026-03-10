@@ -17,12 +17,12 @@ const corsHeaders = {
 }
 
 const EMAIL_SUBJECTS: Record<string, string> = {
-  signup: 'Confirm your email',
-  invite: "You've been invited",
-  magiclink: 'Your login link',
-  recovery: 'Reset your password',
-  email_change: 'Confirm your new email',
-  reauthentication: 'Your verification code',
+  signup: 'Welcome to FinnyLand! 🏡 Confirm your email',
+  invite: "You're invited to FinnyLand! 🌟",
+  magiclink: 'Your FinnyLand login link ✨',
+  recovery: 'Reset your FinnyLand password 🔑',
+  email_change: 'Confirm your FinnyLand email change 📧',
+  reauthentication: 'Your FinnyLand verification code 🔐',
 }
 
 // Template mapping
