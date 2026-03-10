@@ -32,6 +32,7 @@ export type Database = {
           onboarding_complete: boolean | null
           phone_code: string | null
           phone_number: string | null
+          spouse_user_id: string | null
           updated_at: string
           user_id: string
         }
@@ -52,6 +53,7 @@ export type Database = {
           onboarding_complete?: boolean | null
           phone_code?: string | null
           phone_number?: string | null
+          spouse_user_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -72,8 +74,39 @@ export type Database = {
           onboarding_complete?: boolean | null
           phone_code?: string | null
           phone_number?: string | null
+          spouse_user_id?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      spouse_invitations: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          status: string
+          to_email: string | null
+          to_finny_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          status?: string
+          to_email?: string | null
+          to_finny_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          status?: string
+          to_email?: string | null
+          to_finny_user_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
