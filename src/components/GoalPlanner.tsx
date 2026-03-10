@@ -85,11 +85,35 @@ function assessViability(monthlyPayment: number, freq: Frequency, avgMonthlyBala
   return { status: "comfortable", message: "This looks comfortable based on your projected balance. You should be able to manage this easily." };
 }
 
-export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer, fm }: GoalPlannerProps) {
-  const [step, setStep] = useState<GoalFlowStep>("select_type");
-  const handleBack = () => setStep("select_type");
+export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer, fm, initialStep, onDone }: GoalPlannerProps) {
+  const [step, setStep] = useState<GoalFlowStep>(initialStep || "select_type");
+  const handleBack = () => {
+    if (initialStep) {
+      onDone?.();
+    } else {
+      setStep("select_type");
+    }
+  };
 
   const avgBalance = useMemo(() => getMonthlyClosingBalance(data), [data]);
+
+  // When used inline (no initialStep), wrap in a card
+  const content = (
+    <>
+      {step === "select_type" && <GoalTypeSelector onSelect={setStep} />}
+      {step === "buy_something" && (
+        <BuySomethingForm data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onBack={handleBack} fm={fm} avgBalance={avgBalance} onDone={onDone} />
+      )}
+      {step === "pay_off_debt" && (
+        <PayOffDebtForm data={data} onAddGoal={onAddGoal} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} onBack={handleBack} fm={fm} avgBalance={avgBalance} onDone={onDone} />
+      )}
+    </>
+  );
+
+  // When called from FAB with initialStep, render without card wrapper
+  if (initialStep) {
+    return <div>{content}</div>;
+  }
 
   return (
     <Card className="border-purple-500/20">
@@ -100,13 +124,7 @@ export function GoalPlanner({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAd
         </CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        {step === "select_type" && <GoalTypeSelector onSelect={setStep} />}
-        {step === "buy_something" && (
-          <BuySomethingForm data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
-        )}
-        {step === "pay_off_debt" && (
-          <PayOffDebtForm data={data} onAddGoal={onAddGoal} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} onBack={handleBack} fm={fm} avgBalance={avgBalance} />
-        )}
+        {content}
       </CardContent>
     </Card>
   );
