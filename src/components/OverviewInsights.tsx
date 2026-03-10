@@ -86,11 +86,11 @@ export function OverviewInsights({ data }: OverviewInsightsProps) {
       {/* Top Priority Insights — hero banner */}
       {insights.top.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1 animate-fade-in">
             What matters now
           </h3>
           {insights.top.map((insight, i) => (
-            <InsightCard key={`top-${i}`} insight={insight} />
+            <InsightCard key={`top-${i}`} insight={insight} index={i} />
           ))}
         </div>
       )}
