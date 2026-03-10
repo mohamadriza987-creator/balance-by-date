@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings, Goal, OtherAsset, LiabilityPayoff } from "@/lib/finance-types";
+import type { AppData, AccountBalances, Entry, Investment, Subscription, DebtPlan, UserProfile, Frequency, Transfer, AppSettings, Goal, OtherAsset, LiabilityPayoff, FamilyMember, FamilyRequest, PiggyBank, PiggyBankContribution, SharedGoal, SharedGoalContribution, FamilyData } from "@/lib/finance-types";
 import { seedData } from "@/lib/finance-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
