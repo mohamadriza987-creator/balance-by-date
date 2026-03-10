@@ -34,6 +34,7 @@ const sectionConfig: { key: string; title: string; emoji: string; categories: In
   { key: "spending", title: "Spending Pulse", emoji: "📊", categories: ["spending"] },
   { key: "opportunities", title: "Opportunities", emoji: "✨", categories: ["opportunity"] },
   { key: "goals", title: "Goals & Progress", emoji: "🎯", categories: ["goal"] },
+  { key: "family", title: "Family", emoji: "👨‍👩‍👧", categories: ["family"] },
   { key: "debt", title: "Debt Watch", emoji: "⛓️", categories: ["debt"] },
   { key: "reminders", title: "Reminders", emoji: "🔔", categories: ["reminder"] },
 ];
