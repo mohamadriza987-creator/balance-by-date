@@ -17,22 +17,30 @@ import { ForecastChart } from "@/components/ForecastChart";
 import { FrequencySelect } from "@/components/FrequencySelect";
 import { InvestmentCalculator } from "@/components/InvestmentCalculator";
 import { ZakatCalculator } from "@/components/ZakatCalculator";
-import { GoalPlanner } from "@/components/GoalPlanner";
 import { TYPE_COLORS } from "@/lib/constants";
+import { addDays } from "@/lib/finance-utils";
+import { format, parseISO } from "date-fns";
 
 interface ForecastTabProps {
   data: AppData;
-  onAddGoal: (goal: Omit<import("@/lib/finance-types").Goal, "id">) => void;
-  onAddOtherAsset: (asset: Omit<import("@/lib/finance-types").OtherAsset, "id">) => void;
-  onAddEntry: (entry: Omit<import("@/lib/finance-types").Entry, "id">) => string;
-  onAddLiabilityPayoff?: (payoff: Omit<import("@/lib/finance-types").LiabilityPayoff, "id">) => void;
-  onAddTransfer?: (transfer: Omit<import("@/lib/finance-types").Transfer, "id">) => void;
+  onUpdateForecastDate: (date: string) => void;
 }
 
-export function ForecastTab({ data, onAddGoal, onAddOtherAsset, onAddEntry, onAddLiabilityPayoff, onAddTransfer }: ForecastTabProps) {
+export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
   const today = data.positionDate || todayStr();
   const profile = data.userProfile;
   const fm = (n: number) => formatMoney(n, profile);
+
+  // Slider state: months from 1..12
+  const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
+  const [sliderMonths, setSliderMonths] = useState(Math.min(Math.round(horizonDays / 30), 12));
+
+  const handleSliderChange = (months: number[]) => {
+    const m = months[0];
+    setSliderMonths(m);
+    onUpdateForecastDate(addDays(today, m * 30));
+  };
+
   const effectiveBalance = useMemo(() => computeBalanceAtPosition(data), [data]);
   const effectiveData = useMemo(() => ({ ...data, currentBalance: effectiveBalance }), [data, effectiveBalance]);
   const forecast = useMemo(() => computeForecast(effectiveData), [effectiveData]);
