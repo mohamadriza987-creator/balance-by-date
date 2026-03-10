@@ -2,11 +2,12 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, ArrowLeftRight, Landmark } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, Receipt, Landmark } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
+import { TransactionsListTab } from "@/components/TransactionsListTab";
 import { TransactionsTab } from "@/components/TransactionsTab";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { GuidedTour } from "@/components/GuidedTour";
@@ -20,7 +21,7 @@ import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 
 // Lazy load heavy tab components
 const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
-const TransfersTab = lazy(() => import("@/components/TransfersTab").then(m => ({ default: m.TransfersTab })));
+// TransfersTab removed — replaced by TransactionsListTab
 const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
 const OtherAssetsTab = lazy(() => import("@/components/OtherAssetsTab").then(m => ({ default: m.OtherAssetsTab })));
 
@@ -32,7 +33,7 @@ const TabLoading = () => (
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
-  { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
+  { value: "transactions", label: "Transactions", icon: Receipt },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
   { value: "others", label: "Others", icon: Landmark },
 ] as const;
@@ -208,10 +209,18 @@ const Index = () => {
             <TransactionsTab data={data} onUpdateEntry={updateEntry} onRemoveEntry={removeEntry} />
           </div>
         )}
+        {activeTab === "transactions" && (
+          <TransactionsListTab
+            data={data}
+            onUpdateEntry={updateEntry}
+            onRemoveEntry={removeEntry}
+            onUpdateSubscription={updateSubscription}
+            onRemoveSubscription={removeSubscription}
+            onRemoveTransfer={removeTransfer}
+            onRemoveInvestment={removeInvestment}
+          />
+        )}
         <Suspense fallback={<TabLoading />}>
-          {activeTab === "transfers" && (
-            <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
-          )}
           {activeTab === "forecast" && (
             <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
           )}
