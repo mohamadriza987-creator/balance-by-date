@@ -653,13 +653,14 @@ function familyInsightsGen(data: AppData): Insight[] {
 // ─── Main Engine ─────────────────────────────────────────────
 
 export function generateInsights(data: AppData): {
-  top: Insight[];          // 2-4 for Overview hero
+  top: Insight[];
   spending: Insight[];
   cashflow: Insight[];
   opportunity: Insight[];
   warning: Insight[];
   goal: Insight[];
   debt: Insight[];
+  family: Insight[];
   reminder: Insight[];
   all: Insight[];
 } {
