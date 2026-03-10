@@ -127,15 +127,29 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     toast({ title: current.includes(acc) ? "Account removed" : "Account added", description: `${acc === "creditCard" ? "Credit Card" : acc === "bank" ? "Bank" : "Cash"} ${current.includes(acc) ? "removed" : "added"}.` });
   };
 
+  const [profileData, setProfileData] = useState<{
+    first_name?: string; last_name?: string; birthday?: string; finny_user_id?: string;
+  }>({});
+
+  // Load extended profile data from DB
+  useState(() => {
+    if (user) {
+      supabase.from("profiles").select("first_name, last_name, birthday, finny_user_id")
+        .eq("user_id", user.id).maybeSingle().then(({ data: p }) => {
+          if (p) setProfileData(p as any);
+        });
+    }
+  });
+
   return (
     <div className="max-w-lg mx-auto space-y-6">
       {/* Account / Profile */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <User className="h-5 w-5" /> Account
+            <User className="h-5 w-5" /> Profile
           </CardTitle>
-          <CardDescription>Your profile and authentication</CardDescription>
+          <CardDescription>Your personal information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {user && (
@@ -144,10 +158,22 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
                 <Label className="text-sm text-muted-foreground">Email</Label>
                 <span className="text-sm text-foreground">{user.email}</span>
               </div>
-              {data.userProfile?.name && (
+              {(profileData.first_name || profileData.last_name) && (
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-muted-foreground">Name</Label>
-                  <span className="text-sm text-foreground">{data.userProfile.name}</span>
+                  <span className="text-sm text-foreground">{profileData.first_name} {profileData.last_name}</span>
+                </div>
+              )}
+              {profileData.finny_user_id && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">FinnyUserID</Label>
+                  <span className="text-sm text-foreground font-mono">@{profileData.finny_user_id}</span>
+                </div>
+              )}
+              {profileData.birthday && (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Birthday</Label>
+                  <span className="text-sm text-foreground">{profileData.birthday}</span>
                 </div>
               )}
               {data.userProfile?.country && (
