@@ -29,16 +29,37 @@ export function useFamilyNotifications() {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (!profile?.finny_user_id) return;
+    // Build list of identifiers to check (finny_user_id + email)
+    const myIdentifiers: { type: string; value: string }[] = [];
+    if (profile?.finny_user_id) {
+      myIdentifiers.push({ type: "finny_id", value: profile.finny_user_id });
+    }
+    if (user.email) {
+      myIdentifiers.push({ type: "email", value: user.email });
+    }
 
-    const { data: invites } = await supabase
-      .from("family_invitations")
-      .select("*")
-      .eq("to_identifier", profile.finny_user_id)
-      .eq("status", "pending");
+    if (myIdentifiers.length === 0) return;
 
-    if (invites && invites.length > 0) {
-      setPendingInvitations(invites as unknown as FamilyInvitation[]);
+    // Query for invitations matching any of my identifiers
+    let allInvites: FamilyInvitation[] = [];
+    for (const ident of myIdentifiers) {
+      const { data: invites } = await supabase
+        .from("family_invitations")
+        .select("*")
+        .eq("to_identifier", ident.value)
+        .eq("identifier_type", ident.type)
+        .eq("status", "pending");
+
+      if (invites && invites.length > 0) {
+        allInvites = [...allInvites, ...(invites as unknown as FamilyInvitation[])];
+      }
+    }
+
+    // Deduplicate by id
+    const uniqueInvites = allInvites.filter((inv, idx, arr) => arr.findIndex(i => i.id === inv.id) === idx);
+
+    if (uniqueInvites.length > 0) {
+      setPendingInvitations(uniqueInvites);
       setHasPending(true);
     } else {
       setPendingInvitations([]);
