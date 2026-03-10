@@ -598,6 +598,58 @@ function reminderInsightsGen(data: AppData): Insight[] {
   return items;
 }
 
+function familyInsightsGen(data: AppData): Insight[] {
+  const items: Insight[] = [];
+  const fd = data.familyData;
+  if (!fd) return items;
+
+  // Pending requests
+  const pendingRequests = fd.requests.filter(r => r.status === "pending");
+  if (pendingRequests.length > 0) {
+    items.push({
+      text: `${pendingRequests.length === 1 ? "A family request is" : `${pendingRequests.length} family requests are`} still waiting for approval.`,
+      tone: "warning", category: "family", priority: 2, icon: "👨‍👩‍👧",
+    });
+  }
+
+  // Shared goals progress
+  for (const goal of fd.sharedGoals.slice(0, 2)) {
+    const totalContrib = goal.contributions.reduce((s, c) => s + c.amount, 0);
+    const pct = goal.targetAmount > 0 ? Math.round((totalContrib / goal.targetAmount) * 100) : 0;
+    if (pct >= 80) {
+      items.push({
+        text: `Your shared goal "${goal.name}" is almost there — ${pct}% done! 🎉`,
+        tone: "positive", category: "family", priority: 3, icon: "🎯",
+      });
+    } else if (pct >= 30) {
+      items.push({
+        text: `Your shared goal "${goal.name}" is moving nicely — ${pct}% so far.`,
+        tone: "positive", category: "family", priority: 5, icon: "🌟",
+      });
+    }
+  }
+
+  // Piggy bank reminders
+  for (const pb of fd.piggyBanks) {
+    if (pb.currentAmount >= pb.targetAmount) {
+      items.push({
+        text: `${pb.childName}'s piggy bank is full! Time to celebrate 🎊`,
+        tone: "positive", category: "family", priority: 3, icon: "🐷",
+      });
+    } else {
+      const pct = Math.round((pb.currentAmount / pb.targetAmount) * 100);
+      if (pct < 50) {
+        items.push({
+          text: `${pb.childName}'s piggy bank could use a top-up — it's at ${pct}%.`,
+          tone: "neutral", category: "family", priority: 5, icon: "🐷",
+        });
+      }
+    }
+  }
+
+  return items;
+}
+
 // ─── Main Engine ─────────────────────────────────────────────
 
 export function generateInsights(data: AppData): {
