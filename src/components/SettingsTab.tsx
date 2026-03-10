@@ -108,10 +108,6 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     toast({ title: "Data reset", description: "All data has been reset to defaults." });
   };
 
-  const handleHorizonChange = (months: number[]) => {
-    const days = months[0] * 30;
-    onUpdateForecastDate(addDays(today, days));
-  };
 
   const handleSignOut = async () => {
     await signOut();
