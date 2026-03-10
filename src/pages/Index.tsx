@@ -206,43 +206,45 @@ const Index = () => {
       </header>
 
       <main className="px-3 py-4">
-        {activeTab === "overview" && (
-          <div className="space-y-4">
-            <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
-            <OverviewInsights data={data} />
-          </div>
-        )}
-        {activeTab === "transactions" && (
-          <TransactionsListTab
-            data={data}
-            onUpdateEntry={updateEntry}
-            onRemoveEntry={removeEntry}
-            onUpdateSubscription={updateSubscription}
-            onRemoveSubscription={removeSubscription}
-            onRemoveTransfer={removeTransfer}
-            onRemoveInvestment={removeInvestment}
-          />
-        )}
-        <Suspense fallback={<TabLoading />}>
-          {activeTab === "forecast" && (
-            <ForecastTab data={data} onUpdateForecastDate={updateForecastDate} />
+        <div key={activeTab} className="tab-content-enter">
+          {activeTab === "overview" && (
+            <div className="space-y-4 stagger-children">
+              <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
+              <OverviewInsights data={data} />
+            </div>
           )}
-          {activeTab === "family" && (
-            <FamilyLandTab
+          {activeTab === "transactions" && (
+            <TransactionsListTab
               data={data}
-              onAddFamilyMember={addFamilyMember}
-              onRemoveFamilyMember={removeFamilyMember}
-              onAddFamilyRequest={addFamilyRequest}
-              onUpdateFamilyRequest={updateFamilyRequest}
-              onAddPiggyBank={addPiggyBank}
-              onAddPiggyBankContribution={addPiggyBankContribution}
-              onRemovePiggyBank={removePiggyBank}
-              onAddSharedGoal={addSharedGoal}
-              onAddSharedGoalContribution={addSharedGoalContribution}
-              onRemoveSharedGoal={removeSharedGoal}
+              onUpdateEntry={updateEntry}
+              onRemoveEntry={removeEntry}
+              onUpdateSubscription={updateSubscription}
+              onRemoveSubscription={removeSubscription}
+              onRemoveTransfer={removeTransfer}
+              onRemoveInvestment={removeInvestment}
             />
           )}
-        </Suspense>
+          <Suspense fallback={<TabLoading />}>
+            {activeTab === "forecast" && (
+              <ForecastTab data={data} onUpdateForecastDate={updateForecastDate} />
+            )}
+            {activeTab === "family" && (
+              <FamilyLandTab
+                data={data}
+                onAddFamilyMember={addFamilyMember}
+                onRemoveFamilyMember={removeFamilyMember}
+                onAddFamilyRequest={addFamilyRequest}
+                onUpdateFamilyRequest={updateFamilyRequest}
+                onAddPiggyBank={addPiggyBank}
+                onAddPiggyBankContribution={addPiggyBankContribution}
+                onRemovePiggyBank={removePiggyBank}
+                onAddSharedGoal={addSharedGoal}
+                onAddSharedGoalContribution={addSharedGoalContribution}
+                onRemoveSharedGoal={removeSharedGoal}
+              />
+            )}
+          </Suspense>
+        </div>
       </main>
 
       {/* Floating Add Button */}
