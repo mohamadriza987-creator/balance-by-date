@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, Wallet, Pencil, Check, X } from "lucide-react";
 import type { AppData, AppSettings, AccountType, AccountBalances } from "@/lib/finance-types";
-import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
+import { seedData, todayStr } from "@/lib/finance-utils";
 import { getSettings } from "@/lib/account-forecast";
 import { COUNTRIES_CURRENCIES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
