@@ -3,14 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, TrendingUp, Wallet, Pencil, Check, X } from "lucide-react";
+import { Download, Upload, RotateCcw, Heart, CreditCard, ArrowLeftRight, LogOut, User, Landmark, Wallet, Pencil, Check, X } from "lucide-react";
 import type { AppData, AppSettings, AccountType, AccountBalances } from "@/lib/finance-types";
-import { seedData, addDays, todayStr, daysBetween } from "@/lib/finance-utils";
+import { seedData, todayStr } from "@/lib/finance-utils";
 import { getSettings } from "@/lib/account-forecast";
 import { COUNTRIES_CURRENCIES } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 interface SettingsTabProps {
   data: AppData;
   onReplace: (data: AppData) => void;
-  onUpdateForecastDate: (date: string) => void;
   onReplayIntro?: () => void;
   onUpdateSettings?: (updates: Partial<AppSettings>) => void;
   onUpdateAccountBalances?: (balances: AccountBalances) => void;
@@ -48,15 +46,12 @@ interface ProfileData {
   currency_symbol?: string;
 }
 
-export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
+export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const settings = getSettings(data);
 
-  const today = data.positionDate || todayStr();
-  const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
-  const horizonMonths = Math.round(horizonDays / 30);
 
   const enabledAccounts = data.userProfile?.enabledAccounts || [];
   const [newAccountBalance, setNewAccountBalance] = useState("");
@@ -81,7 +76,7 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `balancebydate-export-${today}.json`;
+    a.download = `balancebydate-export-${todayStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Data exported", description: "JSON file downloaded successfully." });
@@ -112,10 +107,6 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     toast({ title: "Data reset", description: "All data has been reset to defaults." });
   };
 
-  const handleHorizonChange = (months: number[]) => {
-    const days = months[0] * 30;
-    onUpdateForecastDate(addDays(today, days));
-  };
 
   const handleSignOut = async () => {
     await signOut();

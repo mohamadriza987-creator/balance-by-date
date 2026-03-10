@@ -137,7 +137,6 @@ const Index = () => {
             <SettingsTab
               data={data}
               onReplace={(d) => setData(d)}
-              onUpdateForecastDate={updateForecastDate}
               onReplayIntro={() => { setOnboardingComplete(false); }}
               onUpdateSettings={updateSettings}
               onUpdateAccountBalances={updateAccountBalances}

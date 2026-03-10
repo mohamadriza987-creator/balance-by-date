@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Landmark, Target, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, ACCOUNT_LABELS } from "@/lib/con
 import type { AppData, Entry, Frequency, Investment, Subscription, Transfer, AccountType, Goal, OtherAsset, LiabilityPayoff, AppSettings } from "@/lib/finance-types";
 import { todayStr, formatMoney } from "@/lib/finance-utils";
 import { GoalPlanner } from "@/components/GoalPlanner";
+import { getContextualInsight } from "@/lib/insight-engine";
+import { toast } from "sonner";
 
 type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt" | "goal" | "payoff";
 
@@ -205,6 +207,8 @@ function IncomeForm({ data, onAdd, onDone, onUpdateSettings }: {
     if (!isValid) return;
     saveCustomCategory(category, "income", data, onUpdateSettings);
     onAdd({ label: name, amount: Math.abs(parseFloat(amount)), date, frequency, category, account, includeInForecast: true });
+    const insight = getContextualInsight(data, category, Math.abs(parseFloat(amount)), "income");
+    if (insight) setTimeout(() => toast(insight, { duration: 4000 }), 500);
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank");
     onDone();
   };
@@ -263,6 +267,8 @@ function ExpenseForm({ data, onAdd, onDone, onUpdateSettings }: {
       label: name, amount: -Math.abs(parseFloat(amount)), date, frequency, category, account,
       includeInForecast: true, isCheque: (account === "bank" && isCheque) || undefined,
     });
+    const insight = getContextualInsight(data, category, Math.abs(parseFloat(amount)), "expense");
+    if (insight) setTimeout(() => toast(insight, { duration: 4000 }), 500);
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank"); setIsCheque(false);
     onDone();
   };
