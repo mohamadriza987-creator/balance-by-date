@@ -24,10 +24,14 @@ export type Database = {
           enabled_accounts: string[] | null
           finny_user_id: string | null
           first_name: string | null
+          gender: string | null
           id: string
           last_name: string | null
+          marital_status: string | null
           name: string | null
           onboarding_complete: boolean | null
+          phone_code: string | null
+          phone_number: string | null
           updated_at: string
           user_id: string
         }
@@ -40,10 +44,14 @@ export type Database = {
           enabled_accounts?: string[] | null
           finny_user_id?: string | null
           first_name?: string | null
+          gender?: string | null
           id?: string
           last_name?: string | null
+          marital_status?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
+          phone_code?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id: string
         }
@@ -56,10 +64,14 @@ export type Database = {
           enabled_accounts?: string[] | null
           finny_user_id?: string | null
           first_name?: string | null
+          gender?: string | null
           id?: string
           last_name?: string | null
+          marital_status?: string | null
           name?: string | null
           onboarding_complete?: boolean | null
+          phone_code?: string | null
+          phone_number?: string | null
           updated_at?: string
           user_id?: string
         }
