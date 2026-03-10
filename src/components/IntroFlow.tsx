@@ -78,6 +78,13 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
     detectLocation();
   }, []);
 
+  // When user logs in (e.g. from auth step 3), advance to profile step
+  useEffect(() => {
+    if (user && step === 3) {
+      goToStep(4);
+    }
+  }, [user]);
+
   // Pre-fill from Google user metadata
   useEffect(() => {
     if (user) {
