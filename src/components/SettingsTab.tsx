@@ -53,9 +53,6 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
   const fileInputRef = useRef<HTMLInputElement>(null);
   const settings = getSettings(data);
 
-  const today = data.positionDate || todayStr();
-  const horizonDays = Math.max(daysBetween(today, data.forecastDate), 30);
-  const horizonMonths = Math.round(horizonDays / 30);
 
   const enabledAccounts = data.userProfile?.enabledAccounts || [];
   const [newAccountBalance, setNewAccountBalance] = useState("");
