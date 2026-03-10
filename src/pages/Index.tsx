@@ -206,43 +206,45 @@ const Index = () => {
       </header>
 
       <main className="px-3 py-4">
-        {activeTab === "overview" && (
-          <div className="space-y-4">
-            <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
-            <OverviewInsights data={data} />
-          </div>
-        )}
-        {activeTab === "transactions" && (
-          <TransactionsListTab
-            data={data}
-            onUpdateEntry={updateEntry}
-            onRemoveEntry={removeEntry}
-            onUpdateSubscription={updateSubscription}
-            onRemoveSubscription={removeSubscription}
-            onRemoveTransfer={removeTransfer}
-            onRemoveInvestment={removeInvestment}
-          />
-        )}
-        <Suspense fallback={<TabLoading />}>
-          {activeTab === "forecast" && (
-            <ForecastTab data={data} onUpdateForecastDate={updateForecastDate} />
+        <div key={activeTab} className="tab-content-enter">
+          {activeTab === "overview" && (
+            <div className="space-y-4 stagger-children">
+              <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
+              <OverviewInsights data={data} />
+            </div>
           )}
-          {activeTab === "family" && (
-            <FamilyLandTab
+          {activeTab === "transactions" && (
+            <TransactionsListTab
               data={data}
-              onAddFamilyMember={addFamilyMember}
-              onRemoveFamilyMember={removeFamilyMember}
-              onAddFamilyRequest={addFamilyRequest}
-              onUpdateFamilyRequest={updateFamilyRequest}
-              onAddPiggyBank={addPiggyBank}
-              onAddPiggyBankContribution={addPiggyBankContribution}
-              onRemovePiggyBank={removePiggyBank}
-              onAddSharedGoal={addSharedGoal}
-              onAddSharedGoalContribution={addSharedGoalContribution}
-              onRemoveSharedGoal={removeSharedGoal}
+              onUpdateEntry={updateEntry}
+              onRemoveEntry={removeEntry}
+              onUpdateSubscription={updateSubscription}
+              onRemoveSubscription={removeSubscription}
+              onRemoveTransfer={removeTransfer}
+              onRemoveInvestment={removeInvestment}
             />
           )}
-        </Suspense>
+          <Suspense fallback={<TabLoading />}>
+            {activeTab === "forecast" && (
+              <ForecastTab data={data} onUpdateForecastDate={updateForecastDate} />
+            )}
+            {activeTab === "family" && (
+              <FamilyLandTab
+                data={data}
+                onAddFamilyMember={addFamilyMember}
+                onRemoveFamilyMember={removeFamilyMember}
+                onAddFamilyRequest={addFamilyRequest}
+                onUpdateFamilyRequest={updateFamilyRequest}
+                onAddPiggyBank={addPiggyBank}
+                onAddPiggyBankContribution={addPiggyBankContribution}
+                onRemovePiggyBank={removePiggyBank}
+                onAddSharedGoal={addSharedGoal}
+                onAddSharedGoalContribution={addSharedGoalContribution}
+                onRemoveSharedGoal={removeSharedGoal}
+              />
+            )}
+          </Suspense>
+        </div>
       </main>
 
       {/* Floating Add Button */}
@@ -266,13 +268,13 @@ const Index = () => {
             <button
               key={value}
               onClick={() => setActiveTab(value)}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all duration-200 ${
                 activeTab === value
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground"
+                  ? "text-primary font-semibold nav-tab-active"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className={`h-5 w-5 ${activeTab === value ? "text-primary" : ""}`} />
+              <Icon className={`h-5 w-5 transition-transform duration-200 ${activeTab === value ? "text-primary scale-110" : ""}`} />
               <span>{label}</span>
             </button>
           ))}

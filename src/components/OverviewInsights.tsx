@@ -39,9 +39,12 @@ const sectionConfig: { key: string; title: string; emoji: string; categories: In
   { key: "reminders", title: "Reminders", emoji: "🔔", categories: ["reminder"] },
 ];
 
-function InsightCard({ insight }: { insight: Insight }) {
+function InsightCard({ insight, index = 0 }: { insight: Insight; index?: number }) {
   return (
-    <Card className={`finnyland-card overflow-hidden ${toneStyles[insight.tone]}`}>
+    <Card
+      className={`insight-card overflow-hidden ${toneStyles[insight.tone]} animate-slide-up-fade`}
+      style={{ animationDelay: `${index * 50}ms`, opacity: 0 }}
+    >
       <CardContent className="flex items-start gap-3 p-3.5">
         <span className="text-base mt-0.5 shrink-0">{insight.icon}</span>
         <p className="text-sm text-foreground leading-relaxed">{insight.text}</p>
@@ -83,11 +86,11 @@ export function OverviewInsights({ data }: OverviewInsightsProps) {
       {/* Top Priority Insights — hero banner */}
       {insights.top.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1 animate-fade-in">
             What matters now
           </h3>
           {insights.top.map((insight, i) => (
-            <InsightCard key={`top-${i}`} insight={insight} />
+            <InsightCard key={`top-${i}`} insight={insight} index={i} />
           ))}
         </div>
       )}
@@ -102,15 +105,15 @@ export function OverviewInsights({ data }: OverviewInsightsProps) {
         return (
           <div
             key={section.key}
-            className="space-y-2 animate-fade-in"
-            style={{ animationDelay: `${(si + 1) * 60}ms` }}
+            className="space-y-2 animate-slide-up-fade"
+            style={{ animationDelay: `${(si + 1) * 80}ms`, opacity: 0 }}
           >
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5 px-1">
               <span>{section.emoji}</span> {section.title}
             </h3>
             <div className="space-y-2">
               {remaining.map((insight, i) => (
-                <InsightCard key={`${section.key}-${i}`} insight={insight} />
+                <InsightCard key={`${section.key}-${i}`} insight={insight} index={i} />
               ))}
             </div>
           </div>
