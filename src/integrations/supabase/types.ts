@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      family_invitations: {
+        Row: {
+          created_at: string
+          from_first_name: string | null
+          from_last_name: string | null
+          from_user_id: string
+          id: string
+          identifier_type: string
+          relationship: string
+          status: string
+          to_identifier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          from_first_name?: string | null
+          from_last_name?: string | null
+          from_user_id: string
+          id?: string
+          identifier_type?: string
+          relationship: string
+          status?: string
+          to_identifier: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          from_first_name?: string | null
+          from_last_name?: string | null
+          from_user_id?: string
+          id?: string
+          identifier_type?: string
+          relationship?: string
+          status?: string
+          to_identifier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birthday: string | null
