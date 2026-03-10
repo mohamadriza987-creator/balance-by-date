@@ -267,6 +267,8 @@ function ExpenseForm({ data, onAdd, onDone, onUpdateSettings }: {
       label: name, amount: -Math.abs(parseFloat(amount)), date, frequency, category, account,
       includeInForecast: true, isCheque: (account === "bank" && isCheque) || undefined,
     });
+    const insight = getContextualInsight(data, category, Math.abs(parseFloat(amount)), "expense");
+    if (insight) setTimeout(() => toast(insight, { duration: 4000 }), 500);
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank"); setIsCheque(false);
     onDone();
   };
