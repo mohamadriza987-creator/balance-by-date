@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, Receipt, Landmark } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, Receipt, Heart } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
