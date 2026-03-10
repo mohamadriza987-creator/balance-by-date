@@ -223,9 +223,6 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
         </CardContent>
       </Card>
 
-      {/* Set a Goal */}
-      <GoalPlanner data={data} onAddGoal={onAddGoal} onAddOtherAsset={onAddOtherAsset} onAddEntry={onAddEntry} onAddLiabilityPayoff={onAddLiabilityPayoff} onAddTransfer={onAddTransfer} fm={fm} />
-
       {/* What-If Simulator */}
       <WhatIfSimulator data={data} currentForecast={forecast} effectiveBalance={effectiveBalance} fm={fm} />
 
