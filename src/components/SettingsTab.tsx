@@ -77,7 +77,7 @@ export function SettingsTab({ data, onReplace, onUpdateForecastDate, onReplayInt
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `balancebydate-export-${today}.json`;
+    a.download = `balancebydate-export-${todayStr()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Data exported", description: "JSON file downloaded successfully." });
