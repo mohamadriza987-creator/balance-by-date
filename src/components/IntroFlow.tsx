@@ -23,6 +23,9 @@ const ACCOUNT_OPTIONS: { key: AccountType; label: string; creditLabel?: string }
   { key: "creditCard", label: "Credit Card", creditLabel: "Credit Card Limit Available" },
 ];
 
+const GENDER_OPTIONS = ["Male", "Female", "Other", "Prefer not to say"];
+const MARITAL_STATUS_OPTIONS = ["Single", "Married", "Divorced", "Widowed", "Prefer not to say"];
+
 export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>(user ? 4 : 1);
@@ -30,20 +33,50 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
   const [lastName, setLastName] = useState("");
   const [transitioning, setTransitioning] = useState(false);
 
-  // Birthday & FinnyUserID
+  // Profile fields
   const [birthday, setBirthday] = useState("");
   const [finnyUserId, setFinnyUserId] = useState("");
   const [finnyAvailable, setFinnyAvailable] = useState<boolean | null>(null);
   const [checkingFinny, setCheckingFinny] = useState(false);
+  const [gender, setGender] = useState("");
+  const [maritalStatus, setMaritalStatus] = useState("");
+  const [phoneCode, setPhoneCode] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   // Country/Currency
   const [country, setCountry] = useState("");
   const [currency, setCurrency] = useState("");
   const [currencySymbol, setCurrencySymbol] = useState("$");
+  const [detectedCountry, setDetectedCountry] = useState("");
 
   // Sources
   const [enabledAccounts, setEnabledAccounts] = useState<AccountType[]>([]);
   const [balances, setBalances] = useState<Record<AccountType, string>>({ cash: "", bank: "", creditCard: "" });
+
+  // Auto-detect location on mount
+  useEffect(() => {
+    const detectLocation = async () => {
+      try {
+        const res = await fetch("https://ipapi.co/json/");
+        const data = await res.json();
+        if (data.country_name) {
+          const match = COUNTRIES_CURRENCIES.find(
+            cc => cc.country.toLowerCase() === data.country_name.toLowerCase()
+          );
+          if (match) {
+            setDetectedCountry(match.country);
+            setCountry(match.country);
+            setCurrency(match.currency);
+            setCurrencySymbol(match.symbol);
+            setPhoneCode(match.phoneCode);
+          }
+        }
+      } catch {
+        // Silently fail - user can select manually
+      }
+    };
+    detectLocation();
+  }, []);
 
   // Pre-fill from Google user metadata
   useEffect(() => {
@@ -81,7 +114,6 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
     
     if (existing) {
       setFinnyAvailable(false);
-      // Suggest alternative with numbers
       for (let i = 1; i <= 99; i++) {
         const alt = `${id.trim().toLowerCase()}${i}`;
         const { data: altExisting } = await supabase
@@ -133,6 +165,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
     if (match) {
       setCurrency(match.currency);
       setCurrencySymbol(match.symbol);
+      setPhoneCode(match.phoneCode);
     }
   };
 
@@ -160,6 +193,10 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
       lastName: lastName.trim(),
       birthday: birthday || undefined,
       finnyUserId: finnyUserId.trim().toLowerCase() || undefined,
+      gender: gender || undefined,
+      maritalStatus: maritalStatus || undefined,
+      phoneCode: phoneCode || undefined,
+      phoneNumber: phoneNumber || undefined,
       country,
       currency,
       currencySymbol,
@@ -171,7 +208,6 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
       creditCard: enabledAccounts.includes("creditCard") ? parseFloat(balances.creditCard) || 0 : 0,
     };
 
-    // Save profile to Supabase
     if (user) {
       await supabase.from("profiles").update({
         name: profile.name,
@@ -179,6 +215,10 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
         last_name: profile.lastName,
         birthday: profile.birthday || null,
         finny_user_id: profile.finnyUserId || null,
+        gender: profile.gender || null,
+        marital_status: profile.maritalStatus || null,
+        phone_code: profile.phoneCode || null,
+        phone_number: profile.phoneNumber || null,
         country: profile.country,
         currency: profile.currency,
         currency_symbol: profile.currencySymbol,
@@ -267,11 +307,11 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
         </div>
       )}
 
-      {/* Step 4: Birthday & FinnyUserID */}
+      {/* Step 4: Profile Details - logically organized */}
       {step === 4 && (
-        <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
+        <div className={`w-full max-w-sm space-y-5 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold text-foreground">A bit more about you</h2>
+            <h2 className="text-xl font-bold text-foreground">Tell us about yourself</h2>
             <p className="text-sm text-muted-foreground">Let's personalize your experience</p>
           </div>
 
@@ -283,7 +323,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
             </div>
           )}
 
-          {/* First & Last Name (editable, pre-filled) */}
+          {/* First & Last Name */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">First Name</Label>
@@ -293,12 +333,6 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
               <Label className="text-xs">Last Name</Label>
               <Input value={lastName} onChange={e => setLastName(e.target.value)} className="h-10" />
             </div>
-          </div>
-
-          {/* Birthday */}
-          <div>
-            <Label className="text-xs">Birthday (optional)</Label>
-            <Input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className="h-10" />
           </div>
 
           {/* FinnyUserID */}
@@ -330,18 +364,52 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
             )}
           </div>
 
+          {/* Birthday */}
+          <div>
+            <Label className="text-xs">Birthday</Label>
+            <Input type="date" value={birthday} onChange={e => setBirthday(e.target.value)} className="h-10" />
+          </div>
+
+          {/* Gender & Marital Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Gender</Label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  {GENDER_OPTIONS.map(g => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Marital Status</Label>
+              <Select value={maritalStatus} onValueChange={setMaritalStatus}>
+                <SelectTrigger className="h-10"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  {MARITAL_STATUS_OPTIONS.map(s => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <Button onClick={handleProfileContinue} disabled={!finnyUserId.trim() || finnyAvailable === false} className="w-full h-12 text-base">
             Continue
           </Button>
         </div>
       )}
 
-      {/* Step 5: Country/Currency */}
+      {/* Step 5: Country/Currency/Phone */}
       {step === 5 && (
-        <div className={`w-full max-w-sm space-y-6 transition-all duration-300 ${animClass}`}>
+        <div className={`w-full max-w-sm space-y-5 transition-all duration-300 ${animClass}`}>
           <div className="text-center space-y-1">
-            <h2 className="text-xl font-bold text-foreground">Select your country</h2>
-            <p className="text-sm text-muted-foreground">We'll set the default currency for you</p>
+            <h2 className="text-xl font-bold text-foreground">Location & Contact</h2>
+            <p className="text-sm text-muted-foreground">
+              {detectedCountry ? `We detected you're in ${detectedCountry}` : "Select your country"}
+            </p>
           </div>
           <div className="space-y-3">
             <div>
@@ -367,6 +435,27 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
                 </div>
               </div>
             )}
+
+            {/* Mobile Number */}
+            <div>
+              <Label className="text-xs">Mobile Number (optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={phoneCode}
+                  onChange={e => setPhoneCode(e.target.value)}
+                  placeholder="+91"
+                  className="h-10 w-20 text-center"
+                />
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  value={phoneNumber}
+                  onChange={e => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ""))}
+                  placeholder="Mobile number"
+                  className="h-10 flex-1"
+                />
+              </div>
+            </div>
           </div>
           <Button onClick={handleCountryContinue} disabled={!country || !currency} className="w-full h-12 text-base">
             Continue
