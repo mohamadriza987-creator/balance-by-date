@@ -39,9 +39,12 @@ const sectionConfig: { key: string; title: string; emoji: string; categories: In
   { key: "reminders", title: "Reminders", emoji: "🔔", categories: ["reminder"] },
 ];
 
-function InsightCard({ insight }: { insight: Insight }) {
+function InsightCard({ insight, index = 0 }: { insight: Insight; index?: number }) {
   return (
-    <Card className={`finnyland-card overflow-hidden ${toneStyles[insight.tone]}`}>
+    <Card
+      className={`insight-card overflow-hidden ${toneStyles[insight.tone]} animate-slide-up-fade`}
+      style={{ animationDelay: `${index * 50}ms`, opacity: 0 }}
+    >
       <CardContent className="flex items-start gap-3 p-3.5">
         <span className="text-base mt-0.5 shrink-0">{insight.icon}</span>
         <p className="text-sm text-foreground leading-relaxed">{insight.text}</p>
