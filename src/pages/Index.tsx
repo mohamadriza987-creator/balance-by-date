@@ -206,7 +206,7 @@ const Index = () => {
         {activeTab === "overview" && (
           <div className="space-y-4">
             <AccountsTab data={data} onUpdateAccountBalances={updateAccountBalances} />
-            <TransactionsTab data={data} onUpdateEntry={updateEntry} onRemoveEntry={removeEntry} />
+            <OverviewInsights data={data} />
           </div>
         )}
         {activeTab === "transactions" && (
