@@ -228,8 +228,20 @@ const Index = () => {
           {activeTab === "forecast" && (
             <ForecastTab data={data} onAddGoal={addGoal} onAddOtherAsset={addOtherAsset} onAddEntry={addEntry} onAddLiabilityPayoff={addLiabilityPayoff} onAddTransfer={addTransfer} />
           )}
-          {activeTab === "others" && (
-            <OtherAssetsTab data={data} onAddOtherAsset={addOtherAsset} onRemoveOtherAsset={removeOtherAsset} />
+          {activeTab === "family" && (
+            <FamilyLandTab
+              data={data}
+              onAddFamilyMember={addFamilyMember}
+              onRemoveFamilyMember={removeFamilyMember}
+              onAddFamilyRequest={addFamilyRequest}
+              onUpdateFamilyRequest={updateFamilyRequest}
+              onAddPiggyBank={addPiggyBank}
+              onAddPiggyBankContribution={addPiggyBankContribution}
+              onRemovePiggyBank={removePiggyBank}
+              onAddSharedGoal={addSharedGoal}
+              onAddSharedGoalContribution={addSharedGoalContribution}
+              onRemoveSharedGoal={removeSharedGoal}
+            />
           )}
         </Suspense>
       </main>
