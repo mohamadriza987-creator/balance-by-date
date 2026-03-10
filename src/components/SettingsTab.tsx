@@ -19,7 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 interface SettingsTabProps {
   data: AppData;
   onReplace: (data: AppData) => void;
-  onUpdateForecastDate: (date: string) => void;
   onReplayIntro?: () => void;
   onUpdateSettings?: (updates: Partial<AppSettings>) => void;
   onUpdateAccountBalances?: (balances: AccountBalances) => void;
