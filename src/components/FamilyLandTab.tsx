@@ -300,6 +300,79 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
   const [relationship, setRelationship] = useState<FamilyRelationship>("spouse");
   const [sending, setSending] = useState(false);
 
+  // Live lookup state
+  const [lookupResult, setLookupResult] = useState<{
+    status: "idle" | "searching" | "found" | "not_found" | "self";
+    name?: string;
+    finnyId?: string;
+    userId?: string;
+  }>({ status: "idle" });
+
+  // Debounced live lookup
+  useEffect(() => {
+    const val = identifier.trim().replace(/^@/, "");
+    if (!val || val.length < 2) {
+      setLookupResult({ status: "idle" });
+      return;
+    }
+
+    const isEmail = val.includes("@") && !val.startsWith("@");
+
+    // For email, require at least user@d.c pattern
+    if (isEmail && !val.match(/.+@.+\..+/)) {
+      setLookupResult({ status: "idle" });
+      return;
+    }
+
+    setLookupResult({ status: "searching" });
+
+    const timer = setTimeout(async () => {
+      try {
+        let profile: any = null;
+
+        if (isEmail) {
+          // Look up by email — we need to check profiles joined with auth
+          // Since we can't query auth.users from client, check if any profile 
+          // has this email by querying family_invitations won't work.
+          // Instead, we look up profiles table — but email is in auth.users.
+          // Workaround: try to find a profile where the user has this email
+          // by checking all profiles isn't possible. So for email invites,
+          // we show a neutral "invitation will be sent" message.
+          // But we CAN check if the email matches our own.
+          if (user?.email === val) {
+            setLookupResult({ status: "self" });
+            return;
+          }
+          // For email, we can't look up the name client-side (auth.users not accessible)
+          // Show a neutral status
+          setLookupResult({ status: "found", name: val });
+        } else {
+          // Look up by finny_user_id
+          const { data } = await supabase
+            .from("profiles")
+            .select("user_id, first_name, last_name, finny_user_id")
+            .eq("finny_user_id", val)
+            .maybeSingle();
+
+          if (data) {
+            if (data.user_id === user?.id) {
+              setLookupResult({ status: "self" });
+            } else {
+              const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown User";
+              setLookupResult({ status: "found", name, finnyId: data.finny_user_id || undefined, userId: data.user_id });
+            }
+          } else {
+            setLookupResult({ status: "not_found" });
+          }
+        }
+      } catch {
+        setLookupResult({ status: "idle" });
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [identifier, user]);
+
   // Check limits
   const memberCounts = useMemo(() => {
     const counts: Record<string, number> = { spouse: 0, parent: 0, sibling: 0, child: 0 };
@@ -308,127 +381,98 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
   }, [members]);
 
   const isAtLimit = (rel: FamilyRelationship) => memberCounts[rel] >= (FAMILY_LIMITS[rel] || 99);
-
-  // Filter available relationships
   const availableRelationships = (["spouse", "parent", "sibling", "child"] as FamilyRelationship[]).filter(r => !isAtLimit(r));
 
   const handleInvite = async () => {
     if (!identifier.trim() || !user) return;
-    setSending(true);
+    if (lookupResult.status === "self") {
+      toast.error("You can't invite yourself! 😄");
+      return;
+    }
+    if (lookupResult.status === "not_found") {
+      const isEmail = identifier.includes("@") && !identifier.startsWith("@");
+      if (!isEmail) {
+        toast.error("This user doesn't exist. Double-check the username.");
+        return;
+      }
+    }
 
+    setSending(true);
     try {
-      // Get my profile info
       const { data: myProfile } = await supabase
         .from("profiles")
         .select("first_name, last_name, finny_user_id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const isEmail = identifier.includes("@");
+      const isEmail = identifier.includes("@") && !identifier.startsWith("@");
       const cleanIdentifier = identifier.trim().replace(/^@/, "");
 
+      // Check for duplicate pending invitation
+      const { data: existing } = await supabase
+        .from("family_invitations")
+        .select("id")
+        .eq("from_user_id", user.id)
+        .eq("to_identifier", cleanIdentifier)
+        .eq("status", "pending");
+
+      if (existing && existing.length > 0) {
+        toast.error("You already have a pending invitation to this user.");
+        setSending(false);
+        return;
+      }
+
+      // Create invitation
+      const { error } = await supabase
+        .from("family_invitations")
+        .insert({
+          from_user_id: user.id,
+          to_identifier: cleanIdentifier,
+          identifier_type: isEmail ? "email" : "finny_id",
+          relationship,
+          from_first_name: myProfile?.first_name || null,
+          from_last_name: myProfile?.last_name || null,
+        } as any);
+
+      if (error) {
+        console.error("Insert error:", error);
+        toast.error("Failed to send invitation");
+        setSending(false);
+        return;
+      }
+
+      // Send email for email-based invites
       if (isEmail) {
-        // Create the invitation in the database
-        const { error } = await supabase
-          .from("family_invitations")
-          .insert({
-            from_user_id: user.id,
-            to_identifier: cleanIdentifier,
-            identifier_type: "email",
-            relationship,
-            from_first_name: myProfile?.first_name || null,
-            from_last_name: myProfile?.last_name || null,
-          } as any);
-
-        if (error) {
-          toast.error("Failed to send invitation");
-          setSending(false);
-          return;
-        }
-
-        // Send invitation email via edge function
         const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Someone";
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-family-invite-email`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session?.access_token}`,
-            },
-            body: JSON.stringify({
+          const resp = await supabase.functions.invoke("send-family-invite-email", {
+            body: {
               email: cleanIdentifier,
               fromName: senderName,
               relationship,
-            }),
+            },
           });
+          if (resp.error) console.error("Email function error:", resp.error);
         } catch (emailErr) {
           console.error("Email send failed:", emailErr);
-          // Don't block - invitation is already saved
         }
-
         toast.success(`Invitation sent to ${cleanIdentifier}! 📧`);
       } else {
-        // Check if finny_user_id exists
-        const { data: targetProfile } = await supabase
-          .from("profiles")
-          .select("user_id, first_name, last_name, finny_user_id")
-          .eq("finny_user_id", cleanIdentifier)
-          .maybeSingle();
-
-        if (!targetProfile) {
-          toast.error(`User @${cleanIdentifier} not found. Check the username and try again.`);
-          setSending(false);
-          return;
-        }
-
-        if (targetProfile.user_id === user.id) {
-          toast.error("You can't invite yourself! 😄");
-          setSending(false);
-          return;
-        }
-
-        // Check if already invited
-        const { data: existing } = await supabase
-          .from("family_invitations")
-          .select("id, status")
-          .eq("from_user_id", user.id)
-          .eq("to_identifier", cleanIdentifier)
-          .eq("status", "pending");
-
-        if (existing && existing.length > 0) {
-          toast.error("You already have a pending invitation to this user.");
-          setSending(false);
-          return;
-        }
-
-        const { error } = await supabase
-          .from("family_invitations")
-          .insert({
-            from_user_id: user.id,
-            to_identifier: cleanIdentifier,
-            identifier_type: "finny_id",
-            relationship,
-            from_first_name: myProfile?.first_name || null,
-            from_last_name: myProfile?.last_name || null,
-          } as any);
-
-        if (error) {
-          toast.error("Failed to send invitation");
-          setSending(false);
-          return;
-        }
-
-        toast.success(`Invitation sent to @${cleanIdentifier}! They'll see a notification soon. 💌`);
+        toast.success(`Invitation sent to @${cleanIdentifier}! They'll see it in their Family tab. 💌`);
       }
 
       setIdentifier("");
       setShowInvite(false);
     } catch (err) {
+      console.error("Invite error:", err);
       toast.error("Something went wrong. Please try again.");
     }
     setSending(false);
   };
+
+  const canSend = identifier.trim().length >= 2 && lookupResult.status !== "self" && lookupResult.status !== "searching" &&
+    !(lookupResult.status === "not_found" && !identifier.includes("@"));
 
   return (
     <Card className="finnyland-card">
@@ -459,6 +503,38 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
                 {identifier.includes("@") && !identifier.startsWith("@") ? <Mail className="h-3.5 w-3.5" /> : <AtSign className="h-3.5 w-3.5" />}
               </div>
             </div>
+
+            {/* Live lookup result */}
+            {lookupResult.status === "searching" && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Looking up user...
+              </div>
+            )}
+            {lookupResult.status === "found" && (
+              <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 rounded-lg px-3 py-2 border border-primary/20">
+                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="font-medium">{lookupResult.name}</span>
+                {lookupResult.finnyId && <span className="text-muted-foreground">@{lookupResult.finnyId}</span>}
+                {!lookupResult.finnyId && identifier.includes("@") && (
+                  <span className="text-muted-foreground">— invitation will be sent via email</span>
+                )}
+              </div>
+            )}
+            {lookupResult.status === "not_found" && (
+              <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2 border border-destructive/20">
+                <X className="h-3.5 w-3.5 shrink-0" />
+                {identifier.includes("@") && !identifier.startsWith("@")
+                  ? <span>No account found — an invite email will be sent to sign up</span>
+                  : <span>User not found. Check the username and try again.</span>
+                }
+              </div>
+            )}
+            {lookupResult.status === "self" && (
+              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 rounded-lg px-3 py-2 border border-warning/20">
+                <span>😄</span> <span>That's you! Try a different username or email.</span>
+              </div>
+            )}
+
             <Select value={relationship} onValueChange={(v) => setRelationship(v as FamilyRelationship)}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -481,7 +557,7 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
                 </span>
               ))}
             </div>
-            <Button size="sm" className="h-8 text-xs" onClick={handleInvite} disabled={!identifier.trim() || sending}>
+            <Button size="sm" className="h-8 text-xs" onClick={handleInvite} disabled={!canSend || sending}>
               {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
               Send Invitation
             </Button>
