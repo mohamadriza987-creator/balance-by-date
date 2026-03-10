@@ -170,6 +170,10 @@ export interface UserProfile {
   lastName?: string;
   birthday?: string;
   finnyUserId?: string;
+  gender?: string;
+  maritalStatus?: string;
+  phoneCode?: string;
+  phoneNumber?: string;
   country: string;
   currency: string;
   currencySymbol: string;
