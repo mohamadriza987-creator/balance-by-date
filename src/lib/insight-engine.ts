@@ -625,8 +625,7 @@ export function generateInsights(data: AppData): {
   const debt = debtInsightsGen(data, current);
   const reminder = reminderInsightsGen(data);
 
-  // Family insights are a placeholder until family features are built
-  const family: Insight[] = [];
+  const family = familyInsightsGen(data);
 
   const all = [...spending, ...cashflow, ...opportunity, ...warning, ...goal, ...debt, ...family, ...reminder];
 
