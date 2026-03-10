@@ -12,6 +12,7 @@ import { OverviewInsights } from "@/components/OverviewInsights";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { GuidedTour } from "@/components/GuidedTour";
 import { IntroFlow } from "@/components/IntroFlow";
+import { SpouseInviteBanner } from "@/components/SpouseInviteBanner";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { format, parseISO } from "date-fns";
