@@ -268,13 +268,13 @@ const Index = () => {
             <button
               key={value}
               onClick={() => setActiveTab(value)}
-              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] transition-colors ${
+              className={`flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all duration-200 ${
                 activeTab === value
-                  ? "text-primary font-semibold"
-                  : "text-muted-foreground"
+                  ? "text-primary font-semibold nav-tab-active"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className={`h-5 w-5 ${activeTab === value ? "text-primary" : ""}`} />
+              <Icon className={`h-5 w-5 transition-transform duration-200 ${activeTab === value ? "text-primary scale-110" : ""}`} />
               <span>{label}</span>
             </button>
           ))}
