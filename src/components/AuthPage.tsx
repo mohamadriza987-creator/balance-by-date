@@ -56,10 +56,35 @@ export function AuthPage({ userName, onBack }: AuthPageProps) {
   const handleEmailLogin = async () => {
     if (!email || !password) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: loginData, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast({ title: "Login failed", description: error.message, variant: "destructive" });
+    } else if (loginData?.user && email.toLowerCase() === "test@gmail.com") {
+      // Test account: reset profile and finance data for fresh onboarding
+      await supabase
+        .from("profiles")
+        .update({
+          onboarding_complete: false,
+          name: null,
+          first_name: null,
+          last_name: null,
+          finny_user_id: null,
+          birthday: null,
+          gender: null,
+          marital_status: null,
+          phone_code: null,
+          phone_number: null,
+          country: null,
+          currency: null,
+          currency_symbol: "$",
+          enabled_accounts: [],
+        })
+        .eq("user_id", loginData.user.id);
+      await supabase
+        .from("user_finance_data")
+        .update({ finance_data: {} })
+        .eq("user_id", loginData.user.id);
     }
   };
 
