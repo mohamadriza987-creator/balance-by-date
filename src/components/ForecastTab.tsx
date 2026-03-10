@@ -72,28 +72,30 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
   return (
     <div className="space-y-4">
       {/* Forecast Date Slider */}
-      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+      <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20 animate-slide-up-fade">
         <CardContent className="py-4 px-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-xs text-muted-foreground">Forecasting up to</p>
-            <p className="text-sm font-semibold text-primary">
+            <p className="text-sm font-semibold text-primary animate-pop" key={data.forecastDate}>
               {format(parseISO(data.forecastDate), "MMM d, yyyy")}
             </p>
           </div>
-          <Slider
-            value={[sliderMonths]}
-            onValueChange={handleSliderChange}
-            min={1}
-            max={12}
-            step={1}
-          />
+          <div className="forecast-slider-glow rounded-xl px-1 py-2">
+            <Slider
+              value={[sliderMonths]}
+              onValueChange={handleSliderChange}
+              min={1}
+              max={12}
+              step={1}
+            />
+          </div>
           <div className="flex items-center justify-between text-[10px] text-muted-foreground">
             <span>1 month</span>
             <span className="font-medium text-foreground">{sliderMonths} {sliderMonths === 1 ? "month" : "months"} ahead</span>
             <span>12 months</span>
           </div>
           <div className="pt-1 border-t border-border/50">
-            <p className={`text-3xl font-bold ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`}>
+            <p className={`text-3xl font-bold transition-colors duration-300 ${forecastBalance < 0 ? "text-destructive" : "text-foreground"}`} key={`bal-${sliderMonths}`}>
               {fm(forecastBalance)}
             </p>
             <p className="text-[10px] text-muted-foreground">Projected balance</p>
@@ -101,8 +103,8 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
+      <div className="grid grid-cols-2 gap-3 stagger-children">
+        <Card className="hover-scale">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-3.5 w-3.5 text-success" />
@@ -111,7 +113,7 @@ export function ForecastTab({ data, onUpdateForecastDate }: ForecastTabProps) {
             <p className="text-sm font-bold text-success">{fm(summaryStats.totalInflow)}</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover-scale">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
               <TrendingDown className="h-3.5 w-3.5 text-destructive" />
