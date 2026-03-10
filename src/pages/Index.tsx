@@ -20,7 +20,7 @@ import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 
 // Lazy load heavy tab components
 const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
-const TransfersTab = lazy(() => import("@/components/TransfersTab").then(m => ({ default: m.TransfersTab })));
+// TransfersTab removed — replaced by TransactionsListTab
 const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
 const OtherAssetsTab = lazy(() => import("@/components/OtherAssetsTab").then(m => ({ default: m.OtherAssetsTab })));
 
