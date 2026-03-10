@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Landmark } from "lucide-react";
+import { Plus, X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, CreditCard, Landmark, Target, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,9 @@ import { AccountSelect } from "@/components/AccountSelect";
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, ACCOUNT_LABELS } from "@/lib/constants";
 import type { AppData, Entry, Frequency, Investment, Subscription, Transfer, AccountType, Goal, OtherAsset, LiabilityPayoff, AppSettings } from "@/lib/finance-types";
 import { todayStr, formatMoney } from "@/lib/finance-utils";
+import { GoalPlanner } from "@/components/GoalPlanner";
 
-type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt";
+type AddAction = "income" | "expense" | "transfer" | "subscription" | "debt" | "goal" | "payoff";
 
 interface FloatingAddButtonProps {
   data: AppData;
