@@ -7,7 +7,7 @@ import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
-import { TransactionsTab } from "@/components/TransactionsTab";
+import { TransactionsListTab } from "@/components/TransactionsListTab";
 import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { GuidedTour } from "@/components/GuidedTour";
 import { IntroFlow } from "@/components/IntroFlow";
