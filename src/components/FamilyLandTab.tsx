@@ -328,9 +328,7 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
       const cleanIdentifier = identifier.trim().replace(/^@/, "");
 
       if (isEmail) {
-        // Check if email exists in auth (via profiles lookup)
-        // We can't directly query auth.users, so we'll create the invitation
-        // and let the recipient see it when they log in
+        // Create the invitation in the database
         const { error } = await supabase
           .from("family_invitations")
           .insert({
@@ -348,7 +346,28 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
           return;
         }
 
-        toast.success(`Invitation sent to ${cleanIdentifier}! They'll see it when they log in. 📧`);
+        // Send invitation email via edge function
+        const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Someone";
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-family-invite-email`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.access_token}`,
+            },
+            body: JSON.stringify({
+              email: cleanIdentifier,
+              fromName: senderName,
+              relationship,
+            }),
+          });
+        } catch (emailErr) {
+          console.error("Email send failed:", emailErr);
+          // Don't block - invitation is already saved
+        }
+
+        toast.success(`Invitation sent to ${cleanIdentifier}! 📧`);
       } else {
         // Check if finny_user_id exists
         const { data: targetProfile } = await supabase
