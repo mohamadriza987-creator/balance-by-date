@@ -207,6 +207,8 @@ function IncomeForm({ data, onAdd, onDone, onUpdateSettings }: {
     if (!isValid) return;
     saveCustomCategory(category, "income", data, onUpdateSettings);
     onAdd({ label: name, amount: Math.abs(parseFloat(amount)), date, frequency, category, account, includeInForecast: true });
+    const insight = getContextualInsight(data, category, Math.abs(parseFloat(amount)), "income");
+    if (insight) setTimeout(() => toast(insight, { duration: 4000 }), 500);
     setName(""); setAmount(""); setFrequency("monthly"); setDate(todayStr()); setCategory("Other"); setAccount("bank");
     onDone();
   };
