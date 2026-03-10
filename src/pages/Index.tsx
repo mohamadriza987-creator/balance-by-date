@@ -35,7 +35,7 @@ const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "transactions", label: "Transactions", icon: Receipt },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
-  { value: "others", label: "Others", icon: Landmark },
+  { value: "family", label: "Family", icon: Heart },
 ] as const;
 
 const Index = () => {
