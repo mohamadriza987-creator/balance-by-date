@@ -1,13 +1,14 @@
-import { useState, useEffect, lazy, Suspense, memo } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { LayoutDashboard, ArrowDownLeft, ArrowUpRight, Settings, CalendarIcon, TrendingUp, ArrowLeftRight, Landmark } from "lucide-react";
+import { LayoutDashboard, Settings, CalendarIcon, TrendingUp, ArrowLeftRight, Landmark } from "lucide-react";
 import { useFinanceData } from "@/hooks/use-finance-data";
 import { useAuth } from "@/hooks/use-auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountsTab } from "@/components/AccountsTab";
 import { TransactionsTab } from "@/components/TransactionsTab";
+import { FloatingAddButton } from "@/components/FloatingAddButton";
 import { GuidedTour } from "@/components/GuidedTour";
 import { IntroFlow } from "@/components/IntroFlow";
 import { formatDate, formatMoney, todayStr } from "@/lib/finance-utils";
@@ -18,8 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { UserProfile, AccountBalances } from "@/lib/finance-types";
 
 // Lazy load heavy tab components
-const InflowTab = lazy(() => import("@/components/InflowTab").then(m => ({ default: m.InflowTab })));
-const OutflowTab = lazy(() => import("@/components/OutflowTab").then(m => ({ default: m.OutflowTab })));
 const ForecastTab = lazy(() => import("@/components/ForecastTab").then(m => ({ default: m.ForecastTab })));
 const TransfersTab = lazy(() => import("@/components/TransfersTab").then(m => ({ default: m.TransfersTab })));
 const SettingsTab = lazy(() => import("@/components/SettingsTab").then(m => ({ default: m.SettingsTab })));
@@ -33,8 +32,6 @@ const TabLoading = () => (
 
 const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
-  { value: "inflow", label: "Inflow", icon: ArrowDownLeft },
-  { value: "outflow", label: "Outflow", icon: ArrowUpRight },
   { value: "transfers", label: "Transfers", icon: ArrowLeftRight },
   { value: "forecast", label: "Forecast", icon: TrendingUp },
   { value: "others", label: "Others", icon: Landmark },
@@ -100,7 +97,6 @@ const Index = () => {
     setShowTour(true);
   };
 
-  // Show loading while auth is resolving
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -109,12 +105,10 @@ const Index = () => {
     );
   }
 
-  // Not logged in or onboarding not complete → show intro
   if (!user || onboardingComplete === false || onboardingComplete === null) {
     return <IntroFlow onComplete={handleIntroComplete} initialName={profileName} />;
   }
 
-  // Waiting for finance data to load
   if (!loaded) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -139,9 +133,7 @@ const Index = () => {
               data={data}
               onReplace={(d) => setData(d)}
               onUpdateForecastDate={updateForecastDate}
-              onReplayIntro={() => {
-                setOnboardingComplete(false);
-              }}
+              onReplayIntro={() => { setOnboardingComplete(false); }}
               onUpdateSettings={updateSettings}
               onUpdateAccountBalances={updateAccountBalances}
             />
@@ -217,37 +209,6 @@ const Index = () => {
           </div>
         )}
         <Suspense fallback={<TabLoading />}>
-          {activeTab === "inflow" && (
-            <InflowTab
-              entries={data.entries}
-              data={data}
-              onAddEntry={addEntry}
-              onToggle={toggleEntryForecast}
-              onRemove={removeEntry}
-              onUpdate={updateEntry}
-              onAddDebtWithPlan={addDebtWithPlan}
-            />
-          )}
-          {activeTab === "outflow" && (
-            <OutflowTab
-              entries={data.entries}
-              subscriptions={data.subscriptions}
-              investments={data.investments || []}
-              data={data}
-              onAddEntry={addEntry}
-              onAddSubscription={addSubscription}
-              onAddInvestment={addInvestment}
-              onRemoveEntry={removeEntry}
-              onRemoveSubscription={removeSubscription}
-              onRemoveInvestment={removeInvestment}
-              onToggleEntry={toggleEntryForecast}
-              onToggleSubscription={toggleSubscriptionForecast}
-              onUpdateEntry={updateEntry}
-              onUpdateSubscription={updateSubscription}
-              onUpdateInvestment={updateInvestment}
-              onAddDebtWithPlan={addDebtWithPlan}
-            />
-          )}
           {activeTab === "transfers" && (
             <TransfersTab data={data} onAddTransfer={addTransfer} onRemoveTransfer={removeTransfer} />
           )}
@@ -260,8 +221,23 @@ const Index = () => {
         </Suspense>
       </main>
 
+      {/* Floating Add Button */}
+      <FloatingAddButton
+        data={data}
+        onAddEntry={addEntry}
+        onAddSubscription={addSubscription}
+        onAddInvestment={addInvestment}
+        onAddTransfer={addTransfer}
+        onAddGoal={addGoal}
+        onAddOtherAsset={addOtherAsset}
+        onAddLiabilityPayoff={addLiabilityPayoff}
+        onAddDebtWithPlan={addDebtWithPlan}
+      />
+
+      {/* Bottom Navigation - 4 tabs */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80 safe-area-bottom">
-        <div className="grid grid-cols-6 h-16">{tabs.map(({ value, label, icon: Icon }) => (
+        <div className="grid grid-cols-4 h-16">
+          {tabs.map(({ value, label, icon: Icon }) => (
             <button
               key={value}
               onClick={() => setActiveTab(value)}
@@ -271,7 +247,7 @@ const Index = () => {
                   : "text-muted-foreground"
               }`}
             >
-              <Icon className={`h-4 w-4 ${activeTab === value ? "text-primary" : ""}`} />
+              <Icon className={`h-5 w-5 ${activeTab === value ? "text-primary" : ""}`} />
               <span>{label}</span>
             </button>
           ))}
