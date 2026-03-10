@@ -290,7 +290,7 @@ export function IntroFlow({ onComplete, initialName }: IntroFlowProps) {
             </p>
             <div className="relative h-px w-12 mx-auto bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
             <p className="relative text-sm leading-relaxed text-muted-foreground italic">
-              This is your personal financial planner app — built to help you see your future balance before the date arrives.
+              Welcome to FinnyLand — where your financial goals grow together. Let's set up your personal space!
             </p>
             <div className="relative pt-2">
               <p className="text-xs text-muted-foreground/70 tracking-wide uppercase">

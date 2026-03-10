@@ -10,8 +10,8 @@ interface GuidedTourProps {
 const TOUR_STEPS = [
   {
     icon: Sparkles,
-    title: "Welcome to Finance Buddy!",
-    description: "Your personal financial planner — see exactly how much money you'll have on any future date. Let's take a quick tour!",
+    title: "Welcome to FinnyLand-View!",
+    description: "Your friendly financial companion — track your goals, manage your money, and grow together. Let's take a quick tour!",
     color: "from-primary to-primary/60",
     emoji: "✨",
   },
