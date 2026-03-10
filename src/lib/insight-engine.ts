@@ -712,6 +712,7 @@ export function generateInsights(data: AppData): {
     opportunity: opportunity.sort((a, b) => a.priority - b.priority).slice(0, 3),
     warning: warning.sort((a, b) => a.priority - b.priority).slice(0, 4),
     goal: goal.sort((a, b) => a.priority - b.priority).slice(0, 3),
+    family: family.sort((a, b) => a.priority - b.priority).slice(0, 3),
     debt: debt.sort((a, b) => a.priority - b.priority).slice(0, 3),
     reminder: reminder.sort((a, b) => a.priority - b.priority).slice(0, 3),
     all: sorted,
