@@ -331,21 +331,24 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
         let profile: any = null;
 
         if (isEmail) {
-          // Look up by email — we need to check profiles joined with auth
-          // Since we can't query auth.users from client, check if any profile 
-          // has this email by querying family_invitations won't work.
-          // Instead, we look up profiles table — but email is in auth.users.
-          // Workaround: try to find a profile where the user has this email
-          // by checking all profiles isn't possible. So for email invites,
-          // we show a neutral "invitation will be sent" message.
-          // But we CAN check if the email matches our own.
           if (user?.email === val) {
             setLookupResult({ status: "self" });
             return;
           }
-          // For email, we can't look up the name client-side (auth.users not accessible)
-          // Show a neutral status
-          setLookupResult({ status: "found", name: val });
+          // Use secure database function to check auth.users + profiles
+          const { data, error } = await supabase.rpc("lookup_user_by_email", { lookup_email: val });
+          if (error) {
+            console.error("Email lookup error:", error);
+            setLookupResult({ status: "not_found" });
+            return;
+          }
+          if (data && data.length > 0) {
+            const row = data[0];
+            const name = [row.first_name, row.last_name].filter(Boolean).join(" ") || "User";
+            setLookupResult({ status: "found", name, finnyId: row.finny_user_id || undefined, userId: row.user_id });
+          } else {
+            setLookupResult({ status: "not_found" });
+          }
         } else {
           // Look up by finny_user_id
           const { data } = await supabase
