@@ -291,6 +291,161 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
   );
 }
 
+// ─── Family Tree Bubble ─────────────────────────────────────
+function FamilyBubble({ name, emoji, relationship, isLinked, latestMessage, onRemove }: {
+  name: string;
+  emoji: string;
+  relationship: string;
+  isLinked?: boolean;
+  latestMessage?: string;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1 group relative">
+      {onRemove && (
+        <button
+          onClick={onRemove}
+          className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center text-[8px] transition-opacity z-10"
+        >
+          ×
+        </button>
+      )}
+      <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all hover:scale-105 ${
+        isLinked 
+          ? "border-primary bg-primary/10 shadow-md shadow-primary/20" 
+          : "border-border bg-secondary/60"
+      }`}>
+        <div className="text-center">
+          <span className="text-lg block leading-none">{emoji}</span>
+          <span className="text-[9px] font-bold text-foreground leading-tight block mt-0.5 max-w-[50px] truncate">{name.split(" ")[0]}</span>
+        </div>
+      </div>
+      <span className="text-[9px] text-muted-foreground capitalize font-medium">{relationship}</span>
+      {isLinked && <span className="text-[8px] text-primary font-medium -mt-1">✓ linked</span>}
+      {latestMessage && (
+        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-primary/10 text-foreground/80 text-[9px] px-2 py-0.5 rounded-lg border border-primary/15 max-w-[100px] truncate whitespace-nowrap z-10">
+          {latestMessage}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FamilyTreeView({ members, messages, currentUserId, onRemove }: {
+  members: FamilyMember[];
+  messages: Array<{ sender_user_id: string; message: string }>;
+  currentUserId?: string;
+  onRemove: (id: string) => void;
+}) {
+  const parents = members.filter(m => m.relationship === "parent");
+  const spouse = members.find(m => m.relationship === "spouse");
+  const siblings = members.filter(m => m.relationship === "sibling");
+  const children = members.filter(m => m.relationship === "child");
+
+  const getLatestMsg = (m: FamilyMember) => {
+    if (!m.linkedUserId) return undefined;
+    return messages.find(msg => msg.sender_user_id === m.linkedUserId)?.message;
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2 py-4 mb-3">
+      {/* Parents Row */}
+      {parents.length > 0 && (
+        <>
+          <div className="flex items-center gap-6 justify-center">
+            {parents.map(p => (
+              <FamilyBubble
+                key={p.id}
+                name={p.name}
+                emoji={p.emoji}
+                relationship="parent"
+                isLinked={!!p.linkedUserId}
+                latestMessage={getLatestMsg(p)}
+                onRemove={() => onRemove(p.id)}
+              />
+            ))}
+          </div>
+          {/* Connector line down */}
+          <div className="w-px h-4 bg-border" />
+        </>
+      )}
+
+      {/* Husband & Wife Row (Me + Spouse) */}
+      <div className="flex items-center gap-4 justify-center">
+        {/* Me bubble */}
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-primary bg-primary/15 shadow-lg shadow-primary/25">
+            <div className="text-center">
+              <span className="text-lg block leading-none">🏠</span>
+              <span className="text-[9px] font-bold text-foreground leading-tight block mt-0.5">Me</span>
+            </div>
+          </div>
+          <span className="text-[9px] text-primary font-semibold">You</span>
+        </div>
+        {spouse && (
+          <>
+            {/* Heart connector */}
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-px bg-primary/40" />
+              <Heart className="h-3.5 w-3.5 text-primary fill-primary/30" />
+              <div className="w-4 h-px bg-primary/40" />
+            </div>
+            <FamilyBubble
+              name={spouse.name}
+              emoji={spouse.emoji}
+              relationship="spouse"
+              isLinked={!!spouse.linkedUserId}
+              latestMessage={getLatestMsg(spouse)}
+              onRemove={() => onRemove(spouse.id)}
+            />
+          </>
+        )}
+      </div>
+
+      {/* Siblings Row - branching slightly lower */}
+      {siblings.length > 0 && (
+        <>
+          <div className="w-px h-3 bg-border" />
+          <div className="flex items-start gap-4 justify-center">
+            {siblings.map((s, i) => (
+              <div key={s.id} style={{ marginTop: `${i * 6}px` }}>
+                <FamilyBubble
+                  name={s.name}
+                  emoji={s.emoji}
+                  relationship="sibling"
+                  isLinked={!!s.linkedUserId}
+                  latestMessage={getLatestMsg(s)}
+                  onRemove={() => onRemove(s.id)}
+                />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Children Row - at the bottom */}
+      {children.length > 0 && (
+        <>
+          <div className="w-px h-3 bg-border" />
+          <div className="flex items-center gap-5 justify-center">
+            {children.map(c => (
+              <FamilyBubble
+                key={c.id}
+                name={c.name}
+                emoji={c.emoji}
+                relationship="child"
+                isLinked={!!c.linkedUserId}
+                latestMessage={getLatestMsg(c)}
+                onRemove={() => onRemove(c.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Family Members Section ──────────────────────────────────
 function FamilyMembersSection({ members, onAdd, onRemove }: {
   members: FamilyMember[];
@@ -634,31 +789,7 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
           </div>
         ) : (
           <>
-            <div className="space-y-2 mb-3">
-              {members.map(m => (
-                <div key={m.id} className="flex items-center gap-3 rounded-xl bg-secondary/40 border border-border px-3 py-2.5 group">
-                  <span className="text-xl">{m.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-foreground">{m.name}</span>
-                      <span className="text-[10px] text-muted-foreground capitalize">({m.relationship})</span>
-                      {m.linkedUserId && <span className="text-[10px] text-primary">✓ Linked</span>}
-                    </div>
-                    {/* Show latest message from this member as a speech bubble */}
-                    {messages.filter(msg => msg.sender_user_id === m.linkedUserId).length > 0 && (
-                      <div className="mt-1 relative">
-                        <div className="bg-primary/10 text-foreground/80 text-[11px] px-2.5 py-1.5 rounded-xl rounded-tl-sm border border-primary/15 max-w-[250px]">
-                          {messages.find(msg => msg.sender_user_id === m.linkedUserId)?.message}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <button onClick={() => onRemove(m.id)} className="opacity-0 group-hover:opacity-100 text-destructive/60 hover:text-destructive transition-opacity ml-1">
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <FamilyTreeView members={members} messages={messages} currentUserId={user?.id} onRemove={onRemove} />
 
             {/* Send Message to All */}
             <div className="border-t border-border pt-3">
