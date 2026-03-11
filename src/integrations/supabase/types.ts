@@ -297,6 +297,15 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      lookup_user_by_email: {
+        Args: { lookup_email: string }
+        Returns: {
+          finny_user_id: string
+          first_name: string
+          last_name: string
+          user_id: string
+        }[]
+      }
       move_to_dlq: {
         Args: {
           dlq_name: string
