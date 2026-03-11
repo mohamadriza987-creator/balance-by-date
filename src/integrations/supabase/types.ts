@@ -203,24 +203,33 @@ export type Database = {
         Row: {
           circle_id: string | null
           created_at: string
+          expires_at: string | null
           id: string
+          media_url: string | null
           message: string
+          message_type: string
           sender_name: string
           sender_user_id: string
         }
         Insert: {
           circle_id?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
+          media_url?: string | null
           message: string
+          message_type?: string
           sender_name?: string
           sender_user_id: string
         }
         Update: {
           circle_id?: string | null
           created_at?: string
+          expires_at?: string | null
           id?: string
+          media_url?: string | null
           message?: string
+          message_type?: string
           sender_name?: string
           sender_user_id?: string
         }
