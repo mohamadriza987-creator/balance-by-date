@@ -297,6 +297,7 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      get_auth_email: { Args: never; Returns: string }
       lookup_user_by_email: {
         Args: { lookup_email: string }
         Returns: {
