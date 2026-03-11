@@ -21,20 +21,18 @@ export function AuthPage({ userName, onBack }: AuthPageProps) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleGoogle = async () => {
+  const handleOAuth = async (provider: "google" | "apple") => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
+      const result = await lovable.auth.signInWithOAuth(provider, {
         redirect_uri: window.location.origin,
-        extraParams: {
-          prompt: "select_account",
-        },
+        ...(provider === "google" && { extraParams: { prompt: "select_account" } }),
       });
       if (result.error) {
         toast({ title: "Error", description: String(result.error), variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "Error", description: err.message || "Google sign-in failed", variant: "destructive" });
+      toast({ title: "Error", description: err.message || `${provider} sign-in failed`, variant: "destructive" });
     } finally {
       setLoading(false);
     }
