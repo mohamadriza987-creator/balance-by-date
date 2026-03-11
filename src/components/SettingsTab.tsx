@@ -240,16 +240,32 @@ export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, 
         <CardContent className="space-y-3">
           {user && (
             <div className="space-y-3">
-              {/* Read-only fields */}
+              {/* Read-only fields (shown if filled) */}
               <div className="flex items-center justify-between">
                 <Label className="text-sm text-muted-foreground">Email</Label>
                 <span className="text-sm text-foreground">{user.email}</span>
               </div>
 
-              {(profileData.first_name || profileData.last_name) && (
+              {profileData.first_name || profileData.last_name ? (
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-muted-foreground">Name</Label>
                   <span className="text-sm text-foreground">{profileData.first_name} {profileData.last_name}</span>
+                </div>
+              ) : editingProfile ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">First Name</Label>
+                    <Input value={editFields.first_name || ""} onChange={e => setEditFields(p => ({ ...p, first_name: e.target.value }))} placeholder="First name" className="h-9" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Last Name</Label>
+                    <Input value={editFields.last_name || ""} onChange={e => setEditFields(p => ({ ...p, last_name: e.target.value }))} placeholder="Last name" className="h-9" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Name</Label>
+                  <span className="text-xs text-orange-500">⚠️ Not set — click Edit</span>
                 </div>
               )}
 
@@ -260,23 +276,76 @@ export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, 
                 </div>
               )}
 
-              {profileData.birthday && (
+              {profileData.birthday ? (
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-muted-foreground">Birthday</Label>
                   <span className="text-sm text-foreground">{profileData.birthday}</span>
                 </div>
+              ) : editingProfile ? (
+                <div>
+                  <Label className="text-xs">Birthday</Label>
+                  <Input type="date" value={editFields.birthday || ""} onChange={e => setEditFields(p => ({ ...p, birthday: e.target.value }))} className="h-9" />
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Birthday</Label>
+                  <span className="text-xs text-orange-500">⚠️ Not set — click Edit</span>
+                </div>
               )}
 
-              {profileData.gender && (
+              {profileData.gender ? (
                 <div className="flex items-center justify-between">
                   <Label className="text-sm text-muted-foreground">Gender</Label>
                   <span className="text-sm text-foreground">{profileData.gender}</span>
                 </div>
+              ) : editingProfile ? (
+                <div>
+                  <Label className="text-xs">Gender</Label>
+                  <Select value={editFields.gender || ""} onValueChange={v => setEditFields(p => ({ ...p, gender: v }))}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                      <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm text-muted-foreground">Gender</Label>
+                  <span className="text-xs text-orange-500">⚠️ Not set — click Edit</span>
+                </div>
               )}
 
-              {/* Editable fields */}
+              {/* Occupation - always editable */}
               {!editingProfile ? (
                 <>
+                  {profileData.occupation_type && (
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm text-muted-foreground">Occupation</Label>
+                      <span className="text-sm text-foreground capitalize">{profileData.occupation_type}</span>
+                    </div>
+                  )}
+                  {profileData.occupation_type === 'student' && profileData.course && (
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm text-muted-foreground">Course</Label>
+                      <span className="text-sm text-foreground">{profileData.course}</span>
+                    </div>
+                  )}
+                  {profileData.occupation_type === 'professional' && profileData.profession && (
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm text-muted-foreground">Profession</Label>
+                      <span className="text-sm text-foreground">{profileData.profession}</span>
+                    </div>
+                  )}
+                  {!profileData.occupation_type && (
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm text-muted-foreground">Occupation</Label>
+                      <span className="text-xs text-orange-500">⚠️ Not set — click Edit</span>
+                    </div>
+                  )}
+
                   {profileData.marital_status && (
                     <div className="flex items-center justify-between">
                       <Label className="text-sm text-muted-foreground">Marital Status</Label>
@@ -307,6 +376,32 @@ export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, 
                   <div className="border-t border-border pt-3 mt-2">
                     <p className="text-xs text-muted-foreground mb-3">✏️ Editable fields below</p>
                   </div>
+
+                  {/* Occupation */}
+                  <div>
+                    <Label className="text-xs">Occupation</Label>
+                    <Select value={editFields.occupation_type || ""} onValueChange={v => setEditFields(p => ({ ...p, occupation_type: v, course: '', profession: '' }))}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Student or Professional?" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="student">Student</SelectItem>
+                        <SelectItem value="professional">Professional</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {editFields.occupation_type === 'student' && (
+                    <div>
+                      <Label className="text-xs">Course / Field of Study</Label>
+                      <Input value={editFields.course || ""} onChange={e => setEditFields(p => ({ ...p, course: e.target.value }))} placeholder="e.g. Computer Science" className="h-9" />
+                    </div>
+                  )}
+
+                  {editFields.occupation_type === 'professional' && (
+                    <div>
+                      <Label className="text-xs">Profession / Industry</Label>
+                      <Input value={editFields.profession || ""} onChange={e => setEditFields(p => ({ ...p, profession: e.target.value }))} placeholder="e.g. Software Engineer" className="h-9" />
+                    </div>
+                  )}
 
                   <div>
                     <Label className="text-xs">Marital Status</Label>
