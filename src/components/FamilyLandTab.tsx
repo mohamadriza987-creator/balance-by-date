@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Heart, Users, PiggyBank, Target, Plus, Check, X,
-  Baby, UserPlus, Gift, ArrowRight, Sparkles, TreePine, Mail, AtSign, Send, Loader2, MessageCircle
+  Baby, UserPlus, Gift, ArrowRight, Sparkles, TreePine, Mail, AtSign, Send, Loader2, MessageCircle,
+  LogOut, BellOff, Bell, Edit2, ChevronDown, ChevronUp
 } from "lucide-react";
 import type {
   AppData, FamilyMember, FamilyRequest, PiggyBank as PiggyBankType,
@@ -19,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { FAMILY_LIMITS, type FamilyInvitation } from "@/hooks/use-family-notifications";
+import { useFamilyCircles, type FamilyCircle, type CircleMember } from "@/hooks/use-family-circles";
 
 interface FamilyLandTabProps {
   data: AppData;
@@ -48,6 +50,17 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   child: "Child",
   parent: "Parent",
   sibling: "Sibling",
+  self: "You",
+  member: "Member",
+};
+
+const REL_EMOJI_MAP: Record<string, string> = {
+  spouse: "💍",
+  child: "🧒",
+  parent: "🧓",
+  sibling: "🤝",
+  self: "🏠",
+  member: "👤",
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -64,6 +77,9 @@ export function FamilyLandTab({
   const family = data.familyData || { members: [], requests: [], piggyBanks: [], sharedGoals: [] };
   const cs = data.userProfile?.currencySymbol || "$";
   const fmt = (n: number) => formatMoney(n, data.userProfile);
+  const { user } = useAuth();
+
+  const familyCircles = useFamilyCircles();
 
   const pendingRequests = family.requests.filter(r => r.status === "pending");
 
@@ -75,24 +91,11 @@ export function FamilyLandTab({
     if (pendingRequests.length > 0) {
       msgs.push({ text: `You have ${pendingRequests.length} family request${pendingRequests.length > 1 ? "s" : ""} waiting for your attention.`, emoji: "📬" });
     }
-    family.piggyBanks.forEach(pb => {
-      const pct = pb.targetAmount > 0 ? (pb.currentAmount / pb.targetAmount) * 100 : 0;
-      if (pct >= 100) {
-        msgs.push({ text: `${pb.childName}'s piggy bank is full! 🎉 Time to celebrate!`, emoji: "🐷" });
-      }
-    });
-    family.sharedGoals.forEach(g => {
-      const total = g.contributions.reduce((s, c) => s + c.amount, 0);
-      const pct = g.targetAmount > 0 ? (total / g.targetAmount) * 100 : 0;
-      if (pct >= 75 && pct < 100) {
-        msgs.push({ text: `"${g.name}" is almost there — ${Math.round(pct)}% done!`, emoji: "🌟" });
-      }
-    });
-    if (family.members.length === 0 && pendingInvitations.length === 0) {
-      msgs.push({ text: "Invite your first family member to start your Family Land! 🌱", emoji: "👋" });
+    if (familyCircles.circles.length === 0 && pendingInvitations.length === 0) {
+      msgs.push({ text: "Create your first Family Circle to connect with loved ones! 🌱", emoji: "👋" });
     }
     return msgs.slice(0, 3);
-  }, [family, pendingRequests, pendingInvitations]);
+  }, [pendingRequests, pendingInvitations, familyCircles.circles]);
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -102,7 +105,7 @@ export function FamilyLandTab({
           <div className="text-3xl">🏡</div>
           <div>
             <h2 className="text-base font-bold text-foreground">My Family Land</h2>
-            <p className="text-xs text-muted-foreground">Your cozy corner for family goals, requests & piggy banks</p>
+            <p className="text-xs text-muted-foreground">Your cozy corner for family circles, goals & coordination</p>
           </div>
         </div>
       </div>
@@ -125,15 +128,12 @@ export function FamilyLandTab({
           invitations={pendingInvitations}
           onAddFamilyMember={onAddFamilyMember}
           onInvitationHandled={onInvitationHandled}
+          familyCircles={familyCircles}
         />
       )}
 
-      {/* Family Members + Messaging */}
-      <FamilyMembersSection
-        members={family.members}
-        onAdd={onAddFamilyMember}
-        onRemove={onRemoveFamilyMember}
-      />
+      {/* Family Circles */}
+      <FamilyCirclesSection familyCircles={familyCircles} />
 
       {/* Family Requests */}
       <FamilyRequestsSection
@@ -174,10 +174,11 @@ export function FamilyLandTab({
 }
 
 // ─── Family Invitations (Accept/Decline incoming) ────────────
-function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitationHandled }: {
+function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitationHandled, familyCircles }: {
   invitations: FamilyInvitation[];
   onAddFamilyMember: (m: Omit<FamilyMember, "id">) => void;
   onInvitationHandled?: () => void;
+  familyCircles: ReturnType<typeof useFamilyCircles>;
 }) {
   const { user } = useAuth();
   const [acting, setActing] = useState<string | null>(null);
@@ -186,7 +187,6 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
     if (!user) return;
     setActing(inv.id);
 
-    // Use the server-side function that updates BOTH users' data
     const { data: result, error } = await supabase.rpc("accept_family_invitation", {
       invitation_id: inv.id,
     });
@@ -199,7 +199,6 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
     }
 
     const res = result as any;
-    // Add the sender to MY local family members
     const name = res.sender_name || "Family Member";
     const rel = res.relationship as FamilyRelationship;
     const emojis = RELATIONSHIP_EMOJIS[rel] || ["👤"];
@@ -212,7 +211,17 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
       addedDate: todayStr(),
     });
 
-    toast.success(`${name} has been added to your Family Land! 🏡 They can see you in their Family Circle too.`);
+    // Auto-add to first circle or create one
+    if (familyCircles.circles.length > 0) {
+      await familyCircles.addMemberToCircle(familyCircles.circles[0].id, res.sender_user_id, rel);
+    } else {
+      const circleId = await familyCircles.createCircle("My Family");
+      if (circleId) {
+        await familyCircles.addMemberToCircle(circleId, res.sender_user_id, rel);
+      }
+    }
+
+    toast.success(`${name} has been added to your Family Circle! 🏡`);
     setActing(null);
     onInvitationHandled?.();
   };
@@ -239,47 +248,25 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
         {invitations.map(inv => {
           const senderName = [inv.from_first_name, inv.from_last_name].filter(Boolean).join(" ") || "Someone";
           const relLabel = RELATIONSHIP_LABELS[inv.relationship] || inv.relationship;
-          const relEmoji = inv.relationship === "spouse" ? "💍" : inv.relationship === "child" ? "🧒" : inv.relationship === "parent" ? "🧓" : "🤝";
-          // Show the sender's email (from to_identifier if sent via email, otherwise show name)
-          const senderEmail = inv.identifier_type === "email" ? inv.to_identifier : null;
+          const relEmoji = REL_EMOJI_MAP[inv.relationship] || "👤";
           return (
             <div key={inv.id} className="rounded-xl bg-background border border-primary/20 p-3 animate-slide-up-fade">
               <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-lg">
-                  {relEmoji}
-                </div>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-lg">{relEmoji}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">
-                    {senderName}
-                  </p>
+                  <p className="text-sm font-semibold text-foreground">{senderName}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Your <span className="font-medium capitalize text-foreground">{relLabel}</span>{" "}
-                    <span className="font-medium text-primary">{senderName}</span> has invited you to join their Family Land! 🏡
+                    <span className="font-medium text-primary">{senderName}</span> wants to join your Family Circle! 🏡
                   </p>
-                  {senderEmail && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      Sent to: {senderEmail}
-                    </p>
-                  )}
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  className="flex-1 rounded-xl text-xs"
-                  onClick={() => handleAccept(inv)}
-                  disabled={acting === inv.id}
-                >
+                <Button size="sm" className="flex-1 rounded-xl text-xs" onClick={() => handleAccept(inv)} disabled={acting === inv.id}>
                   {acting === inv.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
                   Accept
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 rounded-xl text-xs"
-                  onClick={() => handleDecline(inv)}
-                  disabled={acting === inv.id}
-                >
+                <Button size="sm" variant="outline" className="flex-1 rounded-xl text-xs" onClick={() => handleDecline(inv)} disabled={acting === inv.id}>
                   <X className="h-3.5 w-3.5 mr-1" /> Decline
                 </Button>
               </div>
@@ -291,174 +278,92 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
   );
 }
 
-// ─── Family Tree Bubble ─────────────────────────────────────
-function FamilyBubble({ name, emoji, relationship, isLinked, latestMessage, onRemove }: {
-  name: string;
-  emoji: string;
-  relationship: string;
-  isLinked?: boolean;
-  latestMessage?: string;
-  onRemove?: () => void;
+// ─── Family Circles Section ──────────────────────────────────
+function FamilyCirclesSection({ familyCircles }: {
+  familyCircles: ReturnType<typeof useFamilyCircles>;
 }) {
-  return (
-    <div className="flex flex-col items-center gap-1 group relative">
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center text-[8px] transition-opacity z-10"
-        >
-          ×
-        </button>
-      )}
-      <div className={`relative w-16 h-16 rounded-full flex items-center justify-center border-2 transition-all hover:scale-105 ${
-        isLinked 
-          ? "border-primary bg-primary/10 shadow-md shadow-primary/20" 
-          : "border-border bg-secondary/60"
-      }`}>
-        <div className="text-center">
-          <span className="text-lg block leading-none">{emoji}</span>
-          <span className="text-[9px] font-bold text-foreground leading-tight block mt-0.5 max-w-[50px] truncate">{name.split(" ")[0]}</span>
-        </div>
-      </div>
-      <span className="text-[9px] text-muted-foreground capitalize font-medium">{relationship}</span>
-      {isLinked && <span className="text-[8px] text-primary font-medium -mt-1">✓ linked</span>}
-      {latestMessage && (
-        <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 bg-primary/10 text-foreground/80 text-[9px] px-2 py-0.5 rounded-lg border border-primary/15 max-w-[100px] truncate whitespace-nowrap z-10">
-          {latestMessage}
-        </div>
-      )}
-    </div>
-  );
-}
+  const { user } = useAuth();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newCircleName, setNewCircleName] = useState("");
+  const [creating, setCreating] = useState(false);
 
-function FamilyTreeView({ members, messages, currentUserId, onRemove }: {
-  members: FamilyMember[];
-  messages: Array<{ sender_user_id: string; message: string }>;
-  currentUserId?: string;
-  onRemove: (id: string) => void;
-}) {
-  const parents = members.filter(m => m.relationship === "parent");
-  const spouse = members.find(m => m.relationship === "spouse");
-  const siblings = members.filter(m => m.relationship === "sibling");
-  const children = members.filter(m => m.relationship === "child");
-
-  const getLatestMsg = (m: FamilyMember) => {
-    if (!m.linkedUserId) return undefined;
-    return messages.find(msg => msg.sender_user_id === m.linkedUserId)?.message;
+  const handleCreate = async () => {
+    if (!newCircleName.trim()) return;
+    setCreating(true);
+    await familyCircles.createCircle(newCircleName.trim());
+    setNewCircleName("");
+    setShowCreateForm(false);
+    setCreating(false);
   };
 
   return (
-    <div className="flex flex-col items-center gap-2 py-4 mb-3">
-      {/* Parents Row */}
-      {parents.length > 0 && (
-        <>
-          <div className="flex items-center gap-6 justify-center">
-            {parents.map(p => (
-              <FamilyBubble
-                key={p.id}
-                name={p.name}
-                emoji={p.emoji}
-                relationship="parent"
-                isLinked={!!p.linkedUserId}
-                latestMessage={getLatestMsg(p)}
-                onRemove={() => onRemove(p.id)}
-              />
-            ))}
-          </div>
-          {/* Connector line down */}
-          <div className="w-px h-4 bg-border" />
-        </>
-      )}
-
-      {/* Husband & Wife Row (Me + Spouse) */}
-      <div className="flex items-center gap-4 justify-center">
-        {/* Me bubble */}
-        <div className="flex flex-col items-center gap-1">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center border-2 border-primary bg-primary/15 shadow-lg shadow-primary/25">
-            <div className="text-center">
-              <span className="text-lg block leading-none">🏠</span>
-              <span className="text-[9px] font-bold text-foreground leading-tight block mt-0.5">Me</span>
-            </div>
-          </div>
-          <span className="text-[9px] text-primary font-semibold">You</span>
-        </div>
-        {spouse && (
-          <>
-            {/* Heart connector */}
-            <div className="flex items-center gap-1">
-              <div className="w-4 h-px bg-primary/40" />
-              <Heart className="h-3.5 w-3.5 text-primary fill-primary/30" />
-              <div className="w-4 h-px bg-primary/40" />
-            </div>
-            <FamilyBubble
-              name={spouse.name}
-              emoji={spouse.emoji}
-              relationship="spouse"
-              isLinked={!!spouse.linkedUserId}
-              latestMessage={getLatestMsg(spouse)}
-              onRemove={() => onRemove(spouse.id)}
-            />
-          </>
-        )}
+    <div className="space-y-4">
+      {/* Create New Circle Button */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold flex items-center gap-2 text-foreground">
+          <Users className="h-4 w-4 text-primary" /> Family Circles
+        </h3>
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowCreateForm(!showCreateForm)}>
+          <Plus className="h-3 w-3 mr-1" /> New Circle
+        </Button>
       </div>
 
-      {/* Siblings Row - branching slightly lower */}
-      {siblings.length > 0 && (
-        <>
-          <div className="w-px h-3 bg-border" />
-          <div className="flex items-start gap-4 justify-center">
-            {siblings.map((s, i) => (
-              <div key={s.id} style={{ marginTop: `${i * 6}px` }}>
-                <FamilyBubble
-                  name={s.name}
-                  emoji={s.emoji}
-                  relationship="sibling"
-                  isLinked={!!s.linkedUserId}
-                  latestMessage={getLatestMsg(s)}
-                  onRemove={() => onRemove(s.id)}
-                />
-              </div>
-            ))}
-          </div>
-        </>
+      {showCreateForm && (
+        <div className="flex gap-2 items-center p-3 rounded-xl bg-primary/5 border border-primary/20">
+          <Input
+            placeholder="Circle name (e.g. The Smiths)"
+            value={newCircleName}
+            onChange={e => setNewCircleName(e.target.value)}
+            className="h-9 text-sm flex-1"
+            onKeyDown={e => e.key === "Enter" && handleCreate()}
+          />
+          <Button size="sm" className="h-9" onClick={handleCreate} disabled={!newCircleName.trim() || creating}>
+            {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Create"}
+          </Button>
+        </div>
       )}
 
-      {/* Children Row - at the bottom */}
-      {children.length > 0 && (
-        <>
-          <div className="w-px h-3 bg-border" />
-          <div className="flex items-center gap-5 justify-center">
-            {children.map(c => (
-              <FamilyBubble
-                key={c.id}
-                name={c.name}
-                emoji={c.emoji}
-                relationship="child"
-                isLinked={!!c.linkedUserId}
-                latestMessage={getLatestMsg(c)}
-                onRemove={() => onRemove(c.id)}
-              />
-            ))}
-          </div>
-        </>
+      {familyCircles.loading ? (
+        <div className="text-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin mx-auto text-primary" />
+          <p className="text-xs text-muted-foreground mt-2">Loading circles...</p>
+        </div>
+      ) : familyCircles.circles.length === 0 ? (
+        <Card className="finnyland-card">
+          <CardContent className="py-8 text-center">
+            <div className="text-4xl mb-2">🌱</div>
+            <p className="text-xs text-muted-foreground">No family circles yet. Create one to get started!</p>
+          </CardContent>
+        </Card>
+      ) : (
+        familyCircles.circles.map(circle => (
+          <CircleCard key={circle.id} circle={circle} familyCircles={familyCircles} />
+        ))
       )}
     </div>
   );
 }
 
-// ─── Family Members Section ──────────────────────────────────
-function FamilyMembersSection({ members, onAdd, onRemove }: {
-  members: FamilyMember[];
-  onAdd: (m: Omit<FamilyMember, "id">) => void;
-  onRemove: (id: string) => void;
+// ─── Individual Circle Card ──────────────────────────────────
+function CircleCard({ circle, familyCircles }: {
+  circle: FamilyCircle;
+  familyCircles: ReturnType<typeof useFamilyCircles>;
 }) {
   const { user } = useAuth();
+  const [showChat, setShowChat] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
-  const [identifier, setIdentifier] = useState("");
-  const [relationship, setRelationship] = useState<FamilyRelationship>("spouse");
-  const [sending, setSending] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [newName, setNewName] = useState(circle.name);
+  const [messageText, setMessageText] = useState("");
+  const [sendingMsg, setSendingMsg] = useState(false);
+  const [lastSeenKey] = useState(`circle-seen-${circle.id}`);
+  const [lastSeen, setLastSeen] = useState(() => localStorage.getItem(`circle-seen-${circle.id}`) || "");
 
-  // Live lookup state
+  // Invite state
+  const [identifier, setIdentifier] = useState("");
+  const [relationship, setRelationship] = useState<string>("member");
+  const [sending, setSending] = useState(false);
   const [lookupResult, setLookupResult] = useState<{
     status: "idle" | "searching" | "found" | "not_found" | "self";
     name?: string;
@@ -466,253 +371,167 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
     userId?: string;
   }>({ status: "idle" });
 
-  // Messaging state
-  const [showMessaging, setShowMessaging] = useState(false);
-  const [messageText, setMessageText] = useState("");
-  const [sendingMessage, setSendingMessage] = useState(false);
-  const [messages, setMessages] = useState<Array<{
-    id: string;
-    sender_user_id: string;
-    sender_name: string;
-    message: string;
-    created_at: string;
-  }>>([]);
+  const circleMembers = familyCircles.getCircleMembers(circle.id);
+  const circleMessages = familyCircles.getCircleMessages(circle.id);
+  const isMuted = familyCircles.isMuted(circle.id);
+  const hasNew = familyCircles.hasNewMessages(circle.id, lastSeen) && !isMuted;
 
-  // Load family messages
-  const loadMessages = useCallback(async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("family_messages")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (!error && data) {
-      setMessages(data as any);
-    }
-  }, [user]);
+  const otherMembers = circleMembers.filter(m => m.user_id !== user?.id);
+  const parents = otherMembers.filter(m => m.relationship === "parent");
+  const spouse = otherMembers.find(m => m.relationship === "spouse");
+  const siblings = otherMembers.filter(m => m.relationship === "sibling");
+  const children = otherMembers.filter(m => m.relationship === "child");
+  const others = otherMembers.filter(m => !["parent", "spouse", "sibling", "child"].includes(m.relationship));
 
+  // Mark as seen when chat opens
   useEffect(() => {
-    if (showMessaging) {
-      loadMessages();
-      const interval = setInterval(loadMessages, 10000);
-      return () => clearInterval(interval);
+    if (showChat) {
+      const now = new Date().toISOString();
+      setLastSeen(now);
+      localStorage.setItem(lastSeenKey, now);
     }
-  }, [showMessaging, loadMessages]);
+  }, [showChat, lastSeenKey]);
 
   // Debounced live lookup
   useEffect(() => {
     const val = identifier.trim().replace(/^@/, "");
-    if (!val || val.length < 2) {
-      setLookupResult({ status: "idle" });
-      return;
-    }
-
+    if (!val || val.length < 2) { setLookupResult({ status: "idle" }); return; }
     const isEmail = val.includes("@") && !val.startsWith("@");
-
-    if (isEmail && !val.match(/.+@.+\..+/)) {
-      setLookupResult({ status: "idle" });
-      return;
-    }
-
+    if (isEmail && !val.match(/.+@.+\..+/)) { setLookupResult({ status: "idle" }); return; }
     setLookupResult({ status: "searching" });
 
     const timer = setTimeout(async () => {
       try {
         if (isEmail) {
-          if (user?.email === val) {
-            setLookupResult({ status: "self" });
-            return;
-          }
+          if (user?.email === val) { setLookupResult({ status: "self" }); return; }
           const { data, error } = await supabase.rpc("lookup_user_by_email", { lookup_email: val });
-          if (error) {
-            console.error("Email lookup error:", error);
-            setLookupResult({ status: "not_found" });
-            return;
-          }
-          if (data && data.length > 0) {
-            const row = data[0];
-            const name = [row.first_name, row.last_name].filter(Boolean).join(" ") || "User";
-            setLookupResult({ status: "found", name, finnyId: row.finny_user_id || undefined, userId: row.user_id });
-          } else {
-            setLookupResult({ status: "not_found" });
-          }
+          if (error || !data || data.length === 0) { setLookupResult({ status: "not_found" }); return; }
+          const row = data[0];
+          setLookupResult({ status: "found", name: [row.first_name, row.last_name].filter(Boolean).join(" ") || "User", finnyId: row.finny_user_id || undefined, userId: row.user_id });
         } else {
-          const { data } = await supabase
-            .from("profiles")
-            .select("user_id, first_name, last_name, finny_user_id")
-            .eq("finny_user_id", val)
-            .maybeSingle();
-
-          if (data) {
-            if (data.user_id === user?.id) {
-              setLookupResult({ status: "self" });
-            } else {
-              const name = [data.first_name, data.last_name].filter(Boolean).join(" ") || "Unknown User";
-              setLookupResult({ status: "found", name, finnyId: data.finny_user_id || undefined, userId: data.user_id });
-            }
-          } else {
-            setLookupResult({ status: "not_found" });
-          }
+          const { data } = await supabase.from("profiles").select("user_id, first_name, last_name, finny_user_id").eq("finny_user_id", val).maybeSingle();
+          if (!data) { setLookupResult({ status: "not_found" }); return; }
+          if (data.user_id === user?.id) { setLookupResult({ status: "self" }); return; }
+          setLookupResult({ status: "found", name: [data.first_name, data.last_name].filter(Boolean).join(" ") || "User", finnyId: data.finny_user_id || undefined, userId: data.user_id });
         }
-      } catch {
-        setLookupResult({ status: "idle" });
-      }
+      } catch { setLookupResult({ status: "idle" }); }
     }, 400);
-
     return () => clearTimeout(timer);
   }, [identifier, user]);
 
-  // Check limits
-  const memberCounts = useMemo(() => {
-    const counts: Record<string, number> = { spouse: 0, parent: 0, sibling: 0, child: 0 };
-    members.forEach(m => { counts[m.relationship] = (counts[m.relationship] || 0) + 1; });
-    return counts;
-  }, [members]);
-
-  const isAtLimit = (rel: FamilyRelationship) => memberCounts[rel] >= (FAMILY_LIMITS[rel] || 99);
-  const availableRelationships = (["spouse", "parent", "sibling", "child"] as FamilyRelationship[]).filter(r => !isAtLimit(r));
-
   const handleInvite = async () => {
-    if (!identifier.trim() || !user) return;
-    if (lookupResult.status === "self") {
-      toast.error("You can't invite yourself! 😄");
-      return;
-    }
-    if (lookupResult.status === "not_found") {
-      const isEmail = identifier.includes("@") && !identifier.startsWith("@");
-      if (!isEmail) {
-        toast.error("This user doesn't exist. Double-check the username.");
-        return;
-      }
-    }
-
+    if (!user || lookupResult.status !== "found" || !lookupResult.userId) return;
     setSending(true);
-    try {
-      const { data: myProfile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, finny_user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
 
-      const isEmail = identifier.includes("@") && !identifier.startsWith("@");
-      const cleanIdentifier = identifier.trim().replace(/^@/, "");
-
-      // Check for duplicate pending invitation
-      const { data: existing } = await supabase
-        .from("family_invitations")
-        .select("id")
-        .eq("from_user_id", user.id)
-        .eq("to_identifier", cleanIdentifier)
-        .eq("status", "pending");
-
-      if (existing && existing.length > 0) {
-        toast.error("You already have a pending invitation to this user.");
-        setSending(false);
-        return;
-      }
-
-      // Create invitation
-      const { error } = await supabase
-        .from("family_invitations")
-        .insert({
-          from_user_id: user.id,
-          to_identifier: cleanIdentifier,
-          identifier_type: isEmail ? "email" : "finny_id",
-          relationship,
-          from_first_name: myProfile?.first_name || null,
-          from_last_name: myProfile?.last_name || null,
-        } as any);
-
-      if (error) {
-        console.error("Insert error:", error);
-        toast.error("Failed to send invitation");
-        setSending(false);
-        return;
-      }
-
-      // Send email for email-based invites
-      if (isEmail) {
-        const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Someone";
-        try {
-          await supabase.functions.invoke("send-family-invite-email", {
-            body: {
-              email: cleanIdentifier,
-              fromName: senderName,
-              relationship,
-            },
-          });
-        } catch (emailErr) {
-          console.error("Email send failed:", emailErr);
-        }
-        
-        if (lookupResult.status === "found") {
-          toast.success(`Invitation sent to ${lookupResult.name}! They'll see it in their Family tab. 💌`);
-        } else {
-          toast.success(`Invitation email sent to ${cleanIdentifier}! 📧`);
-        }
-      } else {
-        toast.success(`Invitation sent to @${cleanIdentifier}! They'll see it in their Family tab. 💌`);
-      }
-
+    // Add to circle directly (they must already have an account)
+    const success = await familyCircles.addMemberToCircle(circle.id, lookupResult.userId, relationship);
+    if (success) {
+      toast.success(`${lookupResult.name} added to "${circle.name}"! They'll see this circle automatically. 🎉`);
       setIdentifier("");
       setShowInvite(false);
-    } catch (err) {
-      console.error("Invite error:", err);
-      toast.error("Something went wrong. Please try again.");
     }
     setSending(false);
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !user) return;
-    setSendingMessage(true);
-    
-    const { data: myProfile } = await supabase
-      .from("profiles")
-      .select("first_name, last_name")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Me";
-
-    const { error } = await supabase.from("family_messages").insert({
-      sender_user_id: user.id,
-      sender_name: senderName,
-      message: messageText.trim(),
-    } as any);
-
-    if (error) {
-      console.error("Message send error:", error);
-      toast.error("Failed to send message");
-    } else {
-      toast.success("Message sent to all family members! 💬");
+    if (!messageText.trim()) return;
+    setSendingMsg(true);
+    const success = await familyCircles.sendMessage(circle.id, messageText);
+    if (success) {
       setMessageText("");
-      loadMessages();
     }
-    setSendingMessage(false);
+    setSendingMsg(false);
   };
 
-  const canSend = identifier.trim().length >= 2 && lookupResult.status !== "self" && lookupResult.status !== "searching" &&
-    !(lookupResult.status === "not_found" && !identifier.includes("@"));
+  const handleRename = async () => {
+    if (!newName.trim() || newName === circle.name) { setEditingName(false); return; }
+    await familyCircles.renameCircle(circle.id, newName.trim());
+    setEditingName(false);
+  };
+
+  const getMemberName = (m: CircleMember) => {
+    return [m.first_name, m.last_name].filter(Boolean).join(" ") || "Member";
+  };
 
   return (
-    <Card className="finnyland-card">
+    <Card className="finnyland-card overflow-hidden">
       <CardHeader className="pb-2 px-4 pt-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <Users className="h-4 w-4 text-primary" /> Family Circle
-          </CardTitle>
-          {availableRelationships.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowInvite(!showInvite)}>
-              <UserPlus className="h-3 w-3 mr-1" /> Invite
-            </Button>
-          )}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            {editingName ? (
+              <div className="flex items-center gap-1.5 flex-1">
+                <Input
+                  value={newName}
+                  onChange={e => setNewName(e.target.value)}
+                  className="h-7 text-sm flex-1"
+                  onKeyDown={e => e.key === "Enter" && handleRename()}
+                  autoFocus
+                />
+                <Button size="sm" variant="ghost" className="h-7 px-2" onClick={handleRename}>
+                  <Check className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <CardTitle className="text-sm font-bold flex items-center gap-2 truncate">
+                <Users className="h-4 w-4 text-primary shrink-0" />
+                <span className="truncate">{circle.name}</span>
+                <Badge variant="secondary" className="text-[10px] shrink-0">{circleMembers.length}</Badge>
+              </CardTitle>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            {/* Chat bubble - blinks green on new message */}
+            <button
+              onClick={() => setShowChat(!showChat)}
+              className={`relative rounded-full p-1.5 transition-all ${showChat ? "bg-primary/20" : "hover:bg-secondary"}`}
+            >
+              <MessageCircle className={`h-4 w-4 ${showChat ? "text-primary" : "text-muted-foreground"}`} />
+              {hasNew && !showChat && (
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 family-notify-dot" />
+              )}
+            </button>
+
+            {/* Menu */}
+            <div className="relative">
+              <button onClick={() => setShowMenu(!showMenu)} className="rounded-full p-1.5 hover:bg-secondary transition-colors">
+                <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${showMenu ? "rotate-180" : ""}`} />
+              </button>
+              {showMenu && (
+                <div className="absolute right-0 top-8 z-20 bg-background border border-border rounded-xl shadow-lg p-1.5 min-w-[140px] animate-fade-in">
+                  <button onClick={() => { setEditingName(true); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-lg hover:bg-secondary transition-colors text-foreground">
+                    <Edit2 className="h-3 w-3" /> Rename
+                  </button>
+                  <button onClick={() => { setShowInvite(!showInvite); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-lg hover:bg-secondary transition-colors text-foreground">
+                    <UserPlus className="h-3 w-3" /> Invite
+                  </button>
+                  <button onClick={() => { familyCircles.toggleMute(circle.id); setShowMenu(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-lg hover:bg-secondary transition-colors text-foreground">
+                    {isMuted ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
+                    {isMuted ? "Unmute" : "Mute"}
+                  </button>
+                  <div className="border-t border-border my-1" />
+                  <button
+                    onClick={() => {
+                      if (confirm("Are you sure you want to leave this circle?")) {
+                        familyCircles.leaveCircle(circle.id);
+                      }
+                      setShowMenu(false);
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs rounded-lg hover:bg-destructive/10 transition-colors text-destructive"
+                  >
+                    <LogOut className="h-3 w-3" /> Leave Circle
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </CardHeader>
+
       <CardContent className="px-4 pb-4">
+        {/* Invite Form */}
         {showInvite && (
           <div className="flex flex-col gap-2.5 mb-3 p-3 rounded-xl bg-primary/5 border border-primary/20">
-            <p className="text-xs text-muted-foreground">Invite by <span className="font-medium text-foreground">Username</span> or <span className="font-medium text-foreground">Email</span></p>
+            <p className="text-xs text-muted-foreground">Add by <span className="font-medium text-foreground">Username</span> or <span className="font-medium text-foreground">Email</span></p>
             <div className="relative">
               <Input
                 placeholder="@username or email@example.com"
@@ -724,137 +543,249 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
                 {identifier.includes("@") && !identifier.startsWith("@") ? <Mail className="h-3.5 w-3.5" /> : <AtSign className="h-3.5 w-3.5" />}
               </div>
             </div>
-
-            {/* Live lookup result */}
             {lookupResult.status === "searching" && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground px-1">
-                <Loader2 className="h-3 w-3 animate-spin" /> Looking up user...
-              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground px-1"><Loader2 className="h-3 w-3 animate-spin" /> Looking up user...</div>
             )}
             {lookupResult.status === "found" && (
               <div className="flex items-center gap-2 text-xs text-primary bg-primary/10 rounded-lg px-3 py-2 border border-primary/20">
-                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="font-medium">{lookupResult.name}</span>
-                {lookupResult.finnyId && <span className="text-muted-foreground">@{lookupResult.finnyId}</span>}
+                <Check className="h-3.5 w-3.5 shrink-0" /> <span className="font-medium">{lookupResult.name}</span>
               </div>
             )}
             {lookupResult.status === "not_found" && (
               <div className="flex items-center gap-2 text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2 border border-destructive/20">
-                <X className="h-3.5 w-3.5 shrink-0" />
-                {identifier.includes("@") && !identifier.startsWith("@")
-                  ? <span>No account found — an invite email will be sent to sign up</span>
-                  : <span>User not found. Check the username and try again.</span>
-                }
+                <X className="h-3.5 w-3.5 shrink-0" /> <span>User not found</span>
               </div>
             )}
             {lookupResult.status === "self" && (
-              <div className="flex items-center gap-2 text-xs text-warning bg-warning/10 rounded-lg px-3 py-2 border border-warning/20">
-                <span>😄</span> <span>That's you! Try a different username or email.</span>
+              <div className="flex items-center gap-2 text-xs bg-accent/10 rounded-lg px-3 py-2 border border-accent/20">
+                <span>😄</span> <span>That's you!</span>
               </div>
             )}
-
-            <Select value={relationship} onValueChange={(v) => setRelationship(v as FamilyRelationship)}>
+            <Select value={relationship} onValueChange={setRelationship}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {availableRelationships.map(r => (
-                  <SelectItem key={r} value={r}>
-                    {r === "spouse" ? "💍 Spouse / Partner" : r === "child" ? "🧒 Child" : r === "parent" ? "🧓 Parent" : "🤝 Sibling"}
-                    <span className="text-muted-foreground ml-1 text-[10px]">
-                      ({memberCounts[r]}/{FAMILY_LIMITS[r]})
-                    </span>
-                  </SelectItem>
-                ))}
+                <SelectItem value="spouse">💍 Spouse / Partner</SelectItem>
+                <SelectItem value="parent">🧓 Parent</SelectItem>
+                <SelectItem value="sibling">🤝 Sibling</SelectItem>
+                <SelectItem value="child">🧒 Child</SelectItem>
+                <SelectItem value="member">👤 Member</SelectItem>
               </SelectContent>
             </Select>
-            <div className="flex gap-1.5 flex-wrap">
-              {Object.entries(FAMILY_LIMITS).map(([rel, max]) => (
-                <span key={rel} className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${
-                  memberCounts[rel] >= max ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
-                }`}>
-                  {rel}: {memberCounts[rel]}/{max}
-                </span>
-              ))}
-            </div>
-            <Button size="sm" className="h-8 text-xs" onClick={handleInvite} disabled={!canSend || sending}>
-              {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
-              Send Invitation
+            <Button size="sm" className="h-8 text-xs" onClick={handleInvite} disabled={lookupResult.status !== "found" || sending}>
+              {sending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <UserPlus className="h-3.5 w-3.5 mr-1" />}
+              Add to Circle
             </Button>
           </div>
         )}
 
-        {members.length === 0 ? (
-          <div className="text-center py-6">
+        {/* Family Tree */}
+        {circleMembers.length <= 1 ? (
+          <div className="text-center py-4">
             <div className="text-4xl mb-2">🌱</div>
-            <p className="text-xs text-muted-foreground">Your family circle is empty. Invite someone to get started!</p>
+            <p className="text-xs text-muted-foreground">This circle is empty. Invite someone to get started!</p>
+            {!showInvite && (
+              <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setShowInvite(true)}>
+                <UserPlus className="h-3 w-3 mr-1" /> Invite
+              </Button>
+            )}
           </div>
         ) : (
-          <>
-            <FamilyTreeView members={members} messages={messages} currentUserId={user?.id} onRemove={onRemove} />
+          <FamilyTreeView
+            parents={parents}
+            spouse={spouse}
+            siblings={siblings}
+            children={children}
+            others={others}
+            currentUserId={user?.id}
+            getMemberName={getMemberName}
+          />
+        )}
 
-            {/* Send Message to All */}
-            <div className="border-t border-border pt-3">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-7 text-xs w-full mb-2" 
-                onClick={() => setShowMessaging(!showMessaging)}
-              >
-                <MessageCircle className="h-3.5 w-3.5 mr-1.5" /> 
-                {showMessaging ? "Hide Messages" : "Send Message to All"}
-              </Button>
-              
-              {showMessaging && (
-                <div className="space-y-3">
-                  {/* Message input */}
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Write a message to your family..."
-                      value={messageText}
-                      onChange={e => setMessageText(e.target.value)}
-                      className="h-9 text-sm flex-1"
-                      onKeyDown={e => e.key === "Enter" && handleSendMessage()}
-                    />
-                    <Button 
-                      size="sm" 
-                      className="h-9 px-3" 
-                      onClick={handleSendMessage} 
-                      disabled={!messageText.trim() || sendingMessage}
-                    >
-                      {sendingMessage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    </Button>
-                  </div>
-
-                  {/* Recent messages */}
-                  {messages.length > 0 && (
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {messages.slice(0, 10).map(msg => {
-                        const isMe = msg.sender_user_id === user?.id;
-                        const timeAgo = getTimeAgo(msg.created_at);
-                        return (
-                          <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                            <div className={`max-w-[80%] ${isMe ? "items-end" : "items-start"}`}>
-                              <div className={`px-3 py-2 rounded-xl text-xs ${
-                                isMe 
-                                  ? "bg-primary text-primary-foreground rounded-br-sm" 
-                                  : "bg-secondary border border-border rounded-bl-sm"
-                              }`}>
-                                {!isMe && <p className="font-semibold text-[10px] mb-0.5 text-primary">{msg.sender_name}</p>}
-                                <p>{msg.message}</p>
-                              </div>
-                              <p className="text-[9px] text-muted-foreground mt-0.5 px-1">{timeAgo}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </>
+        {/* Chat Section */}
+        {showChat && (
+          <CircleChatBox
+            circleId={circle.id}
+            messages={circleMessages}
+            currentUserId={user?.id}
+            messageText={messageText}
+            setMessageText={setMessageText}
+            onSend={handleSendMessage}
+            sending={sendingMsg}
+          />
         )}
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Family Tree View ────────────────────────────────────────
+function MemberBubble({ name, emoji, relationship }: {
+  name: string;
+  emoji: string;
+  relationship: string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-primary/30 bg-primary/5 shadow-sm hover:scale-105 transition-transform">
+        <div className="text-center">
+          <span className="text-base block leading-none">{emoji}</span>
+          <span className="text-[8px] font-bold text-foreground leading-tight block mt-0.5 max-w-[44px] truncate">{name.split(" ")[0]}</span>
+        </div>
+      </div>
+      <span className="text-[8px] text-muted-foreground capitalize font-medium">{relationship}</span>
+    </div>
+  );
+}
+
+function FamilyTreeView({ parents, spouse, siblings, children, others, currentUserId, getMemberName }: {
+  parents: CircleMember[];
+  spouse?: CircleMember;
+  siblings: CircleMember[];
+  children: CircleMember[];
+  others: CircleMember[];
+  currentUserId?: string;
+  getMemberName: (m: CircleMember) => string;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-3 mb-2">
+      {/* Parents Row */}
+      {parents.length > 0 && (
+        <>
+          <div className="flex items-center gap-5 justify-center">
+            {parents.map(p => (
+              <MemberBubble key={p.id} name={getMemberName(p)} emoji="🧓" relationship="parent" />
+            ))}
+          </div>
+          <div className="w-px h-3 bg-border" />
+        </>
+      )}
+
+      {/* Me + Spouse Row */}
+      <div className="flex items-center gap-3 justify-center">
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center border-2 border-primary bg-primary/15 shadow-lg shadow-primary/20">
+            <div className="text-center">
+              <span className="text-base block leading-none">🏠</span>
+              <span className="text-[8px] font-bold text-foreground leading-tight block mt-0.5">Me</span>
+            </div>
+          </div>
+          <span className="text-[8px] text-primary font-semibold">You</span>
+        </div>
+        {spouse && (
+          <>
+            <div className="flex items-center gap-0.5">
+              <div className="w-3 h-px bg-primary/40" />
+              <Heart className="h-3 w-3 text-primary fill-primary/30" />
+              <div className="w-3 h-px bg-primary/40" />
+            </div>
+            <MemberBubble name={getMemberName(spouse)} emoji="💍" relationship="spouse" />
+          </>
+        )}
+      </div>
+
+      {/* Siblings */}
+      {siblings.length > 0 && (
+        <>
+          <div className="w-px h-2 bg-border" />
+          <div className="flex items-start gap-4 justify-center">
+            {siblings.map((s, i) => (
+              <div key={s.id} style={{ marginTop: `${i * 4}px` }}>
+                <MemberBubble name={getMemberName(s)} emoji="🤝" relationship="sibling" />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Children */}
+      {children.length > 0 && (
+        <>
+          <div className="w-px h-2 bg-border" />
+          <div className="flex items-center gap-4 justify-center">
+            {children.map(c => (
+              <MemberBubble key={c.id} name={getMemberName(c)} emoji="🧒" relationship="child" />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Other members */}
+      {others.length > 0 && (
+        <>
+          <div className="w-px h-2 bg-border" />
+          <div className="flex items-center gap-4 justify-center flex-wrap">
+            {others.map(m => (
+              <MemberBubble key={m.id} name={getMemberName(m)} emoji="👤" relationship={m.relationship} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Circle Chat Box ─────────────────────────────────────────
+function CircleChatBox({ circleId, messages, currentUserId, messageText, setMessageText, onSend, sending }: {
+  circleId: string;
+  messages: Array<{ id: string; sender_user_id: string; sender_name: string; message: string; created_at: string }>;
+  currentUserId?: string;
+  messageText: string;
+  setMessageText: (v: string) => void;
+  onSend: () => void;
+  sending: boolean;
+}) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  return (
+    <div className="border-t border-border pt-3 mt-3 space-y-2">
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+        <MessageCircle className="h-3 w-3" /> Circle Chat
+      </p>
+
+      {/* Messages */}
+      <div className="max-h-48 overflow-y-auto space-y-2">
+        {messages.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-3">No messages yet. Say hello! 👋</p>
+        )}
+        {[...messages].reverse().map(msg => {
+          const isMe = msg.sender_user_id === currentUserId;
+          return (
+            <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[80%]`}>
+                <div className={`px-3 py-2 rounded-xl text-xs ${
+                  isMe
+                    ? "bg-primary text-primary-foreground rounded-br-sm"
+                    : "bg-secondary border border-border rounded-bl-sm"
+                }`}>
+                  {!isMe && <p className="font-semibold text-[10px] mb-0.5 text-primary">{msg.sender_name}</p>}
+                  <p>{msg.message}</p>
+                </div>
+                <p className="text-[9px] text-muted-foreground mt-0.5 px-1">{getTimeAgo(msg.created_at)}</p>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2">
+        <Input
+          placeholder="Type a message..."
+          value={messageText}
+          onChange={e => setMessageText(e.target.value)}
+          className="h-9 text-sm flex-1"
+          onKeyDown={e => e.key === "Enter" && onSend()}
+        />
+        <Button size="sm" className="h-9 px-3" onClick={onSend} disabled={!messageText.trim() || sending}>
+          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -1254,9 +1185,9 @@ function SharedGoalsSection({ goals, members, onAdd, onContribute, onRemove, use
 
               {Object.keys(byMember).length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(byMember).map(([name, amt]) => (
-                    <span key={name} className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5">
-                      {name}: {fmt(amt)}
+                  {Object.entries(byMember).map(([memberName, amt]) => (
+                    <span key={memberName} className="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-0.5">
+                      {memberName}: {fmt(amt)}
                     </span>
                   ))}
                 </div>
