@@ -67,7 +67,7 @@ export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, 
   useEffect(() => {
     if (user) {
       supabase.from("profiles")
-        .select("first_name, last_name, birthday, finny_user_id, gender, marital_status, phone_code, phone_number, country, currency, currency_symbol")
+        .select("first_name, last_name, birthday, finny_user_id, gender, marital_status, phone_code, phone_number, country, currency, currency_symbol, occupation_type, course, profession")
         .eq("user_id", user.id).maybeSingle().then(({ data: p }) => {
           if (p) setProfileData(p as ProfileData);
         });
