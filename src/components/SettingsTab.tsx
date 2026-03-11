@@ -170,7 +170,6 @@ export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, 
 
   const saveProfile = async () => {
     if (!user) return;
-    // Only save editable fields (not name, username, birthday, gender)
     const updates: Record<string, unknown> = {
       marital_status: editFields.marital_status || null,
       phone_code: editFields.phone_code || null,
@@ -178,14 +177,22 @@ export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, 
       country: editFields.country || null,
       currency: editFields.currency || null,
       currency_symbol: editFields.currency_symbol || null,
+      occupation_type: editFields.occupation_type || null,
+      course: editFields.occupation_type === 'student' ? (editFields.course || null) : null,
+      profession: editFields.occupation_type === 'professional' ? (editFields.profession || null) : null,
     };
+
+    // Allow filling empty identity fields (one-time only)
+    if (!profileData.first_name && editFields.first_name) updates.first_name = editFields.first_name;
+    if (!profileData.last_name && editFields.last_name) updates.last_name = editFields.last_name;
+    if (!profileData.birthday && editFields.birthday) updates.birthday = editFields.birthday;
+    if (!profileData.gender && editFields.gender) updates.gender = editFields.gender;
 
     await supabase.from("profiles").update(updates).eq("user_id", user.id);
 
     setProfileData(prev => ({ ...prev, ...updates } as ProfileData));
     setEditingProfile(false);
 
-    // Also update local userProfile
     if (editFields.country || editFields.currency) {
       const updatedProfile = {
         ...data.userProfile,
