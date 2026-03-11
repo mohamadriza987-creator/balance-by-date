@@ -338,6 +338,12 @@ export function useFamilyCircles() {
     return latestTime > lastSeen;
   }, [lastMessageTimes]);
 
+  // Auto-cleanup expired messages every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(deleteExpiredMessages, 5000);
+    return () => clearInterval(interval);
+  }, [deleteExpiredMessages]);
+
   return {
     circles,
     members,
@@ -349,6 +355,7 @@ export function useFamilyCircles() {
     leaveCircle,
     toggleMute,
     sendMessage,
+    uploadMedia,
     getCircleMembers,
     getCircleMessages,
     isMuted,
