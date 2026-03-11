@@ -168,6 +168,7 @@ export type Database = {
         Row: {
           birthday: string | null
           country: string | null
+          course: string | null
           created_at: string
           currency: string | null
           currency_symbol: string | null
@@ -179,9 +180,11 @@ export type Database = {
           last_name: string | null
           marital_status: string | null
           name: string | null
+          occupation_type: string | null
           onboarding_complete: boolean | null
           phone_code: string | null
           phone_number: string | null
+          profession: string | null
           spouse_user_id: string | null
           updated_at: string
           user_id: string
@@ -189,6 +192,7 @@ export type Database = {
         Insert: {
           birthday?: string | null
           country?: string | null
+          course?: string | null
           created_at?: string
           currency?: string | null
           currency_symbol?: string | null
@@ -200,9 +204,11 @@ export type Database = {
           last_name?: string | null
           marital_status?: string | null
           name?: string | null
+          occupation_type?: string | null
           onboarding_complete?: boolean | null
           phone_code?: string | null
           phone_number?: string | null
+          profession?: string | null
           spouse_user_id?: string | null
           updated_at?: string
           user_id: string
@@ -210,6 +216,7 @@ export type Database = {
         Update: {
           birthday?: string | null
           country?: string | null
+          course?: string | null
           created_at?: string
           currency?: string | null
           currency_symbol?: string | null
@@ -221,9 +228,11 @@ export type Database = {
           last_name?: string | null
           marital_status?: string | null
           name?: string | null
+          occupation_type?: string | null
           onboarding_complete?: boolean | null
           phone_code?: string | null
           phone_number?: string | null
+          profession?: string | null
           spouse_user_id?: string | null
           updated_at?: string
           user_id?: string
