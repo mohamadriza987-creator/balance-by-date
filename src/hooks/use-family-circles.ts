@@ -30,6 +30,9 @@ export interface CircleMessage {
   sender_name: string;
   message: string;
   created_at: string;
+  message_type: "text" | "voice" | "photo";
+  expires_at: string | null;
+  media_url: string | null;
 }
 
 export function useFamilyCircles() {
