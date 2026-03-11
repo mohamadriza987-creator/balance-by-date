@@ -101,6 +101,65 @@ export type Database = {
         }
         Relationships: []
       }
+      family_circle_members: {
+        Row: {
+          circle_id: string
+          id: string
+          joined_at: string
+          muted: boolean
+          relationship: string
+          user_id: string
+        }
+        Insert: {
+          circle_id: string
+          id?: string
+          joined_at?: string
+          muted?: boolean
+          relationship?: string
+          user_id: string
+        }
+        Update: {
+          circle_id?: string
+          id?: string
+          joined_at?: string
+          muted?: boolean
+          relationship?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_circle_members_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "family_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_circles: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       family_invitations: {
         Row: {
           created_at: string
@@ -142,6 +201,7 @@ export type Database = {
       }
       family_messages: {
         Row: {
+          circle_id: string | null
           created_at: string
           id: string
           message: string
@@ -149,6 +209,7 @@ export type Database = {
           sender_user_id: string
         }
         Insert: {
+          circle_id?: string | null
           created_at?: string
           id?: string
           message: string
@@ -156,13 +217,22 @@ export type Database = {
           sender_user_id: string
         }
         Update: {
+          circle_id?: string | null
           created_at?: string
           id?: string
           message?: string
           sender_name?: string
           sender_user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "family_messages_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "family_circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -335,6 +405,10 @@ export type Database = {
         Returns: number
       }
       get_auth_email: { Args: never; Returns: string }
+      is_circle_member: {
+        Args: { _circle_id: string; _user_id: string }
+        Returns: boolean
+      }
       lookup_user_by_email: {
         Args: { lookup_email: string }
         Returns: {
