@@ -612,6 +612,7 @@ function CircleCard({ circle, familyCircles }: {
             setMessageText={setMessageText}
             onSend={handleSendMessage}
             sending={sendingMsg}
+            uploadMedia={familyCircles.uploadMedia}
           />
         )}
       </CardContent>
