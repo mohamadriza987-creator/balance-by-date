@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Heart, Users, PiggyBank, Target, Plus, Check, X,
-  Baby, UserPlus, Gift, ArrowRight, Sparkles, TreePine, Mail, AtSign, Send, Loader2
+  Baby, UserPlus, Gift, ArrowRight, Sparkles, TreePine, Mail, AtSign, Send, Loader2, MessageCircle
 } from "lucide-react";
 import type {
   AppData, FamilyMember, FamilyRequest, PiggyBank as PiggyBankType,
@@ -41,6 +41,13 @@ const RELATIONSHIP_EMOJIS: Record<FamilyRelationship, string[]> = {
   child: ["👧", "👦", "🧒", "👶"],
   parent: ["👨‍🦳", "👩‍🦳", "🧓"],
   sibling: ["🤝", "👫", "👬", "👭"],
+};
+
+const RELATIONSHIP_LABELS: Record<string, string> = {
+  spouse: "Spouse / Partner",
+  child: "Child",
+  parent: "Parent",
+  sibling: "Sibling",
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -121,7 +128,7 @@ export function FamilyLandTab({
         />
       )}
 
-      {/* Family Members */}
+      {/* Family Members + Messaging */}
       <FamilyMembersSection
         members={family.members}
         onAdd={onAddFamilyMember}
@@ -179,46 +186,33 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
     if (!user) return;
     setActing(inv.id);
 
-    // Update invitation status
-    const { error } = await supabase
-      .from("family_invitations")
-      .update({ status: "accepted" } as any)
-      .eq("id", inv.id);
+    // Use the server-side function that updates BOTH users' data
+    const { data: result, error } = await supabase.rpc("accept_family_invitation", {
+      invitation_id: inv.id,
+    });
 
-    if (error) {
+    if (error || (result as any)?.error) {
       toast.error("Failed to accept invitation");
+      console.error("Accept error:", error || (result as any)?.error);
       setActing(null);
       return;
     }
 
-    // Add to local family members
-    const name = [inv.from_first_name, inv.from_last_name].filter(Boolean).join(" ") || "Family Member";
-    const rel = inv.relationship as FamilyRelationship;
+    const res = result as any;
+    // Add the sender to MY local family members
+    const name = res.sender_name || "Family Member";
+    const rel = res.relationship as FamilyRelationship;
     const emojis = RELATIONSHIP_EMOJIS[rel] || ["👤"];
     onAddFamilyMember({
       name,
       relationship: rel,
       emoji: emojis[Math.floor(Math.random() * emojis.length)],
-      linkedUserId: inv.from_user_id,
+      linkedUserId: res.sender_user_id,
+      linkedFinnyId: res.sender_finny_id || undefined,
       addedDate: todayStr(),
     });
 
-    // If spouse, also link profiles
-    if (rel === "spouse") {
-      await supabase
-        .from("profiles")
-        .update({ spouse_user_id: inv.from_user_id })
-        .eq("user_id", user.id);
-      await supabase
-        .from("profiles")
-        .update({ spouse_user_id: user.id })
-        .eq("user_id", inv.from_user_id);
-    }
-
-    // Notify the sender by creating a reverse invitation record they can see
-    // (the sender's notification hook will pick this up)
-
-    toast.success(`${name} has been added to your Family Land! 🏡`);
+    toast.success(`${name} has been added to your Family Land! 🏡 They can see you in their Family Circle too.`);
     setActing(null);
     onInvitationHandled?.();
   };
@@ -243,8 +237,11 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
       </CardHeader>
       <CardContent className="px-4 pb-4 space-y-3">
         {invitations.map(inv => {
-          const name = [inv.from_first_name, inv.from_last_name].filter(Boolean).join(" ") || "Someone";
+          const senderName = [inv.from_first_name, inv.from_last_name].filter(Boolean).join(" ") || "Someone";
+          const relLabel = RELATIONSHIP_LABELS[inv.relationship] || inv.relationship;
           const relEmoji = inv.relationship === "spouse" ? "💍" : inv.relationship === "child" ? "🧒" : inv.relationship === "parent" ? "🧓" : "🤝";
+          // Show the sender's email (from to_identifier if sent via email, otherwise show name)
+          const senderEmail = inv.identifier_type === "email" ? inv.to_identifier : null;
           return (
             <div key={inv.id} className="rounded-xl bg-background border border-primary/20 p-3 animate-slide-up-fade">
               <div className="flex items-start gap-3">
@@ -253,11 +250,17 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground">
-                    {name}
+                    {senderName}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    has requested to add you to Family Land as <span className="font-medium capitalize text-foreground">{inv.relationship}</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Your <span className="font-medium capitalize text-foreground">{relLabel}</span>{" "}
+                    <span className="font-medium text-primary">{senderName}</span> has invited you to join their Family Land! 🏡
                   </p>
+                  {senderEmail && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      Sent to: {senderEmail}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 mt-3">
@@ -268,7 +271,7 @@ function FamilyInvitationsSection({ invitations, onAddFamilyMember, onInvitation
                   disabled={acting === inv.id}
                 >
                   {acting === inv.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
-                  Confirm
+                  Accept
                 </Button>
                 <Button
                   size="sm"
@@ -308,6 +311,39 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
     userId?: string;
   }>({ status: "idle" });
 
+  // Messaging state
+  const [showMessaging, setShowMessaging] = useState(false);
+  const [messageText, setMessageText] = useState("");
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [messages, setMessages] = useState<Array<{
+    id: string;
+    sender_user_id: string;
+    sender_name: string;
+    message: string;
+    created_at: string;
+  }>>([]);
+
+  // Load family messages
+  const loadMessages = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("family_messages")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!error && data) {
+      setMessages(data as any);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (showMessaging) {
+      loadMessages();
+      const interval = setInterval(loadMessages, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [showMessaging, loadMessages]);
+
   // Debounced live lookup
   useEffect(() => {
     const val = identifier.trim().replace(/^@/, "");
@@ -318,7 +354,6 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
 
     const isEmail = val.includes("@") && !val.startsWith("@");
 
-    // For email, require at least user@d.c pattern
     if (isEmail && !val.match(/.+@.+\..+/)) {
       setLookupResult({ status: "idle" });
       return;
@@ -328,14 +363,11 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
 
     const timer = setTimeout(async () => {
       try {
-        let profile: any = null;
-
         if (isEmail) {
           if (user?.email === val) {
             setLookupResult({ status: "self" });
             return;
           }
-          // Use secure database function to check auth.users + profiles
           const { data, error } = await supabase.rpc("lookup_user_by_email", { lookup_email: val });
           if (error) {
             console.error("Email lookup error:", error);
@@ -350,7 +382,6 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
             setLookupResult({ status: "not_found" });
           }
         } else {
-          // Look up by finny_user_id
           const { data } = await supabase
             .from("profiles")
             .select("user_id, first_name, last_name, finny_user_id")
@@ -448,19 +479,22 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
       if (isEmail) {
         const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Someone";
         try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const resp = await supabase.functions.invoke("send-family-invite-email", {
+          await supabase.functions.invoke("send-family-invite-email", {
             body: {
               email: cleanIdentifier,
               fromName: senderName,
               relationship,
             },
           });
-          if (resp.error) console.error("Email function error:", resp.error);
         } catch (emailErr) {
           console.error("Email send failed:", emailErr);
         }
-        toast.success(`Invitation sent to ${cleanIdentifier}! 📧`);
+        
+        if (lookupResult.status === "found") {
+          toast.success(`Invitation sent to ${lookupResult.name}! They'll see it in their Family tab. 💌`);
+        } else {
+          toast.success(`Invitation email sent to ${cleanIdentifier}! 📧`);
+        }
       } else {
         toast.success(`Invitation sent to @${cleanIdentifier}! They'll see it in their Family tab. 💌`);
       }
@@ -472,6 +506,35 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
       toast.error("Something went wrong. Please try again.");
     }
     setSending(false);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageText.trim() || !user) return;
+    setSendingMessage(true);
+    
+    const { data: myProfile } = await supabase
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Me";
+
+    const { error } = await supabase.from("family_messages").insert({
+      sender_user_id: user.id,
+      sender_name: senderName,
+      message: messageText.trim(),
+    } as any);
+
+    if (error) {
+      console.error("Message send error:", error);
+      toast.error("Failed to send message");
+    } else {
+      toast.success("Message sent to all family members! 💬");
+      setMessageText("");
+      loadMessages();
+    }
+    setSendingMessage(false);
   };
 
   const canSend = identifier.trim().length >= 2 && lookupResult.status !== "self" && lookupResult.status !== "searching" &&
@@ -518,9 +581,6 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
                 <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                 <span className="font-medium">{lookupResult.name}</span>
                 {lookupResult.finnyId && <span className="text-muted-foreground">@{lookupResult.finnyId}</span>}
-                {!lookupResult.finnyId && identifier.includes("@") && (
-                  <span className="text-muted-foreground">— invitation will be sent via email</span>
-                )}
               </div>
             )}
             {lookupResult.status === "not_found" && (
@@ -573,25 +633,109 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
             <p className="text-xs text-muted-foreground">Your family circle is empty. Invite someone to get started!</p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {members.map(m => (
-              <div key={m.id} className="flex items-center gap-2 rounded-full bg-secondary/60 border border-border px-3 py-1.5 group">
-                <span className="text-lg">{m.emoji}</span>
-                <div>
-                  <span className="text-xs font-semibold text-foreground">{m.name}</span>
-                  <span className="text-[10px] text-muted-foreground ml-1 capitalize">({m.relationship})</span>
-                  {m.linkedUserId && <span className="text-[10px] text-primary ml-1">✓ Linked</span>}
+          <>
+            <div className="space-y-2 mb-3">
+              {members.map(m => (
+                <div key={m.id} className="flex items-center gap-3 rounded-xl bg-secondary/40 border border-border px-3 py-2.5 group">
+                  <span className="text-xl">{m.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-semibold text-foreground">{m.name}</span>
+                      <span className="text-[10px] text-muted-foreground capitalize">({m.relationship})</span>
+                      {m.linkedUserId && <span className="text-[10px] text-primary">✓ Linked</span>}
+                    </div>
+                    {/* Show latest message from this member as a speech bubble */}
+                    {messages.filter(msg => msg.sender_user_id === m.linkedUserId).length > 0 && (
+                      <div className="mt-1 relative">
+                        <div className="bg-primary/10 text-foreground/80 text-[11px] px-2.5 py-1.5 rounded-xl rounded-tl-sm border border-primary/15 max-w-[250px]">
+                          {messages.find(msg => msg.sender_user_id === m.linkedUserId)?.message}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => onRemove(m.id)} className="opacity-0 group-hover:opacity-100 text-destructive/60 hover:text-destructive transition-opacity ml-1">
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
-                <button onClick={() => onRemove(m.id)} className="opacity-0 group-hover:opacity-100 text-destructive/60 hover:text-destructive transition-opacity ml-1">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            {/* Send Message to All */}
+            <div className="border-t border-border pt-3">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-7 text-xs w-full mb-2" 
+                onClick={() => setShowMessaging(!showMessaging)}
+              >
+                <MessageCircle className="h-3.5 w-3.5 mr-1.5" /> 
+                {showMessaging ? "Hide Messages" : "Send Message to All"}
+              </Button>
+              
+              {showMessaging && (
+                <div className="space-y-3">
+                  {/* Message input */}
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Write a message to your family..."
+                      value={messageText}
+                      onChange={e => setMessageText(e.target.value)}
+                      className="h-9 text-sm flex-1"
+                      onKeyDown={e => e.key === "Enter" && handleSendMessage()}
+                    />
+                    <Button 
+                      size="sm" 
+                      className="h-9 px-3" 
+                      onClick={handleSendMessage} 
+                      disabled={!messageText.trim() || sendingMessage}
+                    >
+                      {sendingMessage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    </Button>
+                  </div>
+
+                  {/* Recent messages */}
+                  {messages.length > 0 && (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {messages.slice(0, 10).map(msg => {
+                        const isMe = msg.sender_user_id === user?.id;
+                        const timeAgo = getTimeAgo(msg.created_at);
+                        return (
+                          <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[80%] ${isMe ? "items-end" : "items-start"}`}>
+                              <div className={`px-3 py-2 rounded-xl text-xs ${
+                                isMe 
+                                  ? "bg-primary text-primary-foreground rounded-br-sm" 
+                                  : "bg-secondary border border-border rounded-bl-sm"
+                              }`}>
+                                {!isMe && <p className="font-semibold text-[10px] mb-0.5 text-primary">{msg.sender_name}</p>}
+                                <p>{msg.message}</p>
+                              </div>
+                              <p className="text-[9px] text-muted-foreground mt-0.5 px-1">{timeAgo}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
   );
+}
+
+function getTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 // ─── Family Requests Section ─────────────────────────────────
@@ -691,7 +835,7 @@ function FamilyRequestsSection({ requests, members, onAdd, onUpdate, userName, c
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{r.description}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {fmt(r.amount)} {member ? `→ ${member.name}` : ""}
+                      {fmt(r.amount)} {member ? `→ ${member.emoji} ${member.name}` : ""}
                     </p>
                   </div>
                   <div className="flex gap-1">
