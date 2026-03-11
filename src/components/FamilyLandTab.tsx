@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Heart, Users, PiggyBank, Target, Plus, Check, X,
   Baby, UserPlus, Gift, ArrowRight, Sparkles, TreePine, Mail, AtSign, Send, Loader2, MessageCircle,
-  LogOut, BellOff, Bell, Edit2, ChevronDown, ChevronUp
+  LogOut, BellOff, Bell, Edit2, ChevronDown, ChevronUp, Mic, MicOff, Camera, Clock, Image as ImageIcon, Timer
 } from "lucide-react";
 import type {
   AppData, FamilyMember, FamilyRequest, PiggyBank as PiggyBankType,
@@ -433,10 +433,11 @@ function CircleCard({ circle, familyCircles }: {
     setSending(false);
   };
 
-  const handleSendMessage = async () => {
-    if (!messageText.trim()) return;
+  const handleSendMessage = async (options?: { messageType?: "text" | "voice" | "photo"; expiresInSeconds?: number; mediaUrl?: string }) => {
+    const msgType = options?.messageType || "text";
+    if (msgType === "text" && !messageText.trim()) return;
     setSendingMsg(true);
-    const success = await familyCircles.sendMessage(circle.id, messageText);
+    const success = await familyCircles.sendMessage(circle.id, messageText, options);
     if (success) {
       setMessageText("");
     }
@@ -611,6 +612,7 @@ function CircleCard({ circle, familyCircles }: {
             setMessageText={setMessageText}
             onSend={handleSendMessage}
             sending={sendingMsg}
+            uploadMedia={familyCircles.uploadMedia}
           />
         )}
       </CardContent>
@@ -725,20 +727,95 @@ function FamilyTreeView({ parents, spouse, siblings, children, others, currentUs
 }
 
 // ─── Circle Chat Box ─────────────────────────────────────────
-function CircleChatBox({ circleId, messages, currentUserId, messageText, setMessageText, onSend, sending }: {
+const DISAPPEAR_OPTIONS = [
+  { label: "10s", seconds: 10 },
+  { label: "20s", seconds: 20 },
+  { label: "30s", seconds: 30 },
+  { label: "1m", seconds: 60 },
+];
+
+function CircleChatBox({ circleId, messages, currentUserId, messageText, setMessageText, onSend, sending, uploadMedia }: {
   circleId: string;
-  messages: Array<{ id: string; sender_user_id: string; sender_name: string; message: string; created_at: string }>;
+  messages: Array<{ id: string; sender_user_id: string; sender_name: string; message: string; created_at: string; message_type?: string; expires_at?: string | null; media_url?: string | null }>;
   currentUserId?: string;
   messageText: string;
   setMessageText: (v: string) => void;
-  onSend: () => void;
+  onSend: (options?: { messageType?: "text" | "voice" | "photo"; expiresInSeconds?: number; mediaUrl?: string }) => void;
   sending: boolean;
+  uploadMedia: (file: Blob, extension: string) => Promise<string | null>;
 }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [disappearTimer, setDisappearTimer] = useState<number | null>(null);
+  const [recording, setRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
+
+  // Filter out expired messages on render
+  const now = new Date().toISOString();
+  const visibleMessages = messages.filter(m => !m.expires_at || m.expires_at > now);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        setUploadingMedia(true);
+        const url = await uploadMedia(blob, "webm");
+        if (url) {
+          onSend({ messageType: "voice", expiresInSeconds: 1800, mediaUrl: url });
+        }
+        setUploadingMedia(false);
+        setRecording(false);
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecording(true);
+    } catch {
+      toast.error("Microphone access denied");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingMedia(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const url = await uploadMedia(file, ext);
+    if (url) {
+      onSend({ messageType: "photo", expiresInSeconds: 1800, mediaUrl: url });
+    }
+    setUploadingMedia(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleTextSend = () => {
+    if (!messageText.trim()) return;
+    onSend(disappearTimer ? { expiresInSeconds: disappearTimer } : undefined);
+  };
+
+  const getExpiryLabel = (expiresAt: string) => {
+    const remaining = Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+    if (remaining <= 0) return "expired";
+    if (remaining < 60) return `${remaining}s`;
+    return `${Math.floor(remaining / 60)}m`;
+  };
 
   return (
     <div className="border-t border-border pt-3 mt-3 space-y-2">
@@ -748,11 +825,15 @@ function CircleChatBox({ circleId, messages, currentUserId, messageText, setMess
 
       {/* Messages */}
       <div className="max-h-48 overflow-y-auto space-y-2">
-        {messages.length === 0 && (
+        {visibleMessages.length === 0 && (
           <p className="text-xs text-muted-foreground text-center py-3">No messages yet. Say hello! 👋</p>
         )}
-        {[...messages].reverse().map(msg => {
+        {[...visibleMessages].reverse().map(msg => {
           const isMe = msg.sender_user_id === currentUserId;
+          const isVoice = msg.message_type === "voice";
+          const isPhoto = msg.message_type === "photo";
+          const isExpiring = !!msg.expires_at;
+
           return (
             <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%]`}>
@@ -760,9 +841,28 @@ function CircleChatBox({ circleId, messages, currentUserId, messageText, setMess
                   isMe
                     ? "bg-primary text-primary-foreground rounded-br-sm"
                     : "bg-secondary border border-border rounded-bl-sm"
-                }`}>
+                } ${isExpiring ? "border-dashed border-2 border-primary/30" : ""}`}>
                   {!isMe && <p className="font-semibold text-[10px] mb-0.5 text-primary">{msg.sender_name}</p>}
-                  <p>{msg.message}</p>
+                  
+                  {isVoice && msg.media_url ? (
+                    <div className="flex items-center gap-2">
+                      <Mic className="h-3 w-3 shrink-0" />
+                      <audio controls src={msg.media_url} className="h-7 max-w-[180px]" />
+                    </div>
+                  ) : isPhoto && msg.media_url ? (
+                    <div>
+                      <img src={msg.media_url} alt="Photo" className="rounded-lg max-w-[200px] max-h-[150px] object-cover" />
+                    </div>
+                  ) : (
+                    <p>{msg.message}</p>
+                  )}
+
+                  {isExpiring && msg.expires_at && (
+                    <div className="flex items-center gap-1 mt-1 opacity-60">
+                      <Timer className="h-2.5 w-2.5" />
+                      <span className="text-[9px]">{getExpiryLabel(msg.expires_at)}</span>
+                    </div>
+                  )}
                 </div>
                 <p className="text-[9px] text-muted-foreground mt-0.5 px-1">{getTimeAgo(msg.created_at)}</p>
               </div>
@@ -772,19 +872,66 @@ function CircleChatBox({ circleId, messages, currentUserId, messageText, setMess
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="flex gap-2">
+      {/* Disappearing timer toggle */}
+      <div className="flex items-center gap-1 flex-wrap">
+        <button
+          onClick={() => setDisappearTimer(disappearTimer ? null : 10)}
+          className={`flex items-center gap-1 text-[10px] px-2 py-1 rounded-full border transition-colors ${
+            disappearTimer ? "bg-primary/10 border-primary/30 text-primary" : "border-border text-muted-foreground hover:bg-secondary"
+          }`}
+        >
+          <Clock className="h-2.5 w-2.5" />
+          {disappearTimer ? `Disappears: ${disappearTimer < 60 ? `${disappearTimer}s` : "1m"}` : "Disappearing"}
+        </button>
+        {disappearTimer !== null && DISAPPEAR_OPTIONS.map(opt => (
+          <button
+            key={opt.seconds}
+            onClick={() => setDisappearTimer(opt.seconds)}
+            className={`text-[10px] px-2 py-1 rounded-full border transition-colors ${
+              disappearTimer === opt.seconds ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-secondary"
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Input Row */}
+      <div className="flex gap-1.5 items-center">
+        {/* Photo button */}
+        <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handlePhotoUpload} />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingMedia}
+          className="rounded-full p-2 hover:bg-secondary transition-colors text-muted-foreground disabled:opacity-50"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </button>
+
+        {/* Voice button */}
+        <button
+          onClick={recording ? stopRecording : startRecording}
+          disabled={uploadingMedia}
+          className={`rounded-full p-2 transition-colors ${
+            recording ? "bg-destructive/20 text-destructive animate-pulse" : "hover:bg-secondary text-muted-foreground"
+          } disabled:opacity-50`}
+        >
+          {recording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </button>
+
         <Input
           placeholder="Type a message..."
           value={messageText}
           onChange={e => setMessageText(e.target.value)}
           className="h-9 text-sm flex-1"
-          onKeyDown={e => e.key === "Enter" && onSend()}
+          onKeyDown={e => e.key === "Enter" && handleTextSend()}
+          disabled={recording || uploadingMedia}
         />
-        <Button size="sm" className="h-9 px-3" onClick={onSend} disabled={!messageText.trim() || sending}>
-          {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+        <Button size="sm" className="h-9 px-3" onClick={handleTextSend} disabled={!messageText.trim() || sending || recording || uploadingMedia}>
+          {sending || uploadingMedia ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
         </Button>
       </div>
+      {uploadingMedia && <p className="text-[10px] text-muted-foreground text-center">Uploading...</p>}
     </div>
   );
 }
