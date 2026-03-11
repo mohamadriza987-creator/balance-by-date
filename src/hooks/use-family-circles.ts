@@ -256,8 +256,14 @@ export function useFamilyCircles() {
     }
   }, [user, members, fetchMembers]);
 
-  const sendMessage = useCallback(async (circleId: string, message: string) => {
-    if (!user || !message.trim()) return;
+  const sendMessage = useCallback(async (
+    circleId: string,
+    message: string,
+    options?: { messageType?: "text" | "voice" | "photo"; expiresInSeconds?: number; mediaUrl?: string }
+  ) => {
+    if (!user) return false;
+    const msgType = options?.messageType || "text";
+    if (msgType === "text" && !message.trim()) return false;
 
     const { data: myProfile } = await supabase
       .from("profiles")
@@ -267,11 +273,19 @@ export function useFamilyCircles() {
 
     const senderName = [myProfile?.first_name, myProfile?.last_name].filter(Boolean).join(" ") || "Me";
 
+    let expiresAt: string | null = null;
+    if (options?.expiresInSeconds) {
+      expiresAt = new Date(Date.now() + options.expiresInSeconds * 1000).toISOString();
+    }
+
     const { error } = await supabase.from("family_messages").insert({
       sender_user_id: user.id,
       sender_name: senderName,
-      message: message.trim(),
+      message: message.trim() || (msgType === "voice" ? "🎤 Voice message" : "📷 Photo"),
       circle_id: circleId,
+      message_type: msgType,
+      expires_at: expiresAt,
+      media_url: options?.mediaUrl || null,
     } as any);
 
     if (error) {
@@ -283,6 +297,25 @@ export function useFamilyCircles() {
     await fetchMessages();
     return true;
   }, [user, fetchMessages]);
+
+  const uploadMedia = useCallback(async (file: Blob, extension: string): Promise<string | null> => {
+    if (!user) return null;
+    const fileName = `${user.id}/${Date.now()}.${extension}`;
+    const { error } = await supabase.storage.from("family-media").upload(fileName, file);
+    if (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload file");
+      return null;
+    }
+    const { data } = supabase.storage.from("family-media").getPublicUrl(fileName);
+    return data.publicUrl;
+  }, [user]);
+
+  const deleteExpiredMessages = useCallback(async () => {
+    // Client-side filter out expired messages from view
+    const now = new Date().toISOString();
+    setMessages(prev => prev.filter(m => !m.expires_at || m.expires_at > now));
+  }, []);
 
   const getCircleMembers = useCallback((circleId: string) => {
     return members.filter(m => m.circle_id === circleId);
