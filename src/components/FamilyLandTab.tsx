@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Heart, Users, PiggyBank, Target, Plus, Check, X,
   Baby, UserPlus, Gift, ArrowRight, Sparkles, TreePine, Mail, AtSign, Send, Loader2, MessageCircle,
-  LogOut, BellOff, Bell, Edit2, ChevronDown, ChevronUp
+  LogOut, BellOff, Bell, Edit2, ChevronDown, ChevronUp, Mic, MicOff, Camera, Clock, Image as ImageIcon, Timer
 } from "lucide-react";
 import type {
   AppData, FamilyMember, FamilyRequest, PiggyBank as PiggyBankType,
