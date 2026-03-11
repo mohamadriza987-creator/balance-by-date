@@ -140,6 +140,30 @@ export type Database = {
         }
         Relationships: []
       }
+      family_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          sender_name: string
+          sender_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          sender_name?: string
+          sender_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          sender_name?: string
+          sender_user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           birthday: string | null
@@ -289,6 +313,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_family_invitation: {
+        Args: { invitation_id: string }
+        Returns: Json
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
