@@ -44,6 +44,9 @@ interface ProfileData {
   country?: string;
   currency?: string;
   currency_symbol?: string;
+  occupation_type?: string;
+  course?: string;
+  profession?: string;
 }
 
 export function SettingsTab({ data, onReplace, onReplayIntro, onUpdateSettings, onUpdateAccountBalances }: SettingsTabProps) {
