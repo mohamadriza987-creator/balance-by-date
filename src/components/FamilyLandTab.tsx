@@ -433,10 +433,11 @@ function CircleCard({ circle, familyCircles }: {
     setSending(false);
   };
 
-  const handleSendMessage = async () => {
-    if (!messageText.trim()) return;
+  const handleSendMessage = async (options?: { messageType?: "text" | "voice" | "photo"; expiresInSeconds?: number; mediaUrl?: string }) => {
+    const msgType = options?.messageType || "text";
+    if (msgType === "text" && !messageText.trim()) return;
     setSendingMsg(true);
-    const success = await familyCircles.sendMessage(circle.id, messageText);
+    const success = await familyCircles.sendMessage(circle.id, messageText, options);
     if (success) {
       setMessageText("");
     }
