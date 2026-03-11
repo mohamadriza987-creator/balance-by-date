@@ -634,31 +634,7 @@ function FamilyMembersSection({ members, onAdd, onRemove }: {
           </div>
         ) : (
           <>
-            <div className="space-y-2 mb-3">
-              {members.map(m => (
-                <div key={m.id} className="flex items-center gap-3 rounded-xl bg-secondary/40 border border-border px-3 py-2.5 group">
-                  <span className="text-xl">{m.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-foreground">{m.name}</span>
-                      <span className="text-[10px] text-muted-foreground capitalize">({m.relationship})</span>
-                      {m.linkedUserId && <span className="text-[10px] text-primary">✓ Linked</span>}
-                    </div>
-                    {/* Show latest message from this member as a speech bubble */}
-                    {messages.filter(msg => msg.sender_user_id === m.linkedUserId).length > 0 && (
-                      <div className="mt-1 relative">
-                        <div className="bg-primary/10 text-foreground/80 text-[11px] px-2.5 py-1.5 rounded-xl rounded-tl-sm border border-primary/15 max-w-[250px]">
-                          {messages.find(msg => msg.sender_user_id === m.linkedUserId)?.message}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <button onClick={() => onRemove(m.id)} className="opacity-0 group-hover:opacity-100 text-destructive/60 hover:text-destructive transition-opacity ml-1">
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
+            <FamilyTreeView members={members} messages={messages} currentUserId={user?.id} onRemove={onRemove} />
 
             {/* Send Message to All */}
             <div className="border-t border-border pt-3">
