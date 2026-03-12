@@ -101,6 +101,44 @@ export type Database = {
         }
         Relationships: []
       }
+      family_circle_invitations: {
+        Row: {
+          circle_id: string
+          created_at: string
+          from_user_id: string
+          id: string
+          relationship: string
+          status: string
+          to_user_id: string
+        }
+        Insert: {
+          circle_id: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          relationship?: string
+          status?: string
+          to_user_id: string
+        }
+        Update: {
+          circle_id?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          relationship?: string
+          status?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_circle_invitations_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "family_circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       family_circle_members: {
         Row: {
           circle_id: string
